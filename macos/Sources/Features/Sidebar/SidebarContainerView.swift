@@ -122,7 +122,6 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             selectedWindow: nil,
             backgroundOpacity: opacity,
             onSelectTab: nil,
-            onNewTab: nil,
             onCloseTab: nil
         )
         self.tabBarHostingView = NSHostingView(rootView: initialTabBar)
@@ -323,11 +322,6 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             onSelectTab: { target in
                 target.makeKeyAndOrderFront(nil)
                 if let tg = window.tabGroup { tg.selectedWindow = target }
-            },
-            onNewTab: { [weak self] in
-                guard let self, let tc = self.terminalController,
-                      let surface = tc.focusedSurface?.surface else { return }
-                tc.ghostty.newTab(surface: surface)
             },
             onCloseTab: { target in
                 target.close()

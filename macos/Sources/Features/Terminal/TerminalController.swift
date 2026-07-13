@@ -1039,6 +1039,11 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         // 侧边栏模式：不恢复终端会话，也不保存
         window.isRestorable = false
 
+        // 本地终端初始标题（PWD 更新后会通过 pwdDidChange 刷新）
+        if isLocalTerminal {
+            titleOverride = "Local"
+        }
+
         // If we have only a single surface (no splits) and there is a default size then
         // we should resize to that default size.
         if case let .leaf(view) = surfaceTree.root {
@@ -1144,12 +1149,15 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 
     override func pwdDidChange(to: URL?) {
         super.pwdDidChange(to: to)
-        guard let window, let pwd = to?.path, isLocalTerminal else { return }
-        // 本地终端标题："Local <当前路径>"
-        let displayPath = pwd.replacingOccurrences(of: NSHomeDirectory(), with: "~")
-        window.title = "Local \(displayPath)"
-        // 刷新标签栏
-        (window.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
+        guard isLocalTerminal else { return }
+        let path: String
+        if let pwd = to?.path {
+            path = pwd.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+        } else {
+            path = "~"
+        }
+        titleOverride = "Local \(path)"
+        (window?.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
     }
 
     // Shows the "+" button in the tab bar, responds to that click.

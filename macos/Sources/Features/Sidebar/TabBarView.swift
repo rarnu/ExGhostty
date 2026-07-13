@@ -26,17 +26,6 @@ struct TabBarView: View {
                     }
                 }
             }
-
-            // 新建标签按钮
-            Button(action: { onNewTab?() }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.plain)
-            .help("New Tab")
-            .padding(.horizontal, 4)
         }
         .frame(height: 28)
         .background(
