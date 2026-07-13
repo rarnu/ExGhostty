@@ -10,6 +10,12 @@ struct SidebarView: View {
     /// 侧边栏是否折叠（仅读，由父容器控制）
     let collapsed: Bool
 
+    /// 来自配置的 background-opacity
+    let backgroundOpacity: CGFloat
+
+    /// 是否有磨砂玻璃效果
+    let hasBlur: Bool
+
     /// 回调闭包
     var onToggleCollapse: (() -> Void)?
     var onNewLocalTerminal: (() -> Void)?
@@ -43,7 +49,8 @@ struct SidebarView: View {
         }
         .frame(minWidth: collapsed ? 32 : 150)
         .frame(maxWidth: collapsed ? 32 : .infinity)
-        .background(Color(.windowBackgroundColor).opacity(0.95))
+        // 只有没有 blur 时才用纯色背景
+        .background(hasBlur ? Color.clear : Color(.windowBackgroundColor).opacity(max(0.1, backgroundOpacity)))
         .sheet(isPresented: $showAddSSH) {
             AddSSHView(onAdd: { conn in
                 store.addConnection(conn)
@@ -162,9 +169,7 @@ struct SidebarView: View {
 
     private var connectionList: some View {
         List {
-            // 有分组时：按分组显示
             if !store.groups.isEmpty {
-                // 未分组的连接
                 if !store.ungroupedConnections.isEmpty {
                     let ungrouped = filtered(store.ungroupedConnections)
                     if !ungrouped.isEmpty {
@@ -176,7 +181,6 @@ struct SidebarView: View {
                     }
                 }
 
-                // 各分组
                 ForEach(store.groups) { group in
                     let conns = filtered(store.connections(for: group.id))
                     if !conns.isEmpty {
@@ -188,7 +192,6 @@ struct SidebarView: View {
                     }
                 }
             } else {
-                // 无分组：平铺显示
                 ForEach(filtered(store.connections)) { conn in
                     connectionRow(conn)
                 }
@@ -245,7 +248,7 @@ struct SidebarView: View {
     }
 }
 
-// MARK: - 添加 SSH 连接弹窗
+// MARK: - 添加/编辑 SSH 弹窗
 
 struct AddSSHView: View {
     @Environment(\.dismiss) private var dismiss
@@ -299,8 +302,6 @@ struct AddSSHView: View {
         .frame(width: 320)
     }
 }
-
-// MARK: - 编辑 SSH 连接弹窗
 
 struct EditSSHView: View {
     @Environment(\.dismiss) private var dismiss
@@ -363,8 +364,6 @@ struct EditSSHView: View {
         .frame(width: 320)
     }
 }
-
-// MARK: - 添加分组弹窗
 
 struct AddGroupView: View {
     @Environment(\.dismiss) private var dismiss

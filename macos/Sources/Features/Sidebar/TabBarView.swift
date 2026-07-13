@@ -8,6 +8,9 @@ struct TabBarView: View {
     /// 当前选中的窗口
     let selectedWindow: NSWindow?
 
+    /// 背景不透明度（0~1，来自 background-opacity 配置）
+    let backgroundOpacity: CGFloat
+
     /// 回调
     var onSelectTab: ((NSWindow) -> Void)?
     var onNewTab: (() -> Void)?
@@ -36,7 +39,13 @@ struct TabBarView: View {
             .padding(.horizontal, 4)
         }
         .frame(height: 28)
-        .background(Color(.controlBackgroundColor).opacity(0.5))
+        .background(
+            // 使用 config 的 backgroundOpacity 控制标签栏背景透明度
+            VisualEffectView(
+                material: .underWindowBackground,
+                blendingMode: .behindWindow
+            ).opacity(max(0.1, backgroundOpacity))
+        )
     }
 
     private func tabButton(for window: NSWindow) -> some View {
@@ -68,5 +77,23 @@ struct TabBarView: View {
         .onTapGesture {
             onSelectTab?(window)
         }
+    }
+}
+
+// MARK: - NSVisualEffectView 的 SwiftUI 包装
+
+struct VisualEffectView: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.autoresizingMask = [.width, .height]
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+        nsView.blendingMode = blendingMode
     }
 }

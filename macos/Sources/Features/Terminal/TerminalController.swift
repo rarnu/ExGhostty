@@ -1036,12 +1036,8 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         // use whatever the latest app-level config is.
         let config = ghostty.config
 
-        // Setting all three of these is required for restoration to work.
-        window.isRestorable = restorable
-        if restorable {
-            window.restorationClass = TerminalWindowRestoration.self
-            window.identifier = .init(String(describing: TerminalWindowRestoration.self))
-        }
+        // 侧边栏模式：不恢复终端会话，也不保存
+        window.isRestorable = false
 
         // If we have only a single surface (no splits) and there is a default size then
         // we should resize to that default size.
@@ -1139,6 +1135,21 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         }
 
         super.showWindow(sender)
+    }
+
+    /// 当前终端是否为本地终端（没有执行自定义命令的终端）
+    private var isLocalTerminal: Bool {
+        restorable
+    }
+
+    override func pwdDidChange(to: URL?) {
+        super.pwdDidChange(to: to)
+        guard let window, let pwd = to?.path, isLocalTerminal else { return }
+        // 本地终端标题："Local <当前路径>"
+        let displayPath = pwd.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+        window.title = "Local \(displayPath)"
+        // 刷新标签栏
+        (window.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
     }
 
     // Shows the "+" button in the tab bar, responds to that click.

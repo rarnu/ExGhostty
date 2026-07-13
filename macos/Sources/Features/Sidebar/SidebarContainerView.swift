@@ -6,7 +6,7 @@ import Combine
 /// 布局:
 /// ┌──────────┬────────────────────────────┐
 /// │ sidebar  │ [Tab Bar: Tabs | +]        │
-/// │          ├────────────────────────────┤
+/// │ (玻璃)   ├────────────────────────────┤
 /// │          │    Terminal Content         │
 /// └──────────┴────────────────────────────┘
 class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
@@ -14,6 +14,16 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
 
     /// 侧边栏的 NSHostingView
     private let sidebarHostingView: NSHostingView<SidebarView>
+
+    /// 侧边栏磨砂玻璃背景
+    private let sidebarVisualEffectView: NSVisualEffectView = {
+        let v = NSVisualEffectView()
+        v.material = .underWindowBackground
+        v.blendingMode = .behindWindow
+        v.state = .followsWindowActiveState
+        v.autoresizingMask = [.width, .height]
+        return v
+    }()
 
     /// 标签栏的 NSHostingView
     private let tabBarHostingView: NSHostingView<TabBarView>
@@ -41,6 +51,9 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     private var windowTitleNotif: NSObjectProtocol?
     private var windowDidBecomeKeyNotif: NSObjectProtocol?
 
+    /// 配置通知观察者
+    private var configCancellable: Any?
+
     /// 侧边栏宽度
     private var _sidebarWidth: CGFloat = 250
     var sidebarWidth: CGFloat {
@@ -61,11 +74,16 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             _collapsed = newValue
             sidebarWidthConstraint?.constant = newValue ? 0 : _sidebarWidth
             sidebarHostingView.isHidden = newValue
+            sidebarVisualEffectView.isHidden = newValue
             dividerView.isHidden = newValue
             rebuildSidebarView()
             needsLayout = true
         }
     }
+
+    /// 当前配置值
+    private var configBackgroundOpacity: Double = 1.0
+    private var configHasBlur: Bool = false
 
     /// 终端视图（来自父类）
     private weak var terminalContentView: NSView?
@@ -81,8 +99,17 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     ) {
         self.terminalController = terminalController
 
+        // 读取配置
+        let config = terminalController.ghostty.config
+        let opacity = config.backgroundOpacity
+        let blur = config.backgroundBlur
+        self.configBackgroundOpacity = opacity
+        self.configHasBlur = opacity < 1 || blur.isGlassStyle
+
         let initialSidebar = SidebarView(
             collapsed: false,
+            backgroundOpacity: opacity,
+            hasBlur: configHasBlur,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
             onNewPortForward: nil,
@@ -93,6 +120,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         let initialTabBar = TabBarView(
             windows: [],
             selectedWindow: nil,
+            backgroundOpacity: opacity,
             onSelectTab: nil,
             onNewTab: nil,
             onCloseTab: nil
@@ -102,6 +130,14 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         super.init(rootView: rootView)
 
         setupViews()
+        setupConfigObserver()
+
+        // 延迟设置观察者（window 可能还没就绪）
+        DispatchQueue.main.async { [weak self] in
+            self?.setupObservers()
+            self?.rebuildSidebarView()
+            self?.rebuildTabBar()
+        }
     }
 
     @available(*, unavailable)
@@ -120,6 +156,31 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         }
     }
 
+    // MARK: - 配置变化监听
+
+    private func setupConfigObserver() {
+        configCancellable = NotificationCenter.default.addObserver(
+            forName: .ghosttyConfigDidChange,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self, let tc = self.terminalController else { return }
+            let config = tc.ghostty.config
+            self.configBackgroundOpacity = config.backgroundOpacity
+            self.configHasBlur = config.backgroundOpacity < 1 || config.backgroundBlur.isGlassStyle
+            self.updateVisualEffects()
+            self.rebuildSidebarView()
+            self.rebuildTabBar()
+        }
+    }
+
+    private func updateVisualEffects() {
+        let needsEffect = configHasBlur
+        sidebarVisualEffectView.isHidden = !needsEffect
+        if needsEffect {
+            sidebarVisualEffectView.alphaValue = max(0.1, configBackgroundOpacity)
+        }
+    }
+
     // MARK: - 视图设置
 
     private func setupViews() {
@@ -128,8 +189,15 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             tv.removeFromSuperview()
         }
 
-        // 构建层级: self → [sidebar, divider, rightContainer]
+        // 构建层级:
+        // self → [sidebarVibrancy, sidebar, divider, rightContainer]
         // rightContainer → [tabBar, tabDivider, terminal]
+
+        // 侧边栏玻璃背景
+        sidebarVisualEffectView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(sidebarVisualEffectView)
+        updateVisualEffects()
+
         [sidebarHostingView, dividerView, rightContainerView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             addSubview($0)
@@ -146,13 +214,6 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         }
 
         setupConstraints()
-
-        // 在 setupConstraints 之后更新 observer（window 可能还没设置）
-        DispatchQueue.main.async { [weak self] in
-            self?.setupObservers()
-            self?.rebuildSidebarView()
-            self?.rebuildTabBar()
-        }
     }
 
     private func setupConstraints() {
@@ -165,6 +226,12 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         let tabBarHeight: CGFloat = 28
 
         NSLayoutConstraint.activate([
+            // 玻璃背景：与侧边栏同位置
+            sidebarVisualEffectView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            sidebarVisualEffectView.topAnchor.constraint(equalTo: topAnchor),
+            sidebarVisualEffectView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            sidebarVisualEffectView.trailingAnchor.constraint(equalTo: sidebarHostingView.trailingAnchor),
+
             // 侧边栏
             sidebarHostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
             sidebarHostingView.topAnchor.constraint(equalTo: topAnchor),
@@ -252,6 +319,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         let newBar = TabBarView(
             windows: windows,
             selectedWindow: selected,
+            backgroundOpacity: configBackgroundOpacity,
             onSelectTab: { target in
                 target.makeKeyAndOrderFront(nil)
                 if let tg = window.tabGroup { tg.selectedWindow = target }
@@ -273,15 +341,18 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     func rebuildSidebarView() {
         let tc = terminalController
         let collapsed = self._collapsed
+        let opacity = configBackgroundOpacity
+        let blur = configHasBlur
 
         let newSidebar = SidebarView(
             collapsed: collapsed,
+            backgroundOpacity: opacity,
+            hasBlur: blur,
             onToggleCollapse: { [weak self] in
                 self?.collapsed.toggle()
             },
             onNewLocalTerminal: { [weak tc] in
                 guard let tc, let window = tc.window else { return }
-                // 在当前窗口中创建新标签
                 _ = TerminalController.newTab(tc.ghostty, from: window)
             },
             onNewPortForward: {
@@ -295,7 +366,6 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
                 guard let tc, let window = tc.window else { return }
                 var config = Ghostty.SurfaceConfiguration()
                 config.command = conn.sshCommand
-                // 在当前窗口中创建新标签
                 _ = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: config)
             }
         )
