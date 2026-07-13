@@ -252,15 +252,15 @@ class TerminalWindow: NSWindow {
     }
 
     override func addTitlebarAccessoryViewController(_ childViewController: NSTitlebarAccessoryViewController) {
-        super.addTitlebarAccessoryViewController(childViewController)
-
-        // Tab bar is attached as a titlebar accessory view controller (layout bottom). We
-        // can detect when it is shown or hidden by overriding add/remove and searching for
-        // it. This has been verified to work on macOS 12 to 26
+        // 侧边栏模式：拦截原生标签栏，不添加到标题栏
+        // 它会在标题栏中占据空间且响应事件，用右侧自定义标签栏代替
         if isTabBar(childViewController) {
             childViewController.identifier = Self.tabBarIdentifier
             tabBarDidAppear()
+            return
         }
+
+        super.addTitlebarAccessoryViewController(childViewController)
     }
 
     override func removeTitlebarAccessoryViewController(at index: Int) {

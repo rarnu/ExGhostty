@@ -7,34 +7,8 @@ import GhosttyKit
 /// A classic, tabbed terminal experience.
 class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Controller {
     override var windowNibName: NSNib.Name? {
-        let defaultValue = "Terminal"
-
-        guard let appDelegate = NSApp.delegate as? AppDelegate else { return defaultValue }
-        let config = appDelegate.ghostty.config
-
-        // If we have no window decorations, there's no reason to do anything but
-        // the default titlebar (because there will be no titlebar).
-        if !config.windowDecorations {
-            return defaultValue
-        }
-
-        let nib = switch config.macosTitlebarStyle {
-        case .native: "Terminal"
-        case .hidden: "TerminalHiddenTitlebar"
-        case .transparent: "TerminalTransparentTitlebar"
-        case .tabs:
-#if compiler(>=6.2)
-            if #available(macOS 26.0, *) {
-                "TerminalTabsTitlebarTahoe"
-            } else {
-                "TerminalTabsTitlebarVentura"
-            }
-#else
-            "TerminalTabsTitlebarVentura"
-#endif
-        }
-
-        return nib
+        // 侧边栏模式：始终使用基础 Terminal nib，不在标题栏中显示标签
+        return "Terminal"
     }
 
     /// This is set to true when we care about frame changes. This is a small optimization since
@@ -1078,9 +1052,11 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         }
 
         // Initialize our content view to the SwiftUI root
-        let container = TerminalViewContainer {
-            TerminalView(ghostty: ghostty, viewModel: self, delegate: self)
-        }
+        let terminalView = TerminalView(ghostty: ghostty, viewModel: self, delegate: self)
+        let container = SidebarTerminalTerminalViewContainer(
+            terminalController: self,
+            rootView: { terminalView }
+        )
 
         // Set the initial content size on the container so that
         // intrinsicContentSize returns the correct value immediately,
@@ -1089,6 +1065,15 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         container.initialContentSize = focusedSurface?.initialSize
 
         window.contentView = container
+
+        // 侧边栏模式：允许标签组（新终端作为标签页打开）
+        // 原生标签栏已在 TerminalWindow.addTitlebarAccessoryViewController 中隐藏
+        window.tabbingMode = .preferred
+
+        // TerminalWindow.awakeFromNib 中异步设置了 .automatic，这里覆盖
+        DispatchQueue.main.async {
+            window.tabbingMode = .preferred
+        }
 
         // If we have a default size, we want to apply it.
         if let defaultSize {
