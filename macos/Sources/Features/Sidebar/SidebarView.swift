@@ -31,25 +31,80 @@ struct SidebarView: View {
     @State private var showEditSSH = false
 
     var body: some View {
+        if collapsed {
+            // 折叠模式：紧凑图标栏
+            VStack(spacing: 0) {
+                // 展开按钮（顶部）
+                Button(action: { onToggleCollapse?() }) {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .help("Expand Sidebar")
+
+                Spacer()
+
+                // 设置按钮（底部）
+                Button(action: {
+                    // TODO: 设置功能暂未实现
+                }) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .help("Settings")
+                .padding(.bottom, 8)
+            }
+            .frame(width: 32)
+            .frame(maxHeight: .infinity)
+            .background(hasBlur ? Color.clear : Color(.windowBackgroundColor).opacity(max(0.1, backgroundOpacity)))
+        } else {
+            // 展开模式：完整侧边栏
+            expandedBody
+        }
+    }
+
+    /// 展开模式下的完整侧边栏
+    private var expandedBody: some View {
         VStack(spacing: 0) {
             // 顶部工具栏
             topToolbar
 
-            if !collapsed {
-                // 搜索框
-                searchBar
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+            // 搜索框
+            searchBar
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
 
-                Divider()
+            Divider()
 
-                // 连接列表
-                connectionList
+            // 连接列表
+            connectionList
+
+            // 底部设置按钮
+            Divider()
+            Button(action: {
+                // TODO: 设置功能暂未实现
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 11))
+                    Text("Settings")
+                        .font(.system(size: 11))
+                    Spacer()
+                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
             }
+            .buttonStyle(.plain)
+            .help("Settings")
         }
-        .frame(minWidth: collapsed ? 32 : 150)
-        .frame(maxWidth: collapsed ? 32 : .infinity)
-        // 只有没有 blur 时才用纯色背景
+        .frame(minWidth: 150)
+        .frame(maxWidth: .infinity)
         .background(hasBlur ? Color.clear : Color(.windowBackgroundColor).opacity(max(0.1, backgroundOpacity)))
         .sheet(isPresented: $showAddSSH) {
             AddSSHView(onAdd: { conn in

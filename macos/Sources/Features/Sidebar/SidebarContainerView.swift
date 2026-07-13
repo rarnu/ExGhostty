@@ -54,6 +54,9 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     /// 配置通知观察者
     private var configCancellable: Any?
 
+    /// 标签栏刷新计数器（每次重建递增，强制 SwiftUI 重新渲染）
+    private var tabBarViewID: Int = 0
+
     /// 侧边栏宽度
     private var _sidebarWidth: CGFloat = 250
     var sidebarWidth: CGFloat {
@@ -72,10 +75,8 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         set {
             guard _collapsed != newValue else { return }
             _collapsed = newValue
-            sidebarWidthConstraint?.constant = newValue ? 0 : _sidebarWidth
-            sidebarHostingView.isHidden = newValue
-            sidebarVisualEffectView.isHidden = newValue
-            dividerView.isHidden = newValue
+            let width = newValue ? 32 : _sidebarWidth
+            sidebarWidthConstraint?.constant = width
             rebuildSidebarView()
             needsLayout = true
         }
@@ -118,6 +119,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
 
         let initialTabBar = TabBarView(
+            viewID: 0,
             windows: [],
             selectedWindow: nil,
             backgroundOpacity: opacity,
@@ -304,6 +306,8 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     func rebuildTabBar() {
         guard let window = self.window else { return }
 
+        tabBarViewID &+= 1  // 递增 ID 防止 SwiftUI 跳过渲染
+
         let windows: [NSWindow]
         let selected: NSWindow?
 
@@ -316,6 +320,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         }
 
         let newBar = TabBarView(
+            viewID: tabBarViewID,
             windows: windows,
             selectedWindow: selected,
             backgroundOpacity: configBackgroundOpacity,
@@ -360,7 +365,15 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
                 guard let tc, let window = tc.window else { return }
                 var config = Ghostty.SurfaceConfiguration()
                 config.command = conn.sshCommand
-                _ = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: config)
+                // 设置 SSH 标签初始标题为连接名称
+                let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: config)
+                if let ctrl {
+                    ctrl.baseTitle = conn.name
+                    ctrl.titleOverride = conn.name
+                    DispatchQueue.main.async {
+                        (ctrl.window?.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
+                    }
+                }
             }
         )
         sidebarHostingView.rootView = newSidebar

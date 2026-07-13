@@ -2,6 +2,9 @@ import SwiftUI
 
 /// 自定义标签栏，显示在右侧终端区域顶部
 struct TabBarView: View {
+    /// 强制刷新 ID（每次 rebuildTabBar 递增，让 SwiftUI 重新渲染）
+    let viewID: Int
+
     /// 当前标签组的所有窗口
     let windows: [NSWindow]
 
@@ -27,6 +30,7 @@ struct TabBarView: View {
                 }
             }
         }
+        .id(viewID)
         .frame(height: 28)
         .background(
             // 使用 config 的 backgroundOpacity 控制标签栏背景透明度

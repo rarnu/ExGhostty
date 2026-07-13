@@ -11,9 +11,11 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         return "Terminal"
     }
 
-    /// This is set to true when we care about frame changes. This is a small optimization since
-    /// this controller registers a listener for ALL frame change notifications and this lets us bail
-    /// early if we don't care.
+    /// 侧边栏模式专用：用于 pwd 订阅，独立于 surfaceAppearanceCancellables（不会被 focusedSurfaceDidChange 清除）
+    private var pwdCancellable: AnyCancellable?
+
+    /// 侧边栏模式专用：基础标题（Local 或 SSH 连接名），不含路径
+    var baseTitle: String = ""
     private var tabListenForFrame: Bool = false
 
     /// This is the hash value of the last tabGroup.windows array. We use this to detect order
@@ -1039,9 +1041,10 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         // 侧边栏模式：不恢复终端会话，也不保存
         window.isRestorable = false
 
-        // 本地终端初始标题（PWD 更新后会通过 pwdDidChange 刷新）
+        // 本地终端初始标题
         if isLocalTerminal {
-            titleOverride = "Local"
+            baseTitle = "Local"
+            titleOverride = baseTitle
         }
 
         // If we have only a single surface (no splits) and there is a default size then
@@ -1145,19 +1148,6 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
     /// 当前终端是否为本地终端（没有执行自定义命令的终端）
     private var isLocalTerminal: Bool {
         restorable
-    }
-
-    override func pwdDidChange(to: URL?) {
-        super.pwdDidChange(to: to)
-        guard isLocalTerminal else { return }
-        let path: String
-        if let pwd = to?.path {
-            path = pwd.replacingOccurrences(of: NSHomeDirectory(), with: "~")
-        } else {
-            path = "~"
-        }
-        titleOverride = "Local \(path)"
-        (window?.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
     }
 
     // Shows the "+" button in the tab bar, responds to that click.
@@ -1421,6 +1411,25 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
             .dropFirst()
             .sink { [weak self, weak focusedSurface] _ in self?.syncAppearanceOnPropertyChange(focusedSurface) }
             .store(in: &surfaceAppearanceCancellables)
+
+        // 监听 PWD 和 Title 变化实时更新标题（独立 Cancellable，不会被 surfaceAppearanceCancellables 清除）
+        pwdCancellable = focusedSurface.$pwd
+            .combineLatest(focusedSurface.$title)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] (pwd, title) in
+                guard let self, !self.baseTitle.isEmpty else { return }
+                // 优先用 shell 标题（通过 OSC 序列设置），它有路径信息
+                // 如果 shell 标题为空或太短，用 PWD 代替
+                let displayTitle: String
+                if !title.isEmpty && title != "Terminal" {
+                    displayTitle = title
+                } else {
+                    let pwdStr = pwd ?? ""
+                    displayTitle = pwdStr.isEmpty ? "~" : pwdStr.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+                }
+                self.titleOverride = "\(self.baseTitle) \(displayTitle)"
+                (self.window?.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
+            }
     }
 
     private func syncAppearanceOnPropertyChange(_ surface: Ghostty.SurfaceView?) {
