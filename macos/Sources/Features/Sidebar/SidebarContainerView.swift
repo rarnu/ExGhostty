@@ -3,35 +3,13 @@ import SwiftUI
 import Combine
 
 /// 带左侧栏和右侧标签栏的终端视图容器
-/// 布局:
-/// ┌──────────┬────────────────────────────┐
-/// │ sidebar  │ [Tab Bar: Tabs | +]        │
-/// │ (玻璃)   ├────────────────────────────┤
-/// │          │    Terminal Content         │
-/// └──────────┴────────────────────────────┘
 class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     // MARK: - 子视图
 
-    /// 侧边栏的 NSHostingView
     private let sidebarHostingView: NSHostingView<SidebarView>
-
-    /// 侧边栏磨砂玻璃背景
-    private let sidebarVisualEffectView: NSVisualEffectView = {
-        let v = NSVisualEffectView()
-        v.material = .underWindowBackground
-        v.blendingMode = .behindWindow
-        v.state = .followsWindowActiveState
-        v.autoresizingMask = [.width, .height]
-        return v
-    }()
-
-    /// 标签栏的 NSHostingView
     private let tabBarHostingView: NSHostingView<TabBarView>
-
-    /// 分隔线（侧边栏和右侧容器之间）
     private let dividerView = SidebarDividerView()
 
-    /// 分隔线（标签栏和终端之间）
     private let tabDividerView: NSView = {
         let v = NSView()
         v.wantsLayer = true
@@ -39,36 +17,29 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         return v
     }()
 
-    /// 右侧容器（标签栏 + 终端）
     private let rightContainerView = NSView()
 
-    /// 侧边栏宽度约束
     private var sidebarWidthConstraint: NSLayoutConstraint?
-
-    /// tabGroup 的 KVO
     private var tabGroupObserver: NSKeyValueObservation?
     private var tabWindowsObserver: NSKeyValueObservation?
     private var windowTitleNotif: NSObjectProtocol?
     private var windowDidBecomeKeyNotif: NSObjectProtocol?
-
-    /// 配置通知观察者
     private var configCancellable: Any?
-
-    /// 标签栏刷新计数器（每次重建递增，强制 SwiftUI 重新渲染）
     private var tabBarViewID: Int = 0
 
-    /// 侧边栏宽度
+    /// 标签组加入后重新应用外观的标记
+    private var needsAppearanceRefresh: Bool = true
+
     private var _sidebarWidth: CGFloat = 250
     var sidebarWidth: CGFloat {
         get { _sidebarWidth }
         set {
             _sidebarWidth = max(150, min(newValue, 500))
-            sidebarWidthConstraint?.constant = collapsed ? 0 : _sidebarWidth
+            sidebarWidthConstraint?.constant = collapsed ? 32 : _sidebarWidth
             needsLayout = true
         }
     }
 
-    /// 折叠状态
     private var _collapsed: Bool = false
     var collapsed: Bool {
         get { _collapsed }
@@ -82,14 +53,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         }
     }
 
-    /// 当前配置值
-    private var configBackgroundOpacity: Double = 1.0
-    private var configHasBlur: Bool = false
-
-    /// 终端视图（来自父类）
     private weak var terminalContentView: NSView?
-
-    /// 弱引用 TerminalController
     private weak var terminalController: TerminalController?
 
     // MARK: - 初始化
@@ -100,17 +64,14 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     ) {
         self.terminalController = terminalController
 
-        // 读取配置
         let config = terminalController.ghostty.config
         let opacity = config.backgroundOpacity
-        let blur = config.backgroundBlur
-        self.configBackgroundOpacity = opacity
-        self.configHasBlur = opacity < 1 || blur.isGlassStyle
+        let hasEffect = opacity < 1 || config.backgroundBlur.isGlassStyle
 
         let initialSidebar = SidebarView(
             collapsed: false,
             backgroundOpacity: opacity,
-            hasBlur: configHasBlur,
+            hasBlur: hasEffect,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
             onNewPortForward: nil,
@@ -133,7 +94,6 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         setupViews()
         setupConfigObserver()
 
-        // 延迟设置观察者（window 可能还没就绪）
         DispatchQueue.main.async { [weak self] in
             self?.setupObservers()
             self?.rebuildSidebarView()
@@ -149,12 +109,8 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     deinit {
         tabGroupObserver?.invalidate()
         tabWindowsObserver?.invalidate()
-        if let obs = windowTitleNotif {
-            NotificationCenter.default.removeObserver(obs)
-        }
-        if let obs = windowDidBecomeKeyNotif {
-            NotificationCenter.default.removeObserver(obs)
-        }
+        if let obs = windowTitleNotif { NotificationCenter.default.removeObserver(obs) }
+        if let obs = windowDidBecomeKeyNotif { NotificationCenter.default.removeObserver(obs) }
     }
 
     // MARK: - 配置变化监听
@@ -164,21 +120,29 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             forName: .ghosttyConfigDidChange,
             object: nil, queue: .main
         ) { [weak self] _ in
-            guard let self, let tc = self.terminalController else { return }
-            let config = tc.ghostty.config
-            self.configBackgroundOpacity = config.backgroundOpacity
-            self.configHasBlur = config.backgroundOpacity < 1 || config.backgroundBlur.isGlassStyle
-            self.updateVisualEffects()
-            self.rebuildSidebarView()
-            self.rebuildTabBar()
+            guard let self else { return }
+            self.refreshFromConfig()
         }
     }
 
-    private func updateVisualEffects() {
-        let needsEffect = configHasBlur
-        sidebarVisualEffectView.isHidden = !needsEffect
-        if needsEffect {
-            sidebarVisualEffectView.alphaValue = max(0.1, configBackgroundOpacity)
+    private func refreshFromConfig() {
+        guard let tc = terminalController else { return }
+        let config = tc.ghostty.config
+        // 重新应用窗口外观
+        if let window = self.window as? TerminalWindow {
+            let dc = Ghostty.SurfaceView.DerivedConfig(config)
+            window.syncAppearance(dc)
+        }
+        rebuildSidebarView()
+        rebuildTabBar()
+    }
+
+    // MARK: - 视图生命周期
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if self.window != nil {
+            refreshFromConfig()
         }
     }
 
@@ -186,18 +150,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
 
     private func setupViews() {
         terminalContentView = subviews.first
-        if let tv = terminalContentView {
-            tv.removeFromSuperview()
-        }
-
-        // 构建层级:
-        // self → [sidebarVibrancy, sidebar, divider, rightContainer]
-        // rightContainer → [tabBar, tabDivider, terminal]
-
-        // 侧边栏玻璃背景
-        sidebarVisualEffectView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(sidebarVisualEffectView)
-        updateVisualEffects()
+        if let tv = terminalContentView { tv.removeFromSuperview() }
 
         [sidebarHostingView, dividerView, rightContainerView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -224,46 +177,32 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         swc.priority = .defaultHigh
         self.sidebarWidthConstraint = swc
 
-        let tabBarHeight: CGFloat = 28
-
         NSLayoutConstraint.activate([
-            // 玻璃背景：与侧边栏同位置
-            sidebarVisualEffectView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            sidebarVisualEffectView.topAnchor.constraint(equalTo: topAnchor),
-            sidebarVisualEffectView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            sidebarVisualEffectView.trailingAnchor.constraint(equalTo: sidebarHostingView.trailingAnchor),
-
-            // 侧边栏
             sidebarHostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
             sidebarHostingView.topAnchor.constraint(equalTo: topAnchor),
             sidebarHostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
             swc,
 
-            // 分隔线
             dividerView.leadingAnchor.constraint(equalTo: sidebarHostingView.trailingAnchor),
             dividerView.topAnchor.constraint(equalTo: topAnchor),
             dividerView.bottomAnchor.constraint(equalTo: bottomAnchor),
             dividerView.widthAnchor.constraint(equalToConstant: 4),
 
-            // 右侧容器
             rightContainerView.leadingAnchor.constraint(equalTo: dividerView.trailingAnchor),
             rightContainerView.topAnchor.constraint(equalTo: topAnchor),
             rightContainerView.bottomAnchor.constraint(equalTo: bottomAnchor),
             rightContainerView.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            // 标签栏（右侧容器顶部）
             tabBarHostingView.topAnchor.constraint(equalTo: rightContainerView.topAnchor),
             tabBarHostingView.leadingAnchor.constraint(equalTo: rightContainerView.leadingAnchor),
             tabBarHostingView.trailingAnchor.constraint(equalTo: rightContainerView.trailingAnchor),
-            tabBarHostingView.heightAnchor.constraint(equalToConstant: tabBarHeight),
+            tabBarHostingView.heightAnchor.constraint(equalToConstant: 28),
 
-            // 标签栏分隔线
             tabDividerView.topAnchor.constraint(equalTo: tabBarHostingView.bottomAnchor),
             tabDividerView.leadingAnchor.constraint(equalTo: rightContainerView.leadingAnchor),
             tabDividerView.trailingAnchor.constraint(equalTo: rightContainerView.trailingAnchor),
             tabDividerView.heightAnchor.constraint(equalToConstant: 1),
 
-            // 终端视图（填满剩余空间）
             tv.topAnchor.constraint(equalTo: tabDividerView.bottomAnchor),
             tv.leadingAnchor.constraint(equalTo: rightContainerView.leadingAnchor),
             tv.bottomAnchor.constraint(equalTo: rightContainerView.bottomAnchor),
@@ -281,7 +220,11 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             if let tg = win.tabGroup {
                 let weakSelf = self
                 self.tabWindowsObserver = tg.observe(\.windows, options: [.initial, .new]) { (_, _) in
-                    DispatchQueue.main.async { weakSelf.rebuildTabBar() }
+                    DispatchQueue.main.async {
+                        weakSelf.rebuildTabBar()
+                        // 窗口加入标签组后刷新外观（macOS 可能覆盖了 isOpaque 等属性）
+                        weakSelf.refreshFromConfig()
+                    }
                 }
             } else {
                 self.tabWindowsObserver?.invalidate()
@@ -301,16 +244,13 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         ) { [weak self] _ in self?.rebuildTabBar() }
     }
 
-    // MARK: - 标签栏管理
+    // MARK: - 标签栏
 
     func rebuildTabBar() {
         guard let window = self.window else { return }
-
-        tabBarViewID &+= 1  // 递增 ID 防止 SwiftUI 跳过渲染
-
+        tabBarViewID &+= 1
         let windows: [NSWindow]
         let selected: NSWindow?
-
         if let tg = window.tabGroup {
             windows = tg.windows
             selected = tg.selectedWindow
@@ -319,37 +259,37 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             selected = window
         }
 
+        let config = terminalController?.ghostty.config
+        let opacity = config?.backgroundOpacity ?? 1
+
         let newBar = TabBarView(
             viewID: tabBarViewID,
             windows: windows,
             selectedWindow: selected,
-            backgroundOpacity: configBackgroundOpacity,
+            backgroundOpacity: opacity,
             onSelectTab: { target in
                 target.makeKeyAndOrderFront(nil)
                 if let tg = window.tabGroup { tg.selectedWindow = target }
             },
-            onCloseTab: { target in
-                target.close()
-            }
+            onCloseTab: { target in target.close() }
         )
         tabBarHostingView.rootView = newBar
     }
 
-    // MARK: - 侧边栏管理
+    // MARK: - 侧边栏
 
     func rebuildSidebarView() {
         let tc = terminalController
         let collapsed = self._collapsed
-        let opacity = configBackgroundOpacity
-        let blur = configHasBlur
+        let config = tc?.ghostty.config
+        let opacity = config?.backgroundOpacity ?? 1
+        let hasEffect = (config?.backgroundOpacity ?? 1) < 1 || (config?.backgroundBlur.isGlassStyle ?? false)
 
         let newSidebar = SidebarView(
             collapsed: collapsed,
             backgroundOpacity: opacity,
-            hasBlur: blur,
-            onToggleCollapse: { [weak self] in
-                self?.collapsed.toggle()
-            },
+            hasBlur: hasEffect,
+            onToggleCollapse: { [weak self] in self?.collapsed.toggle() },
             onNewLocalTerminal: { [weak tc] in
                 guard let tc, let window = tc.window else { return }
                 _ = TerminalController.newTab(tc.ghostty, from: window)
@@ -357,16 +297,15 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             onNewPortForward: {
                 let alert = NSAlert()
                 alert.messageText = "Port Forwarding"
-                alert.informativeText = "Port forwarding feature is not yet implemented."
+                alert.informativeText = "Not yet implemented."
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
             },
             onOpenSSH: { [weak tc] conn in
                 guard let tc, let window = tc.window else { return }
-                var config = Ghostty.SurfaceConfiguration()
-                config.command = conn.sshCommand
-                // 设置 SSH 标签初始标题为连接名称
-                let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: config)
+                var cfg = Ghostty.SurfaceConfiguration()
+                cfg.command = conn.sshCommand
+                let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: cfg)
                 if let ctrl {
                     ctrl.baseTitle = conn.name
                     ctrl.titleOverride = conn.name
@@ -388,26 +327,19 @@ extension BaseTerminalController {
     }
 }
 
-// MARK: - 分隔线视图
+// MARK: - 分隔线
 
 class SidebarDividerView: NSView {
     weak var container: SidebarTerminalTerminalViewContainer?
 
     override func mouseDown(with event: NSEvent) {
-        guard let container else { return }
-        guard let window = container.window else { return }
-
+        guard let container, let window = container.window else { return }
         let initialWidth = container.sidebarWidth
-        let initialLocation = event.locationInWindow
-
-        window.trackEvents(
-            matching: [.leftMouseDragged, .leftMouseUp],
-            timeout: .infinity,
-            mode: .eventTracking
-        ) { event, stop in
-            guard let event else { return }
-            if event.type == .leftMouseUp { stop.pointee = true; return }
-            container.sidebarWidth = initialWidth + event.locationInWindow.x - initialLocation.x
+        let initialX = event.locationInWindow.x
+        window.trackEvents(matching: [.leftMouseDragged, .leftMouseUp], timeout: .infinity, mode: .eventTracking) { ev, stop in
+            guard let ev else { return }
+            if ev.type == .leftMouseUp { stop.pointee = true; return }
+            container.sidebarWidth = initialWidth + ev.locationInWindow.x - initialX
         }
     }
 

@@ -1143,6 +1143,10 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         }
 
         super.showWindow(sender)
+
+        // 窗口显示后重新应用外观（标签组可能覆盖了 isOpaque）
+        let surfaceConfig = Ghostty.SurfaceView.DerivedConfig(ghostty.config)
+        terminalWindow.syncAppearance(surfaceConfig)
     }
 
     /// 当前终端是否为本地终端（没有执行自定义命令的终端）

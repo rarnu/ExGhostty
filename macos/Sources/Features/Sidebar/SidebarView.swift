@@ -63,7 +63,6 @@ struct SidebarView: View {
             .frame(maxHeight: .infinity)
             .background(hasBlur ? Color.clear : Color(.windowBackgroundColor).opacity(max(0.1, backgroundOpacity)))
         } else {
-            // 展开模式：完整侧边栏
             expandedBody
         }
     }
