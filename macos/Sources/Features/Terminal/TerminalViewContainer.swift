@@ -86,7 +86,12 @@ class TerminalViewContainer: NSView {
 
 extension BaseTerminalController {
     var terminalViewContainer: TerminalViewContainer? {
-        window?.contentView as? TerminalViewContainer
+        // 侧边栏模式下 window.contentViewController 是 SidebarSplitViewController，
+        // 真正的 TerminalViewContainer 嵌套在右侧分栏中。
+        if let splitVC = window?.contentViewController as? SidebarSplitViewController {
+            return splitVC.terminalView as? TerminalViewContainer
+        }
+        return window?.contentView as? TerminalViewContainer
     }
 }
 

@@ -412,9 +412,9 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 
         // Inherit sidebar collapsed state from the parent window so that new tabs
         // opened from a collapsed sidebar don't unexpectedly expand it.
-        if let parentContainer = parent.contentView as? SidebarTerminalTerminalViewContainer,
-           let childContainer = window.contentView as? SidebarTerminalTerminalViewContainer {
-            childContainer.collapsed = parentContainer.collapsed
+        if let parentSplitVC = parentController.sidebarSplitViewController,
+           let childSplitVC = window.contentViewController as? SidebarSplitViewController {
+            childSplitVC.collapsed = parentSplitVC.collapsed
         }
 
         // If the parent is miniaturized, then macOS exhibits really strange behaviors
@@ -1064,18 +1064,18 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 
         // Initialize our content view to the SwiftUI root
         let terminalView = TerminalView(ghostty: ghostty, viewModel: self, delegate: self)
-        let container = SidebarTerminalTerminalViewContainer(
+        let splitVC = SidebarSplitViewController(
             terminalController: self,
             rootView: { terminalView }
         )
 
-        // Set the initial content size on the container so that
+        // Set the initial content size on the terminal container so that
         // intrinsicContentSize returns the correct value immediately,
         // without waiting for @FocusedValue to propagate through the
         // SwiftUI focus chain.
-        container.initialContentSize = focusedSurface?.initialSize
+        splitVC.initialContentSize = focusedSurface?.initialSize
 
-        window.contentView = container
+        window.contentViewController = splitVC
 
         // 侧边栏模式：允许标签组（新终端作为标签页打开）
         // 原生标签栏已在 TerminalWindow.addTitlebarAccessoryViewController 中隐藏
@@ -1439,7 +1439,7 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
                     displayTitle = pwdStr.isEmpty ? "~" : pwdStr.replacingOccurrences(of: NSHomeDirectory(), with: "~")
                 }
                 self.titleOverride = "\(self.baseTitle) \(displayTitle)"
-                (self.window?.contentView as? SidebarTerminalTerminalViewContainer)?.rebuildTabBar()
+                self.sidebarSplitViewController?.rebuildTabBar()
             }
     }
 
@@ -1696,11 +1696,11 @@ extension TerminalController {
             case .frame(let rect):
                 return window.frame != rect
             case .contentIntrinsicSize:
-                guard let view = window.contentView else {
+                guard let size = Self.intrinsicContentSize(for: window) else {
                     return false
                 }
 
-                return view.frame.size != view.intrinsicContentSize
+                return window.contentView?.frame.size != size
             }
         }
 
@@ -1709,13 +1709,23 @@ extension TerminalController {
             case .frame(let rect):
                 window.setFrame(rect, display: true)
             case .contentIntrinsicSize:
-                guard let size = window.contentView?.intrinsicContentSize else {
+                guard let size = Self.intrinsicContentSize(for: window) else {
                     return
                 }
 
                 window.setContentSize(size)
                 window.constrainToScreen()
             }
+        }
+
+        /// 返回终端内容视图的 intrinsicContentSize。
+        /// 侧边栏模式下内容视图是 NSSplitViewController 的 view，没有有意义的 intrinsic size，
+        /// 需要取嵌套在右侧分栏里的 TerminalViewContainer 的值。
+        private static func intrinsicContentSize(for window: NSWindow) -> CGSize? {
+            if let splitVC = window.contentViewController as? SidebarSplitViewController {
+                return splitVC.terminalView?.intrinsicContentSize
+            }
+            return window.contentView?.intrinsicContentSize
         }
     }
 
