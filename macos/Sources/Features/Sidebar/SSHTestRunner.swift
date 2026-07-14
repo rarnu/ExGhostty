@@ -11,6 +11,17 @@ struct SSHTestConfig {
     let keyPath: String?
     let connectionMethod: SSHConnectionMethod
     let jumpHost: SSHConnection?
+    let timeoutMs: UInt32
+    let heartbeatMs: UInt32
+    let encoding: String
+    let x11Forwarding: Bool
+
+    var encodingEnvironment: [String: String] {
+        [
+            "LANG": encoding,
+            "LC_ALL": encoding,
+        ]
+    }
 }
 
 // MARK: - 测试事件
@@ -108,11 +119,8 @@ enum SSHTester {
         continuation.yield(.step("检查系统 SSH 命令"))
         continuation.yield(.log("Found /usr/bin/ssh"))
 
-        var sshArgs: [String] = [
-            "-v",
-            "-o", "ConnectTimeout=30",
-            "-o", "StrictHostKeyChecking=accept-new",
-        ]
+        var sshArgs: [String] = ["-v", "-o", "StrictHostKeyChecking=accept-new"]
+        sshArgs += commonSSHOptions(config: config)
 
         if config.connectionMethod == .jumpHost, let jump = config.jumpHost {
             let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
@@ -167,7 +175,7 @@ enum SSHTester {
         let result = await runProcess(
             executable: "/usr/bin/ssh",
             args: sshArgs,
-            env: ["SSH_AUTH_SOCK": ""],
+            env: ["SSH_AUTH_SOCK": ""].merging(config.encodingEnvironment) { $1 },
             continuation: continuation
         )
 
@@ -193,7 +201,7 @@ enum SSHTester {
         continuation.yield(.step("检查系统 expect 命令"))
         continuation.yield(.log("Found /usr/bin/expect"))
 
-        var sshArgs = "-v -o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new"
+        var sshArgs = "-v -o StrictHostKeyChecking=accept-new " + commonSSHOptions(config: config).joined(separator: " ")
 
         if config.connectionMethod == .jumpHost, let jump = config.jumpHost {
             let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
@@ -253,7 +261,7 @@ enum SSHTester {
         let result = await runProcess(
             executable: "/usr/bin/expect",
             args: [tempURL.path],
-            env: ["SSHPASS": config.password, "SSH_AUTH_SOCK": ""],
+            env: ["SSHPASS": config.password, "SSH_AUTH_SOCK": ""].merging(config.encodingEnvironment) { $1 },
             continuation: continuation
         )
 
@@ -268,6 +276,20 @@ enum SSHTester {
             }
         }
         continuation.finish()
+    }
+
+    private static func commonSSHOptions(config: SSHTestConfig) -> [String] {
+        var options: [String] = []
+        let timeoutSec = max(1, Double(config.timeoutMs) / 1000.0)
+        options += ["-o", "ConnectTimeout=\(timeoutSec)"]
+        if config.heartbeatMs > 0 {
+            let heartbeatSec = max(1, Int(config.heartbeatMs / 1000))
+            options += ["-o", "ServerAliveInterval=\(heartbeatSec)", "-o", "ServerAliveCountMax=10"]
+        }
+        if config.x11Forwarding {
+            options += ["-Y"]
+        }
+        return options
     }
 
     private static func runProcess(

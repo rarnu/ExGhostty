@@ -29,6 +29,30 @@ enum SSHConnectionMethod: String, Codable, CaseIterable {
     case jumpHost = "jumpHost"
 }
 
+// MARK: - 终端编码选项
+
+enum SSHTerminalEncoding: String, Codable, CaseIterable {
+    case utf8 = "en_US.UTF-8"
+    case gbk = "zh_CN.GBK"
+    case gb2312 = "zh_CN.GB2312"
+    case big5 = "zh_TW.Big5"
+    case eucJP = "ja_JP.eucJP"
+    case shiftJIS = "ja_JP.SJIS"
+    case iso8859_1 = "en_US.ISO-8859-1"
+
+    var displayName: String {
+        switch self {
+        case .utf8: return "UTF-8"
+        case .gbk: return "GBK"
+        case .gb2312: return "GB2312"
+        case .big5: return "Big5"
+        case .eucJP: return "EUC-JP"
+        case .shiftJIS: return "Shift_JIS"
+        case .iso8859_1: return "ISO-8859-1"
+        }
+    }
+}
+
 // MARK: - SSH 连接配置
 
 struct SSHConnection: Identifiable, Codable, Hashable {
@@ -54,6 +78,15 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     /// 备注
     var notes: String
 
+    /// 连接超时（毫秒）
+    var timeoutMs: UInt32
+    /// 心跳间隔（毫秒），0 表示不发送心跳
+    var heartbeatMs: UInt32
+    /// 终端显示编码（locale 字符串，如 en_US.UTF-8）
+    var encoding: String
+    /// 是否启用 X11 转发
+    var x11Forwarding: Bool
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -66,7 +99,11 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         keyPath: String? = nil,
         connectionMethod: SSHConnectionMethod = .direct,
         jumpHostID: UUID? = nil,
-        notes: String = ""
+        notes: String = "",
+        timeoutMs: UInt32 = 30000,
+        heartbeatMs: UInt32 = 30000,
+        encoding: String = SSHTerminalEncoding.utf8.rawValue,
+        x11Forwarding: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -80,6 +117,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.connectionMethod = connectionMethod
         self.jumpHostID = jumpHostID
         self.notes = notes
+        self.timeoutMs = timeoutMs
+        self.heartbeatMs = heartbeatMs
+        self.encoding = encoding
+        self.x11Forwarding = x11Forwarding
     }
 
     init(from decoder: Decoder) throws {
@@ -99,16 +140,36 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         }()
         self.jumpHostID = try container.decodeIfPresent(UUID.self, forKey: .jumpHostID)
         self.notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        self.timeoutMs = try container.decodeIfPresent(UInt32.self, forKey: .timeoutMs) ?? 30000
+        self.heartbeatMs = try container.decodeIfPresent(UInt32.self, forKey: .heartbeatMs) ?? 30000
+        self.encoding = try container.decodeIfPresent(String.self, forKey: .encoding) ?? SSHTerminalEncoding.utf8.rawValue
+        self.x11Forwarding = try container.decodeIfPresent(Bool.self, forKey: .x11Forwarding) ?? false
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, host, port, username, groupID
         case authMode, password, keyPath, connectionMethod, jumpHostID, notes
+        case timeoutMs, heartbeatMs, encoding, x11Forwarding
     }
 
     /// 生成 SSH 命令行参数字符串（不含 "ssh" 前缀）
     var sshBaseArgs: String {
         var args = ""
+
+        // 连接超时（秒，支持小数）
+        let timeoutSec = max(1, Double(timeoutMs) / 1000.0)
+        args += "-o ConnectTimeout=\(timeoutSec) "
+
+        // 心跳保活（秒，取整至少 1 秒）
+        if heartbeatMs > 0 {
+            let heartbeatSec = max(1, Int(heartbeatMs / 1000))
+            args += "-o ServerAliveInterval=\(heartbeatSec) -o ServerAliveCountMax=10 "
+        }
+
+        // X11 转发（macOS 上 XQuartz 对 -Y 信任模式兼容更好）
+        if x11Forwarding {
+            args += "-Y "
+        }
 
         if connectionMethod == .jumpHost,
            let jumpHostID,
@@ -134,6 +195,14 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     /// 生成完整 SSH 命令行字符串
     var sshCommand: String {
         "ssh \(sshBaseArgs)"
+    }
+
+    /// 终端环境变量（编码相关）
+    var terminalEnvironment: [String: String] {
+        [
+            "LANG": encoding,
+            "LC_ALL": encoding,
+        ]
     }
 }
 

@@ -37,6 +37,10 @@ struct SSHConfigFormView: View {
     @State private var jumpHostID: UUID?
     @State private var groupID: UUID?
     @State private var notes = ""
+    @State private var timeoutMs = "30000"
+    @State private var heartbeatMs = "30000"
+    @State private var encoding: String = SSHTerminalEncoding.utf8.rawValue
+    @State private var x11Forwarding = false
     @State private var isPasswordVisible = false
     @State private var showAdvanced = false
 
@@ -69,6 +73,10 @@ struct SSHConfigFormView: View {
             _jumpHostID = State(initialValue: conn.jumpHostID)
             _groupID = State(initialValue: conn.groupID)
             _notes = State(initialValue: conn.notes)
+            _timeoutMs = State(initialValue: String(conn.timeoutMs))
+            _heartbeatMs = State(initialValue: String(conn.heartbeatMs))
+            _encoding = State(initialValue: conn.encoding)
+            _x11Forwarding = State(initialValue: conn.x11Forwarding)
         }
     }
 
@@ -412,7 +420,7 @@ struct SSHConfigFormView: View {
                 .scrollContentBackground(.hidden)
                 .background(Color(.controlBackgroundColor))
                 .cornerRadius(8)
-                .frame(minHeight: 80)
+                .frame(height: 58)
         }
     }
 
@@ -422,18 +430,106 @@ struct SSHConfigFormView: View {
         DisclosureGroup(
             isExpanded: $showAdvanced,
             content: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("高级设置内容预留")
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        numberField("超时时间 (ms)", value: $timeoutMs)
+                        numberField("心跳时间 (ms)", value: $heartbeatMs)
+                    }
+
+                    encodingPicker
+
+                    Toggle("启用 X11 转发", isOn: $x11Forwarding)
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+
+                    if x11Forwarding && !SSHX11Environment.isAvailable {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 12))
+                            Text("未检测到本地 X server。macOS 上请先安装并启动 XQuartz，否则 X11 转发不会生效。")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(8)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+
+                    if heartbeatMs != "0" && (Int(heartbeatMs) ?? 0) > 0 {
+                        Text("心跳将使用 SSH 的 ServerAliveInterval 选项，每 \(max(1, (Int(heartbeatMs) ?? 0) / 1000)) 秒发送一次保活包")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.vertical, 8)
             },
             label: {
-                Text("高级设置")
-                    .font(.system(size: 13, weight: .medium))
+                HStack {
+                    Text("高级设置")
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation {
+                        showAdvanced.toggle()
+                    }
+                }
             }
         )
+    }
+
+    private var encodingPicker: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            label("终端显示编码")
+            Menu {
+                ForEach(SSHTerminalEncoding.allCases, id: \.self) { enc in
+                    Button(enc.displayName) { encoding = enc.rawValue }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(currentEncodingDisplayName)
+                        .font(.system(size: 12))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(8)
+                .contentShape(Rectangle())
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var currentEncodingDisplayName: String {
+        SSHTerminalEncoding.allCases.first(where: { $0.rawValue == encoding })?.displayName ?? encoding
+    }
+
+    private func numberField(_ title: String, value: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            label(title)
+            TextField("0", text: value)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(8)
+                .onChange(of: value.wrappedValue) { newValue in
+                    let filtered = newValue.filter { $0.isNumber }
+                    if filtered != newValue {
+                        value.wrappedValue = filtered
+                    }
+                }
+        }
     }
 
     // MARK: - 底部工具栏
@@ -562,7 +658,11 @@ struct SSHConfigFormView: View {
             password: password,
             keyPath: keyPath.isEmpty ? nil : keyPath,
             connectionMethod: connectionMethod,
-            jumpHost: jumpHostConnection
+            jumpHost: jumpHostConnection,
+            timeoutMs: UInt32(timeoutMs) ?? 30000,
+            heartbeatMs: UInt32(heartbeatMs) ?? 0,
+            encoding: encoding,
+            x11Forwarding: x11Forwarding
         )
 
         let detailView = SSHTestDetailView(config: testConfig) { success in
@@ -596,6 +696,8 @@ struct SSHConfigFormView: View {
     private func save() {
         let portNum = UInt16(port) ?? 22
         let finalKeyPath = authMode == .key ? (keyPath.isEmpty ? nil : keyPath) : nil
+        let timeout = UInt32(timeoutMs) ?? 30000
+        let heartbeat = UInt32(heartbeatMs) ?? 0
         let conn: SSHConnection
         switch mode {
         case .add:
@@ -610,7 +712,11 @@ struct SSHConfigFormView: View {
                 keyPath: finalKeyPath,
                 connectionMethod: connectionMethod,
                 jumpHostID: connectionMethod == .jumpHost ? jumpHostID : nil,
-                notes: notes
+                notes: notes,
+                timeoutMs: timeout,
+                heartbeatMs: heartbeat,
+                encoding: encoding,
+                x11Forwarding: x11Forwarding
             )
         case .edit(let existing):
             conn = SSHConnection(
@@ -625,7 +731,11 @@ struct SSHConfigFormView: View {
                 keyPath: finalKeyPath,
                 connectionMethod: connectionMethod,
                 jumpHostID: connectionMethod == .jumpHost ? jumpHostID : nil,
-                notes: notes
+                notes: notes,
+                timeoutMs: timeout,
+                heartbeatMs: heartbeat,
+                encoding: encoding,
+                x11Forwarding: x11Forwarding
             )
         }
         onSave(conn)

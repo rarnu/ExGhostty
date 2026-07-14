@@ -324,7 +324,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
                     set timeout 15
                     set password $env(SSHPASS)
                     log_user 0
-                    spawn /usr/bin/ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new \(conn.sshBaseArgs)
+                    spawn /usr/bin/ssh \(conn.sshBaseArgs)
                     expect {
                         -nocase "password:" { send "$password\\r" }
                         timeout { }
@@ -350,6 +350,18 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
                     }
                 } else {
                     cfg.command = conn.sshCommand
+                }
+
+                // 应用终端编码环境变量
+                for (key, value) in conn.terminalEnvironment {
+                    cfg.environmentVariables[key] = value
+                }
+
+                // X11 转发需要本地 DISPLAY / XAUTHORITY / PATH 环境变量
+                if conn.x11Forwarding {
+                    for (key, value) in SSHX11Environment.current {
+                        cfg.environmentVariables[key] = value
+                    }
                 }
 
                 let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: cfg)
