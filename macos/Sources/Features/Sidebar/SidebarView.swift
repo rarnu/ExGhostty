@@ -68,8 +68,10 @@ func presentTextInputDialog(
 struct SidebarView: View {
     @ObservedObject private var store = SSHStore.shared
     let collapsed: Bool
-    let backgroundOpacity: CGFloat
-    let hasBlur: Bool
+    /// 与终端保持一致的有效背景色（已包含 background-opacity alpha；glass 风格为 clear）
+    let backgroundColor: NSColor
+    /// 是否启用背景模糊（background-blur 非 false）
+    let useBlur: Bool
 
     var onToggleCollapse: (() -> Void)?
     var onNewLocalTerminal: (() -> Void)?
@@ -84,13 +86,21 @@ struct SidebarView: View {
 
     var body: some View {
         ZStack {
+            // 先绘制模糊层，再绘制带透明度的背景色，最后叠内容
+            if useBlur {
+                VisualEffectView(
+                    material: .underWindowBackground,
+                    blendingMode: .behindWindow
+                )
+            }
+            Color(nsColor: backgroundColor)
+
             if collapsed {
                 collapsedBody
             } else {
                 expandedBody
             }
         }
-        .background(hasBlur ? Color.clear : Color(.windowBackgroundColor).opacity(max(0.1, backgroundOpacity)))
     }
 
     // MARK: - 折叠模式
@@ -133,7 +143,6 @@ struct SidebarView: View {
         }
         .frame(minWidth: 150)
         .frame(maxWidth: .infinity)
-        .background(hasBlur ? Color.clear : Color(.windowBackgroundColor).opacity(max(0.1, backgroundOpacity)))
     }
 
     // MARK: - 顶部工具栏
@@ -332,164 +341,67 @@ struct SidebarView: View {
         let conn = editingConnection
         DispatchQueue.main.async {
             guard let conn else { return }
-            let view = EditSSHView(connection: conn) { updated in
-                SSHStore.shared.updateConnection(updated)
-            }
-            let hostingView = NSHostingView(rootView: view)
-            hostingView.frame = NSRect(x: 0, y: 0, width: 360, height: 320)
+            guard let parent = NSApp.keyWindow else { return }
 
-            let vc = NSViewController()
-            vc.view = hostingView
+            let sheet = NSWindow(contentViewController: NSViewController())
+            sheet.title = "编辑主机"
+            sheet.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
+            sheet.titlebarAppearsTransparent = true
+            sheet.titleVisibility = .hidden
+            sheet.standardWindowButton(.closeButton)?.isHidden = true
+            sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            sheet.standardWindowButton(.zoomButton)?.isHidden = true
+            sheet.isMovableByWindowBackground = true
+            sheet.setContentSize(NSSize(width: 520, height: 620))
+            sheet.isReleasedWhenClosed = false
 
-            let win = NSWindow(contentViewController: vc)
-            win.setContentSize(NSSize(width: 360, height: 320))
-            win.title = "Edit SSH Connection"
-            win.styleMask = [.titled, .closable]
-            win.isReleasedWhenClosed = false
-
-            if let parent = NSApp.keyWindow {
-                parent.beginSheet(win) { _ in }
-            }
+            let view = EditSSHView(
+                connection: conn,
+                sshStore: SSHStore.shared,
+                credentialStore: SSHCredentialStore.shared,
+                onSave: { updated in
+                    SSHStore.shared.updateConnection(updated)
+                },
+                onDismiss: { [weak parent, weak sheet] in
+                    guard let parent, let sheet else { return }
+                    parent.endSheet(sheet)
+                }
+            )
+            sheet.contentViewController?.view = NSHostingView(rootView: view)
+            parent.beginSheet(sheet) { _ in }
         }
     }
 
     private func showAddSSHDialog() {
         DispatchQueue.main.async {
+            guard let parent = NSApp.keyWindow else { return }
+
+            let sheet = NSWindow(contentViewController: NSViewController())
+            sheet.title = "创建主机"
+            sheet.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
+            sheet.titlebarAppearsTransparent = true
+            sheet.titleVisibility = .hidden
+            sheet.standardWindowButton(.closeButton)?.isHidden = true
+            sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            sheet.standardWindowButton(.zoomButton)?.isHidden = true
+            sheet.isMovableByWindowBackground = true
+            sheet.setContentSize(NSSize(width: 520, height: 620))
+            sheet.isReleasedWhenClosed = false
+
             let view = AddSSHView(
                 sshStore: SSHStore.shared,
-                onAdd: { conn in
+                credentialStore: SSHCredentialStore.shared,
+                onSave: { conn in
                     SSHStore.shared.addConnection(conn)
+                },
+                onDismiss: { [weak parent, weak sheet] in
+                    guard let parent, let sheet else { return }
+                    parent.endSheet(sheet)
                 }
             )
-            let hostingView = NSHostingView(rootView: view)
-            hostingView.frame = NSRect(x: 0, y: 0, width: 360, height: 380)
-
-            let vc = NSViewController()
-            vc.view = hostingView
-
-            let win = NSWindow(contentViewController: vc)
-            win.setContentSize(NSSize(width: 360, height: 380))
-            win.title = "New SSH Connection"
-            win.styleMask = [.titled, .closable]
-            win.isReleasedWhenClosed = false
-
-            if let parent = NSApp.keyWindow {
-                parent.beginSheet(win) { _ in }
-            }
+            sheet.contentViewController?.view = NSHostingView(rootView: view)
+            parent.beginSheet(sheet) { _ in }
         }
-    }
-}
-
-// MARK: - AddSSHView
-
-struct AddSSHView: View {
-    let sshStore: SSHStore
-    var onAdd: ((SSHConnection) -> Void)?
-
-    @State private var name = ""
-    @State private var host = ""
-    @State private var port = "22"
-    @State private var username = ""
-    @State private var authType: SSHAuthType = .password
-    @State private var selectedGroupID: UUID? = nil
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("New SSH Connection").font(.headline)
-            Group {
-                TextField("Name", text: $name)
-                TextField("Host", text: $host)
-                TextField("Port", text: $port)
-                TextField("Username (optional)", text: $username)
-                Picker("Auth Type", selection: $authType) {
-                    Text("Password").tag(SSHAuthType.password)
-                    Text("Key").tag(SSHAuthType.key)
-                    Text("Agent").tag(SSHAuthType.agent)
-                }
-                if !sshStore.groups.isEmpty {
-                    Picker("Group", selection: $selectedGroupID) {
-                        Text("None").tag(nil as UUID?)
-                        ForEach(sshStore.groups) { group in
-                            Text(group.name).tag(group.id as UUID?)
-                        }
-                    }
-                }
-            }.textFieldStyle(.roundedBorder)
-            HStack {
-                Button("Cancel") { if let w = NSApp.keyWindow { w.endSheet(w.attachedSheet ?? w) } }
-                Button("Add") {
-                    let conn = SSHConnection(
-                        name: name, host: host, port: UInt16(port) ?? 22,
-                        username: username, groupID: selectedGroupID, authType: authType)
-                    onAdd?(conn)
-                    if let w = NSApp.keyWindow { w.endSheet(w.attachedSheet ?? w) }
-                }.buttonStyle(.borderedProminent).disabled(name.isEmpty || host.isEmpty)
-            }
-        }
-        .padding(20).frame(width: 340)
-    }
-}
-
-// MARK: - EditSSHView
-
-struct EditSSHView: View {
-    let connection: SSHConnection
-    var onSave: ((SSHConnection) -> Void)?
-
-    @State private var name: String
-    @State private var host: String
-    @State private var port: String
-    @State private var username: String
-    @State private var authType: SSHAuthType
-    @State private var selectedGroupID: UUID?
-    @State private var sshStore = SSHStore.shared
-
-    init(connection: SSHConnection, onSave: ((SSHConnection) -> Void)? = nil) {
-        self.connection = connection
-        self.onSave = onSave
-        _name = State(initialValue: connection.name)
-        _host = State(initialValue: connection.host)
-        _port = State(initialValue: String(connection.port))
-        _username = State(initialValue: connection.username)
-        _authType = State(initialValue: connection.authType)
-        _selectedGroupID = State(initialValue: connection.groupID)
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Edit SSH Connection").font(.headline)
-            Group {
-                TextField("Name", text: $name)
-                TextField("Host", text: $host)
-                TextField("Port", text: $port)
-                TextField("Username (optional)", text: $username)
-                Picker("Auth Type", selection: $authType) {
-                    Text("Password").tag(SSHAuthType.password)
-                    Text("Key").tag(SSHAuthType.key)
-                    Text("Agent").tag(SSHAuthType.agent)
-                }
-                if !sshStore.groups.isEmpty {
-                    Picker("Group", selection: $selectedGroupID) {
-                        Text("None").tag(nil as UUID?)
-                        ForEach(sshStore.groups) { group in
-                            Text(group.name).tag(group.id as UUID?)
-                        }
-                    }
-                }
-            }.textFieldStyle(.roundedBorder)
-            HStack {
-                Button("Cancel") { if let w = NSApp.keyWindow { w.endSheet(w.attachedSheet ?? w) } }
-                Button("Save") {
-                    var updated = connection
-                    updated.name = name; updated.host = host
-                    updated.port = UInt16(port) ?? 22; updated.username = username
-                    updated.authType = authType; updated.groupID = selectedGroupID
-                    onSave?(updated)
-                    if let w = NSApp.keyWindow { w.endSheet(w.attachedSheet ?? w) }
-                }.buttonStyle(.borderedProminent).disabled(name.isEmpty || host.isEmpty)
-            }
-        }
-        .padding(20).frame(width: 340)
     }
 }
 

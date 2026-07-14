@@ -11,8 +11,11 @@ struct TabBarView: View {
     /// 当前选中的窗口
     let selectedWindow: NSWindow?
 
-    /// 背景不透明度（0~1，来自 background-opacity 配置）
-    let backgroundOpacity: CGFloat
+    /// 与终端保持一致的有效背景色（已包含 background-opacity alpha；glass 风格为 clear）
+    let backgroundColor: NSColor
+
+    /// 是否启用背景模糊（background-blur 非 false）
+    let useBlur: Bool
 
     /// 回调
     var onSelectTab: ((NSWindow) -> Void)?
@@ -20,25 +23,29 @@ struct TabBarView: View {
     var onCloseTab: ((NSWindow) -> Void)?
 
     var body: some View {
-        HStack(spacing: 0) {
-            // 标签按钮
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(windows, id: \.self) { window in
-                        tabButton(for: window)
+        ZStack {
+            // 先绘制模糊层，再绘制带透明度的背景色，最后叠内容
+            if useBlur {
+                VisualEffectView(
+                    material: .underWindowBackground,
+                    blendingMode: .behindWindow
+                )
+            }
+            Color(nsColor: backgroundColor)
+
+            HStack(spacing: 0) {
+                // 标签按钮
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(windows, id: \.self) { window in
+                            tabButton(for: window)
+                        }
                     }
                 }
             }
         }
         .id(viewID)
         .frame(height: 28)
-        .background(
-            // 使用 config 的 backgroundOpacity 控制标签栏背景透明度
-            VisualEffectView(
-                material: .underWindowBackground,
-                blendingMode: .behindWindow
-            ).opacity(max(0.1, backgroundOpacity))
-        )
     }
 
     private func tabButton(for window: NSWindow) -> some View {
