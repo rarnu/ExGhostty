@@ -48,13 +48,6 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     private let functionTerminalSplitView = SidebarSplitView()
     private let rightSidebarSplitView = SidebarSplitView()
 
-    private let tabDividerView: NSView = {
-        let v = NSView()
-        v.wantsLayer = true
-        v.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        return v
-    }()
-
     private let splitView = SidebarSplitView()
 
     private var tabGroupObserver: NSKeyValueObservation?
@@ -205,7 +198,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         // --- Terminal view ---
         let rightContainer = NSView()
 
-        [tabBarHostingView, tabDividerView, terminalContentView].forEach {
+        [tabBarHostingView, terminalContentView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             rightContainer.addSubview($0)
         }
@@ -216,12 +209,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             tabBarHostingView.trailingAnchor.constraint(equalTo: rightContainer.trailingAnchor),
             tabBarHostingView.heightAnchor.constraint(equalToConstant: 28),
 
-            tabDividerView.topAnchor.constraint(equalTo: tabBarHostingView.bottomAnchor),
-            tabDividerView.leadingAnchor.constraint(equalTo: rightContainer.leadingAnchor),
-            tabDividerView.trailingAnchor.constraint(equalTo: rightContainer.trailingAnchor),
-            tabDividerView.heightAnchor.constraint(equalToConstant: 1),
-
-            terminalContentView.topAnchor.constraint(equalTo: tabDividerView.bottomAnchor),
+            terminalContentView.topAnchor.constraint(equalTo: tabBarHostingView.bottomAnchor),
             terminalContentView.leadingAnchor.constraint(equalTo: rightContainer.leadingAnchor),
             terminalContentView.bottomAnchor.constraint(equalTo: rightContainer.bottomAnchor),
             terminalContentView.trailingAnchor.constraint(equalTo: rightContainer.trailingAnchor),
