@@ -418,13 +418,6 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
             childSplitVC.sidebarWidth = parentSplitVC.sidebarWidth
         }
 
-        // 新标签页加入标签组前，先把子窗口 frame 同步为父窗口 frame，
-        // 防止 windowDidLoad 里的 defaultSize / setContentSize 导致标签组被缩放或移到 (0,0)。
-        if !parent.styleMask.contains(.fullScreen),
-           !window.styleMask.contains(.fullScreen) {
-            window.setFrame(parent.frame, display: false)
-        }
-
         // If the parent is miniaturized, then macOS exhibits really strange behaviors
         // so we have to bring it back out.
         if parent.isMiniaturized { parent.deminiaturize(self) }
@@ -440,6 +433,10 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
            tg.windows.firstIndex(of: window) != nil {
             tg.removeWindow(window)
         }
+
+        // 记录父窗口（标签组）当前 frame，在子窗口 showWindow 后恢复，
+        // 避免 windowDidLoad / showWindow / LastWindowPosition 把标签组移到 (0,0) 或最大化。
+        let parentFrame = parent.frame
 
         // If we don't allow tabs then we create a new window instead.
         if window.tabbingMode != .disallowed {
@@ -472,6 +469,13 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
             }
 
             controller.showWindow(self)
+
+            // 恢复父窗口（标签组）的 frame，保持大小和位置不变。
+            if !parent.styleMask.contains(.fullScreen),
+               !window.styleMask.contains(.fullScreen) {
+                window.setFrame(parentFrame, display: true)
+            }
+
             window.makeKeyAndOrderFront(self)
 
             // We also activate our app so that it becomes front. This may be

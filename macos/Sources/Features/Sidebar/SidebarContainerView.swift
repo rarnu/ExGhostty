@@ -171,6 +171,12 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         splitView.isVertical = true
         splitView.dividerStyle = .thin
         splitView.delegate = self
+        splitView.wantsLayer = true
+        if let config = terminalController?.ghostty.config {
+            let terminalBackgroundColor = NSColor(config.backgroundColor)
+                .withAlphaComponent(config.backgroundOpacity)
+            splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
+        }
         splitView.addArrangedSubview(sidebarBackgroundView)
         splitView.addArrangedSubview(rightContainer)
 
@@ -215,6 +221,10 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             let dc = Ghostty.SurfaceView.DerivedConfig(config)
             window.syncAppearance(dc)
         }
+        // 同步 split view 背景色，确保 divider 间隙与右侧终端背景融为一体。
+        let terminalBackgroundColor = NSColor(config.backgroundColor)
+            .withAlphaComponent(config.backgroundOpacity)
+        splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
         rebuildSidebarView()
         rebuildTabBar()
     }
