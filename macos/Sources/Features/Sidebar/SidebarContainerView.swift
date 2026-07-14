@@ -106,6 +106,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
 
         self.rightContainerView.wantsLayer = true
         self.rightContainerView.layer?.backgroundColor = NSColor.clear.cgColor
+        self.rightContainerView.layer?.masksToBounds = true
 
         super.init(rootView: rootView)
 
