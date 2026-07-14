@@ -39,6 +39,15 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     fileprivate let tabBarHostingView: NSHostingView<TabBarView>
     fileprivate let terminalContentView: TerminalViewContainer
 
+    fileprivate let rightSidebarHostingView: NSHostingView<RightSidebarView>
+    fileprivate let rightSidebarBackgroundView = SidebarBackgroundView()
+
+    fileprivate let functionPanelHostingView: NSHostingView<FunctionPanelView>
+    fileprivate let functionPanelBackgroundView = SidebarBackgroundView()
+
+    private let functionTerminalSplitView = SidebarSplitView()
+    private let rightSidebarSplitView = SidebarSplitView()
+
     private let tabDividerView: NSView = {
         let v = NSView()
         v.wantsLayer = true
@@ -72,6 +81,29 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             _collapsed = newValue
             updateSidebarWidth()
             rebuildSidebarView()
+        }
+    }
+
+    private var _functionPanelWidth: CGFloat = 300
+    var functionPanelWidth: CGFloat {
+        get { _functionPanelWidth }
+        set {
+            _functionPanelWidth = max(200, min(newValue, 500))
+            updateFunctionPanelWidth()
+        }
+    }
+
+    private var functionPanelVisible: Bool = false {
+        didSet {
+            updateFunctionPanelWidth()
+            rebuildRightSidebarView()
+        }
+    }
+
+    private var selectedFunctionFeature: RightSidebarFeature? = nil {
+        didSet {
+            rebuildFunctionPanelView()
+            rebuildRightSidebarView()
         }
     }
 
@@ -124,6 +156,23 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         // terminalContentView 使用 TerminalViewContainer 包裹 SwiftUI root view，
         // 保留玻璃效果、初始内容尺寸等原有行为。
         self.terminalContentView = TerminalViewContainer(rootView: rootView)
+
+        // 右侧栏图标条（始终显示）
+        let initialRightSidebar = RightSidebarView(
+            selectedFeature: nil,
+            onSelectFeature: nil
+        )
+        self.rightSidebarHostingView = NSHostingView(rootView: initialRightSidebar)
+        self.rightSidebarHostingView.wantsLayer = true
+
+        self.rightSidebarBackgroundView.backgroundColor = sidebarBackgroundColor
+
+        // 功能面板（默认隐藏）
+        let initialFunctionPanel = FunctionPanelView(feature: nil, onClose: nil)
+        self.functionPanelHostingView = NSHostingView(rootView: initialFunctionPanel)
+        self.functionPanelHostingView.wantsLayer = true
+
+        self.functionPanelBackgroundView.backgroundColor = sidebarBackgroundColor
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -178,6 +227,40 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             terminalContentView.trailingAnchor.constraint(equalTo: rightContainer.trailingAnchor),
         ])
 
+        // --- Right sidebar view ---
+        rightSidebarBackgroundView.addSubview(rightSidebarHostingView)
+        rightSidebarHostingView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            rightSidebarHostingView.leadingAnchor.constraint(equalTo: rightSidebarBackgroundView.leadingAnchor),
+            rightSidebarHostingView.topAnchor.constraint(equalTo: rightSidebarBackgroundView.topAnchor),
+            rightSidebarHostingView.bottomAnchor.constraint(equalTo: rightSidebarBackgroundView.bottomAnchor),
+            rightSidebarHostingView.trailingAnchor.constraint(equalTo: rightSidebarBackgroundView.trailingAnchor),
+        ])
+
+        // --- Function panel view ---
+        functionPanelBackgroundView.addSubview(functionPanelHostingView)
+        functionPanelHostingView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            functionPanelHostingView.leadingAnchor.constraint(equalTo: functionPanelBackgroundView.leadingAnchor),
+            functionPanelHostingView.topAnchor.constraint(equalTo: functionPanelBackgroundView.topAnchor),
+            functionPanelHostingView.bottomAnchor.constraint(equalTo: functionPanelBackgroundView.bottomAnchor),
+            functionPanelHostingView.trailingAnchor.constraint(equalTo: functionPanelBackgroundView.trailingAnchor),
+        ])
+
+        // --- Function panel split view (terminal + function panel) ---
+        functionTerminalSplitView.isVertical = true
+        functionTerminalSplitView.dividerStyle = .thin
+        functionTerminalSplitView.delegate = self
+        functionTerminalSplitView.wantsLayer = true
+        functionTerminalSplitView.layer?.backgroundColor = NSColor.clear.cgColor
+
+        // --- Right sidebar split view ((terminal+function panel) + right sidebar strip) ---
+        rightSidebarSplitView.isVertical = true
+        rightSidebarSplitView.dividerStyle = .thin
+        rightSidebarSplitView.delegate = self
+        rightSidebarSplitView.wantsLayer = true
+        rightSidebarSplitView.layer?.backgroundColor = NSColor.clear.cgColor
+
         // --- Split view ---
         splitView.isVertical = true
         splitView.dividerStyle = .thin
@@ -190,10 +273,16 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 .withAlphaComponent(config.backgroundOpacity)
             let sidebarColor = sidebarBackgroundColor(from: terminalBackgroundColor)
             splitView.dividerFillColor = sidebarColor
+            rightSidebarSplitView.dividerFillColor = sidebarColor
+            functionTerminalSplitView.dividerFillColor = sidebarColor
         }
         
+        functionTerminalSplitView.addArrangedSubview(rightContainer)
+        functionTerminalSplitView.addArrangedSubview(functionPanelBackgroundView)
+        rightSidebarSplitView.addArrangedSubview(functionTerminalSplitView)
+        rightSidebarSplitView.addArrangedSubview(rightSidebarBackgroundView)
         splitView.addArrangedSubview(sidebarBackgroundView)
-        splitView.addArrangedSubview(rightContainer)
+        splitView.addArrangedSubview(rightSidebarSplitView)
 
         self.view = splitView
     }
@@ -214,6 +303,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         super.viewWillAppear()
         // view 已进入窗口层级且即将显示，此时 setPosition 能拿到有效 bounds。
         updateSidebarWidth()
+        updateRightSidebarStripWidth()
+        updateFunctionPanelWidth()
     }
 
     // MARK: - 配置变化监听
@@ -236,15 +327,23 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             let dc = Ghostty.SurfaceView.DerivedConfig(config)
             window.syncAppearance(dc)
         }
-        // 同步 divider 颜色，使其与左侧栏背景融为一体。
+        // 同步 divider 颜色，使其与左侧栏/右侧栏/功能面板背景融为一体。
         let terminalBackgroundColor = NSColor(config.backgroundColor)
             .withAlphaComponent(config.backgroundOpacity)
         let sidebarColor = sidebarBackgroundColor(from: terminalBackgroundColor)
         splitView.dividerFillColor = sidebarColor
         splitView.setNeedsDisplay(splitView.bounds)
+        rightSidebarSplitView.dividerFillColor = sidebarColor
+        rightSidebarSplitView.setNeedsDisplay(rightSidebarSplitView.bounds)
+        functionTerminalSplitView.dividerFillColor = sidebarColor
+        functionTerminalSplitView.setNeedsDisplay(functionTerminalSplitView.bounds)
+        rightSidebarBackgroundView.backgroundColor = sidebarColor
+        functionPanelBackgroundView.backgroundColor = sidebarColor
         // splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
         
         rebuildSidebarView()
+        rebuildRightSidebarView()
+        rebuildFunctionPanelView()
         rebuildTabBar()
     }
 
@@ -407,12 +506,77 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         sidebarBackgroundView.backgroundColor = sidebarBackgroundColor
     }
 
+    // MARK: - 右侧边栏
+
+    func rebuildRightSidebarView() {
+        guard let tc = terminalController else { return }
+        let selected = self.selectedFunctionFeature
+        let config = tc.ghostty.config
+
+        let terminalBackgroundColor = NSColor(config.backgroundColor)
+            .withAlphaComponent(config.backgroundOpacity)
+        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+
+        let newRightSidebar = RightSidebarView(
+            selectedFeature: selected,
+            onSelectFeature: { [weak self] feature in
+                guard let self else { return }
+                if self.functionPanelVisible && self.selectedFunctionFeature == feature {
+                    self.functionPanelVisible = false
+                    self.selectedFunctionFeature = nil
+                } else {
+                    self.selectedFunctionFeature = feature
+                    self.functionPanelVisible = true
+                }
+            }
+        )
+        rightSidebarHostingView.rootView = newRightSidebar
+        rightSidebarBackgroundView.backgroundColor = sidebarBackgroundColor
+    }
+
+    // MARK: - 功能面板
+
+    func rebuildFunctionPanelView() {
+        guard let tc = terminalController else { return }
+        let feature = self.selectedFunctionFeature
+        let config = tc.ghostty.config
+
+        let terminalBackgroundColor = NSColor(config.backgroundColor)
+            .withAlphaComponent(config.backgroundOpacity)
+        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+
+        let newFunctionPanel = FunctionPanelView(
+            feature: feature,
+            onClose: { [weak self] in
+                self?.functionPanelVisible = false
+                self?.selectedFunctionFeature = nil
+            }
+        )
+        functionPanelHostingView.rootView = newFunctionPanel
+        functionPanelBackgroundView.backgroundColor = sidebarBackgroundColor
+    }
+
     // MARK: - 宽度控制
 
     private func updateSidebarWidth() {
         guard isViewLoaded else { return }
         let width = collapsed ? 32 : _sidebarWidth
         splitView.setPosition(width, ofDividerAt: 0)
+    }
+
+    private func updateRightSidebarStripWidth() {
+        guard isViewLoaded else { return }
+        let dividerThickness = rightSidebarSplitView.dividerThickness
+        let position = max(0, rightSidebarSplitView.bounds.width - 32 - dividerThickness)
+        rightSidebarSplitView.setPosition(position, ofDividerAt: 0)
+    }
+
+    private func updateFunctionPanelWidth() {
+        guard isViewLoaded else { return }
+        let width = functionPanelVisible ? _functionPanelWidth : 0
+        let dividerThickness = functionTerminalSplitView.dividerThickness
+        let position = max(0, functionTerminalSplitView.bounds.width - width - dividerThickness)
+        functionTerminalSplitView.setPosition(position, ofDividerAt: 0)
     }
 
     // MARK: - NSSplitViewDelegate
@@ -422,7 +586,16 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         constrainMinCoordinate proposedMinimumPosition: CGFloat,
         ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
-        collapsed ? 32 : 150
+        if splitView === rightSidebarSplitView {
+            // 右側图标条固定 32，不可拖拽
+            let maxPos = splitView.bounds.width - splitView.dividerThickness
+            return maxPos - 32
+        }
+        if splitView === functionTerminalSplitView {
+            let maxPos = splitView.bounds.width - splitView.dividerThickness
+            return functionPanelVisible ? maxPos - 500 : maxPos
+        }
+        return collapsed ? 32 : 150
     }
 
     func splitView(
@@ -430,23 +603,75 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         constrainMaxCoordinate proposedMaximumPosition: CGFloat,
         ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
-        collapsed ? 32 : min(400, splitView.bounds.width - splitView.dividerThickness)
+        if splitView === rightSidebarSplitView {
+            let maxPos = splitView.bounds.width - splitView.dividerThickness
+            return maxPos - 32
+        }
+        if splitView === functionTerminalSplitView {
+            let maxPos = splitView.bounds.width - splitView.dividerThickness
+            return functionPanelVisible ? maxPos - 200 : maxPos
+        }
+        return collapsed ? 32 : min(400, splitView.bounds.width - splitView.dividerThickness)
     }
 
     func splitView(
         _ splitView: NSSplitView,
         constrainSplitPosition proposedPosition: CGFloat,
-        ofDividerAt dividerIndex: Int
+        ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
+        if splitView === rightSidebarSplitView {
+            let maxPos = splitView.bounds.width - splitView.dividerThickness
+            return maxPos - 32
+        }
+        if splitView === functionTerminalSplitView {
+            let maxPos = splitView.bounds.width - splitView.dividerThickness
+            let minPos: CGFloat = functionPanelVisible ? maxPos - 500 : maxPos
+            let maxAllowed: CGFloat = functionPanelVisible ? maxPos - 200 : maxPos
+            return max(minPos, min(proposedPosition, maxAllowed))
+        }
         let minPos: CGFloat = collapsed ? 32 : 150
         let maxPos = min(400, splitView.bounds.width - splitView.dividerThickness)
         return max(minPos, min(proposedPosition, maxPos))
     }
 
-    /// 窗口整体 resize 时保持侧边栏宽度不变，只调整右侧终端区域。
+    /// 窗口整体 resize 时保持固定宽度区域不变，只调整可伸缩区域。
     func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
         let newBounds = splitView.bounds
         let dividerThickness = splitView.dividerThickness
+
+        if splitView === rightSidebarSplitView {
+            // 保持右侧图标条 32 不变
+            let rightWidth: CGFloat = 32
+            let leftWidth = max(0, newBounds.width - rightWidth - dividerThickness)
+            splitView.subviews[0].frame = NSRect(
+                x: 0, y: 0,
+                width: leftWidth,
+                height: newBounds.height
+            )
+            splitView.subviews[1].frame = NSRect(
+                x: leftWidth + dividerThickness, y: 0,
+                width: rightWidth,
+                height: newBounds.height
+            )
+            return
+        }
+
+        if splitView === functionTerminalSplitView {
+            let rightWidth = functionPanelVisible ? _functionPanelWidth : 0
+            let leftWidth = max(0, newBounds.width - rightWidth - dividerThickness)
+            splitView.subviews[0].frame = NSRect(
+                x: 0, y: 0,
+                width: leftWidth,
+                height: newBounds.height
+            )
+            splitView.subviews[1].frame = NSRect(
+                x: leftWidth + dividerThickness, y: 0,
+                width: rightWidth,
+                height: newBounds.height
+            )
+            return
+        }
+
         let sidebarWidth = collapsed ? 32 : _sidebarWidth
         let detailWidth = max(0, newBounds.width - sidebarWidth - dividerThickness)
 
@@ -462,10 +687,21 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         )
     }
 
-    /// 用户拖动 divider 时同步更新记录的侧边栏宽度。
+    /// 用户拖动 divider 时同步更新记录的面板宽度。
     func splitViewDidResizeSubviews(_ notification: Notification) {
+        guard let resizedSplitView = notification.object as? NSSplitView else { return }
+
+        if resizedSplitView === functionTerminalSplitView {
+            guard functionPanelVisible else { return }
+            let newWidth = resizedSplitView.subviews[1].frame.width
+            if newWidth >= 200 && newWidth <= 500 {
+                _functionPanelWidth = newWidth
+            }
+            return
+        }
+
         guard !collapsed else { return }
-        let newWidth = splitView.subviews[0].frame.width
+        let newWidth = resizedSplitView.subviews[0].frame.width
         if newWidth >= 150 && newWidth <= 500 {
             _sidebarWidth = newWidth
         }
