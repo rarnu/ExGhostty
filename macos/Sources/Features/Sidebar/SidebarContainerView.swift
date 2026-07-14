@@ -6,9 +6,10 @@ import Combine
 class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     // MARK: - 子视图
 
-    private let sidebarHostingView: NSHostingView<SidebarView>
-    private let tabBarHostingView: NSHostingView<TabBarView>
-    private let dividerView = SidebarDividerView()
+    fileprivate let sidebarHostingView: NSHostingView<SidebarView>
+    fileprivate let sidebarBackgroundView = SidebarBackgroundView()
+    fileprivate let tabBarHostingView: NSHostingView<TabBarView>
+    fileprivate let dividerView = SidebarDividerView()
 
     private let tabDividerView: NSView = {
         let v = NSView()
@@ -80,7 +81,11 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         )
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
         self.sidebarHostingView.wantsLayer = true
-        self.sidebarHostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        self.sidebarHostingView.layerContentsRedrawPolicy = .duringViewResize
+        self.sidebarHostingView.layer?.needsDisplayOnBoundsChange = true
+
+        self.sidebarBackgroundView.backgroundColor = backgroundColor
+        self.sidebarBackgroundView.translatesAutoresizingMaskIntoConstraints = false
 
         let initialTabBar = TabBarView(
             viewID: 0,
@@ -92,7 +97,12 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         )
         self.tabBarHostingView = NSHostingView(rootView: initialTabBar)
         self.tabBarHostingView.wantsLayer = true
-        self.tabBarHostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        self.tabBarHostingView.layer?.backgroundColor = backgroundColor.cgColor
+        self.tabBarHostingView.layer?.drawsAsynchronously = false
+        self.tabBarHostingView.layer?.allowsEdgeAntialiasing = false
+        self.tabBarHostingView.layer?.masksToBounds = true
+        self.tabBarHostingView.layer?.shouldRasterize = false
+        self.tabBarHostingView.layer?.allowsGroupOpacity = false
 
         self.rightContainerView.wantsLayer = true
         self.rightContainerView.layer?.backgroundColor = NSColor.clear.cgColor
@@ -160,6 +170,9 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         terminalContentView = subviews.first
         if let tv = terminalContentView { tv.removeFromSuperview() }
 
+        dividerView.container = self
+
+        addSubview(sidebarBackgroundView)
         [sidebarHostingView, dividerView, rightContainerView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             addSubview($0)
@@ -186,6 +199,11 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         self.sidebarWidthConstraint = swc
 
         NSLayoutConstraint.activate([
+            sidebarBackgroundView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            sidebarBackgroundView.topAnchor.constraint(equalTo: topAnchor),
+            sidebarBackgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            sidebarBackgroundView.widthAnchor.constraint(equalTo: sidebarHostingView.widthAnchor),
+
             sidebarHostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
             sidebarHostingView.topAnchor.constraint(equalTo: topAnchor),
             sidebarHostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -283,6 +301,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             onCloseTab: { target in target.close() }
         )
         tabBarHostingView.rootView = newBar
+        tabBarHostingView.layer?.backgroundColor = backgroundColor.cgColor
     }
 
     // MARK: - 侧边栏
@@ -371,6 +390,7 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             }
         )
         sidebarHostingView.rootView = newSidebar
+        sidebarBackgroundView.backgroundColor = backgroundColor
     }
 }
 
@@ -393,8 +413,18 @@ class SidebarDividerView: NSView {
         let initialX = event.locationInWindow.x
         window.trackEvents(matching: [.leftMouseDragged, .leftMouseUp], timeout: .infinity, mode: .eventTracking) { ev, stop in
             guard let ev else { return }
-            if ev.type == .leftMouseUp { stop.pointee = true; return }
+            if ev.type == .leftMouseUp {
+                stop.pointee = true
+                // 拖动结束后再强制刷新一次，确保最终状态无残留
+                container.sidebarBackgroundView.needsDisplay = true
+                container.sidebarHostingView.needsDisplay = true
+                return
+            }
             container.sidebarWidth = initialWidth + ev.locationInWindow.x - initialX
+            // 拖动过程中先强制布局、再同步重绘背景与内容，避免新增区域出现未初始化像素
+            container.layoutSubtreeIfNeeded()
+            container.sidebarBackgroundView.display()
+            container.sidebarHostingView.display()
         }
     }
 
@@ -411,5 +441,35 @@ class SidebarDividerView: NSView {
 
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .resizeLeftRight)
+    }
+}
+
+// MARK: - 背景视图
+
+/// 负责绘制侧边栏背景色的 layer-backed NSView。
+/// 使用 CALayer 的 `backgroundColor` 直接填充，避免 resize 时 `draw(_:)` 只覆盖旧 bounds 导致新区域露出未初始化像素（白色竖线）。
+class SidebarBackgroundView: NSView {
+    var backgroundColor: NSColor = .clear {
+        didSet {
+            layer?.backgroundColor = backgroundColor.cgColor
+        }
+    }
+
+    override var isOpaque: Bool { false }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setupLayer()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupLayer()
+    }
+
+    private func setupLayer() {
+        wantsLayer = true
+        layer?.backgroundColor = backgroundColor.cgColor
+        layer?.masksToBounds = true
     }
 }

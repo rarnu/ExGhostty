@@ -21,10 +21,7 @@ struct TabBarView: View {
 
     var body: some View {
         ZStack {
-            // 依赖窗口级的 background-blur / glass 效果；
-            // 这里只绘制带透明度的背景色，保证与终端一致。
-            Color(nsColor: backgroundColor)
-
+            // 背景色由 NSHostingView 的 layer 提供，避免透明 layer 在首次 resize 时产生未初始化像素。
             HStack(spacing: 0) {
                 // 标签按钮
                 ScrollView(.horizontal, showsIndicators: false) {

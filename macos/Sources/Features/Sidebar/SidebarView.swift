@@ -139,10 +139,7 @@ struct SidebarView: View {
 
     var body: some View {
         ZStack {
-            // 依赖窗口级的 background-blur / glass 效果；
-            // 这里只绘制带透明度的背景色，保证与终端一致。
-            Color(nsColor: backgroundColor)
-
+            // 背景色由 SidebarBackgroundView 提供，避免透明 layer 在 resize 时产生白色竖线。
             if collapsed {
                 collapsedBody
             } else {
@@ -162,16 +159,16 @@ struct SidebarView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .help("Expand Sidebar")
+            .sidebarTooltip("展开侧边栏")
 
             Button(action: { onNewLocalTerminal?() }) {
-                Image(systemName: "plus.square")
+                Image(systemName: "terminal")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .help("New Local Terminal")
+            .sidebarTooltip("新建本地终端")
 
             Button(action: { onNewPortForward?() }) {
                 Image(systemName: "arrow.triangle.branch")
@@ -180,7 +177,7 @@ struct SidebarView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .help("New Port Forward")
+            .sidebarTooltip("新建端口转发")
 
             Spacer()
             Button(action: {}) {
@@ -191,7 +188,7 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
             .frame(height: 32)
-            .help("Settings")
+            .sidebarTooltip("设置")
             .padding(.bottom, 8)
         }
         .frame(width: 32)
@@ -224,27 +221,27 @@ struct SidebarView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .help(collapsed ? "Expand Sidebar" : "Collapse Sidebar")
+            .sidebarTooltip(collapsed ? "展开侧边栏" : "收起侧边栏")
             .padding(.leading, 4)
 
             if !collapsed {
                 Spacer()
                 HStack(spacing: 2) {
                     Button(action: { showAddSSHDialog() }) {
-                        Image(systemName: "terminal").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).help("New SSH Connection")
+                        Image(systemName: "plus.square").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                    }.buttonStyle(.plain).sidebarTooltip("新建 SSH 连接")
 
                     Button(action: { showAddGroupDialog() }) {
                         Image(systemName: "folder.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).help("New Group")
+                    }.buttonStyle(.plain).sidebarTooltip("新建分组")
 
                     Button(action: { onNewLocalTerminal?() }) {
-                        Image(systemName: "plus.square").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).help("New Local Terminal")
+                        Image(systemName: "terminal").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                    }.buttonStyle(.plain).sidebarTooltip("新建本地终端")
 
                     Button(action: { onNewPortForward?() }) {
                         Image(systemName: "arrow.triangle.branch").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).help("New Port Forward")
+                    }.buttonStyle(.plain).sidebarTooltip("新建端口转发")
                 }
                 .padding(.trailing, 4)
             }
@@ -261,7 +258,7 @@ struct SidebarView: View {
             if !store.searchText.isEmpty {
                 Button(action: { store.searchText = "" }) {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 11)).foregroundColor(.secondary)
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).sidebarTooltip("清除搜索")
             }
         }
         .padding(.horizontal, 6).padding(.vertical, 4)
@@ -284,7 +281,8 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .frame(height: 32)
         .fixedSize(horizontal: false, vertical: true)
-        .help("Settings")
+        .sidebarTooltip("设置")
+        .padding(.bottom, 8)
     }
 
     // MARK: - 连接列表
@@ -330,7 +328,7 @@ struct SidebarView: View {
                 }
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
 
@@ -481,6 +479,39 @@ struct SidebarView: View {
             )
             presentSSHConfigSheet(view, title: "创建主机", on: parent)
         }
+    }
+}
+
+// MARK: - Tooltip 辅助
+
+/// 通过 AppKit toolTip 实现可靠的悬停提示，覆盖在按钮上方但点击可穿透。
+private struct TooltipOverlay: NSViewRepresentable {
+    let text: String
+
+    func makeNSView(context: Context) -> NSView {
+        let view = TooltipPassThroughView()
+        view.toolTip = text
+        view.autoresizingMask = [.width, .height]
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        nsView.toolTip = text
+    }
+}
+
+private class TooltipPassThroughView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+}
+
+extension View {
+    /// 显示 macOS 原生悬停提示，并保证底层按钮仍可点击。
+    func sidebarTooltip(_ text: String) -> some View {
+        self.overlay(
+            TooltipOverlay(text: text)
+        )
     }
 }
 
