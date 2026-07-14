@@ -17,6 +17,7 @@ final class SFTPPanelViewModel: ObservableObject {
     }
     @Published var activeUploadCount: Int = 0
     @Published var activeDownloadCount: Int = 0
+    weak var taskListWindowController: SFTPTaskListWindowController?
 
     private var cancellables = Set<AnyCancellable>()
     /// 远端用户主目录，用于把标题中的 `~` 展开为绝对路径。
@@ -121,25 +122,6 @@ final class SFTPPanelViewModel: ObservableObject {
         }
     }
 
-    /// 手动同步终端当前目录。
-    func syncWithTerminal() {
-        Task {
-            do {
-                let remotePath = try await SFTPService.shared.currentRemoteDirectory(connection: connection)
-                await MainActor.run {
-                    if remotePath != self.currentPath {
-                        self.currentPath = remotePath
-                        self.refresh()
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-
     private func updateTaskCounts(from tasks: [SFTPTask]) {
         let connectionTasks = tasks.filter { $0.connection.id == self.connection.id }
         let newUploadCount = connectionTasks.filter { $0.type == .upload && $0.isActive }.count
@@ -158,6 +140,8 @@ final class SFTPPanelViewModel: ObservableObject {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
+        // 刷新前记录已选中的文件名，刷新后按文件名恢复勾选状态。
+        let previouslySelectedNames = Set(self.items.filter { selectedItems.contains($0.id) }.map { $0.name })
         Task {
             do {
                 let list = try await SFTPService.shared.listDirectory(
@@ -172,6 +156,7 @@ final class SFTPPanelViewModel: ObservableObject {
                         }
                         return $0.name.localizedStandardCompare($1.name) == .orderedAscending
                     }
+                    self.selectedItems = Set(self.items.filter { previouslySelectedNames.contains($0.name) }.map { $0.id })
                     self.isLoading = false
                 }
             } catch {
@@ -205,6 +190,8 @@ final class SFTPPanelViewModel: ObservableObject {
 
     // MARK: - 选择规则
 
+    // MARK: - 选择
+
     private func enforceSelectionRules() {
         let selectedObjects = items.filter { selectedItems.contains($0.id) }
         let hasDirectory = selectedObjects.contains { $0.isDirectory }
@@ -216,17 +203,32 @@ final class SFTPPanelViewModel: ObservableObject {
         }
     }
 
+    func toggleSelection(_ item: SFTPFileItem) {
+        guard !item.isDirectory else { return }
+        if selectedItems.contains(item.id) {
+            selectedItems.remove(item.id)
+        } else {
+            // 如果当前选中了目录，先清除，再改为选中该文件。
+            if selectedItems.contains(where: { id in items.first { $0.id == id }?.isDirectory ?? false }) {
+                selectedItems.removeAll()
+            }
+            selectedItems.insert(item.id)
+        }
+    }
+
     // MARK: - 上传
 
     func uploadFiles(_ urls: [URL]) {
         for url in urls {
+            let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64
             let task = SFTPTask(
                 type: .upload,
                 localPath: url.path,
                 remotePath: currentPath,
                 title: url.lastPathComponent,
                 connection: connection,
-                isDirectory: false
+                isDirectory: false,
+                fileSize: size
             )
             SFTPTransferManager.shared.addTask(task)
         }
@@ -259,7 +261,8 @@ final class SFTPPanelViewModel: ObservableObject {
                 remotePath: remotePath,
                 title: item.name,
                 connection: connection,
-                isDirectory: item.isDirectory
+                isDirectory: item.isDirectory,
+                fileSize: item.size
             )
             SFTPTransferManager.shared.addTask(task)
         }
@@ -318,12 +321,31 @@ final class SFTPPanelViewModel: ObservableObject {
         let selectedObjects = items.filter { selectedItems.contains($0.id) }
         return !selectedObjects.isEmpty
     }
+
+    // MARK: - 任务窗口
+
+    func openTaskListWindow() {
+        if let existing = taskListWindowController {
+            existing.window?.makeKeyAndOrderFront(nil)
+            return
+        }
+        let config = terminalController?.ghostty.config
+        let controller = SFTPTaskListWindowController(
+            connection: connection,
+            config: config,
+            parentWindow: terminalController?.window,
+            onWindowClosed: { [weak self] in
+                self?.taskListWindowController = nil
+            }
+        )
+        controller.showWindow(nil)
+        taskListWindowController = controller
+    }
 }
 
 /// SFTP 功能主界面。
 struct SFTPPanelView: View {
     @StateObject private var viewModel: SFTPPanelViewModel
-    @State private var showTaskSheet = false
 
     init(connection: SSHConnection, terminalController: TerminalController?) {
         _viewModel = StateObject(wrappedValue: SFTPPanelViewModel(
@@ -340,10 +362,6 @@ struct SFTPPanelView: View {
             fileList
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .sheet(isPresented: $showTaskSheet) {
-            SFTPTaskListView(connection: viewModel.connection)
-                .frame(minWidth: 500, minHeight: 300)
-        }
     }
 
     // MARK: - 路径栏
@@ -368,7 +386,6 @@ struct SFTPPanelView: View {
         HStack(spacing: 4) {
             toolbarButton(icon: "arrow.up", label: "上级") { viewModel.goUp() }
             toolbarButton(icon: "arrow.clockwise", label: "刷新") { viewModel.refresh() }
-            toolbarButton(icon: "arrow.2.circlepath", label: "同步") { viewModel.syncWithTerminal() }
             toolbarButton(
                 icon: viewModel.showHidden ? "eye" : "eye.slash",
                 label: viewModel.showHidden ? "隐藏隐藏内容" : "显示隐藏内容"
@@ -405,25 +422,23 @@ struct SFTPPanelView: View {
     private var taskStatusBar: some View {
         let uploadCount = viewModel.activeUploadCount
         let downloadCount = viewModel.activeDownloadCount
-        let visible = uploadCount > 0 || downloadCount > 0
 
-        return Group {
-            if visible {
-                HStack {
-                    Text("上传任务: \(uploadCount) 个，下载任务: \(downloadCount) 个")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Button("详情") { showTaskSheet = true }
-                        .font(.system(size: 11))
-                        .buttonStyle(.plain)
-                        .foregroundColor(.accentColor)
-                }
+        return HStack {
+            Text("上传任务: \(uploadCount) 个，下载任务: \(downloadCount) 个")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            Spacer()
+            Button("详情") { viewModel.openTaskListWindow() }
+                .font(.system(size: 11))
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
+                // 增大可点击区域，让按钮更容易点中。
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(.controlBackgroundColor).opacity(0.2))
-            }
+                .padding(.vertical, 6)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(Color(.controlBackgroundColor).opacity(0.2))
     }
 
     // MARK: - 文件列表
@@ -446,9 +461,7 @@ struct SFTPPanelView: View {
                         fileRow(item: item)
                             .tag(item.id)
                             .contextMenu {
-                                Button("下载\(item.isDirectory ? "目录" : "文件")") {
-                                    download(item: item)
-                                }
+                                downloadContextMenu(item: item)
                                 Button("删除") {
                                     confirmDelete(item: item)
                                 }
@@ -462,6 +475,19 @@ struct SFTPPanelView: View {
 
     private func fileRow(item: SFTPFileItem) -> some View {
         HStack(spacing: 6) {
+            if item.isDirectory {
+                // 目录不显示复选框，用透明占位保持对齐。
+                Color.clear.frame(width: 18)
+            } else {
+                Button(action: { viewModel.toggleSelection(item) }) {
+                    Image(systemName: viewModel.selectedItems.contains(item.id) ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 14))
+                        .foregroundColor(viewModel.selectedItems.contains(item.id) ? .accentColor : .secondary)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 18)
+            }
+
             Image(systemName: item.isDirectory ? "folder" : "doc")
                 .font(.system(size: 14))
                 .foregroundColor(item.isDirectory ? .accentColor : .secondary)
@@ -484,6 +510,25 @@ struct SFTPPanelView: View {
         .onTapGesture(count: 2) {
             if item.isDirectory {
                 viewModel.enterDirectory(item)
+            }
+        }
+    }
+
+    /// 根据当前选中状态生成右键下载菜单。
+    @ViewBuilder
+    private func downloadContextMenu(item: SFTPFileItem) -> some View {
+        let selectedCount = viewModel.selectedItems.count
+        let isSelected = viewModel.selectedItems.contains(item.id)
+
+        if selectedCount > 1 && isSelected {
+            Button("下载这些文件") {
+                viewModel.downloadSelected()
+                viewModel.selectedItems.removeAll()
+            }
+        } else {
+            Button("下载这个\(item.isDirectory ? "目录" : "文件")") {
+                download(item: item)
+                viewModel.selectedItems.removeAll()
             }
         }
     }

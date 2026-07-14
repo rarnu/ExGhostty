@@ -6,7 +6,6 @@ import Combine
 struct SFTPTaskListView: View {
     @StateObject private var manager = SFTPTransferManager.shared
     let connection: SSHConnection?
-    @Environment(\.dismiss) private var dismiss
 
     private var displayedTasks: [SFTPTask] {
         guard let connection else { return manager.tasks }
@@ -15,30 +14,10 @@ struct SFTPTaskListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            topBar
             taskList
             bottomToolbar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var topBar: some View {
-        HStack {
-            Text("传输任务")
-                .font(.system(size: 13, weight: .medium))
-            Spacer()
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .help("关闭")
-        }
-        .frame(height: 32)
-        .padding(.horizontal, 12)
-        .background(Color(.controlBackgroundColor).opacity(0.2))
     }
 
     private var taskList: some View {
@@ -46,9 +25,9 @@ struct SFTPTaskListView: View {
             LazyVStack(spacing: 0) {
                 if displayedTasks.isEmpty {
                     Text("暂无传输任务")
-                        .font(.system(size: 12))
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
-                        .padding(.top, 40)
+                        .padding(.top, 60)
                 } else {
                     ForEach(displayedTasks) { task in
                         SFTPTaskRow(task: task)
@@ -70,10 +49,10 @@ struct SFTPTaskListView: View {
             .buttonStyle(.plain)
             .foregroundColor(.accentColor)
             .disabled(displayedTasks.allSatisfy { !$0.isCompleted })
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .background(Color(.controlBackgroundColor).opacity(0.2))
+        .background(Color(.controlBackgroundColor).opacity(0.15))
     }
 }
 
@@ -82,53 +61,71 @@ private struct SFTPTaskRow: View {
     @ObservedObject var task: SFTPTask
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 12) {
             directionIcon
-                .frame(width: 18)
+                .frame(width: 22)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(task.title)
-                    .font(.system(size: 12))
+            VStack(alignment: .leading, spacing: 4) {
+                // 第一行：文件名、操作按钮，文件大小右对齐
+                HStack(spacing: 8) {
+                    Text(task.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    if let size = task.fileSize {
+                        Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+
+                    actionButtons
+                }
+
+                // 第二行：目标路径
+                Text(destinationPath)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .truncationMode(.head)
+                    .textSelection(.enabled)
 
-                HStack(spacing: 6) {
+                // 第三行：进度条与状态
+                HStack(spacing: 10) {
                     ProgressView(value: task.progress)
                         .progressViewStyle(.linear)
-                        .frame(width: 120)
+                        .frame(maxWidth: .infinity)
                     Text(statusText)
-                        .font(.system(size: 10))
-                        .foregroundColor(task.state == .failed ? .red : .secondary)
+                        .font(.system(size: 11))
+                        .foregroundColor(statusColor)
                         .lineLimit(1)
                         .textSelection(.enabled)
                 }
             }
-
-            Spacer()
-
-            actionButtons
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     @ViewBuilder
     private var directionIcon: some View {
         let icon = task.type == .upload ? "arrow.up" : "arrow.down"
         Image(systemName: icon)
-            .font(.system(size: 12, weight: .medium))
+            .font(.system(size: 13, weight: .medium))
             .foregroundColor(task.type == .upload ? .orange : .accentColor)
     }
 
     @ViewBuilder
     private var actionButtons: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             if task.state == .failed, let error = task.errorMessage {
                 Button(action: {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(error, forType: .string)
                 }) {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
                 .help("复制错误信息")
@@ -138,14 +135,14 @@ private struct SFTPTaskRow: View {
             case .running:
                 Button(action: { SFTPTransferManager.shared.pauseTask(task) }) {
                     Image(systemName: "pause.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
                 .help("暂停")
             case .paused:
                 Button(action: { SFTPTransferManager.shared.resumeTask(task) }) {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
                 .help("恢复")
@@ -155,12 +152,22 @@ private struct SFTPTaskRow: View {
 
             Button(action: { SFTPTransferManager.shared.cancelTask(task) }) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
             }
             .buttonStyle(.plain)
             .help("删除")
         }
         .foregroundColor(.secondary)
+    }
+
+    /// 目标路径：上传显示远程目录，下载显示本地保存目录。
+    private var destinationPath: String {
+        switch task.type {
+        case .upload:
+            return task.remotePath
+        case .download:
+            return task.localPath
+        }
     }
 
     private var statusText: String {
@@ -171,6 +178,14 @@ private struct SFTPTaskRow: View {
         case .completed: return "已完成"
         case .failed:    return task.errorMessage ?? "失败"
         case .cancelled: return "已取消"
+        }
+    }
+
+    private var statusColor: Color {
+        switch task.state {
+        case .failed:    return .red
+        case .completed: return .green
+        default:         return .secondary
         }
     }
 }

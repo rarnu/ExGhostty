@@ -31,6 +31,8 @@ final class SFTPTask: ObservableObject, Identifiable {
     let connection: SSHConnection
     /// 是否为目录（下载目录/上传目录时使用）。
     let isDirectory: Bool
+    /// 文件大小（字节），用于任务列表展示。
+    let fileSize: Int64?
 
     @Published var state: SFTPTaskState = .pending
     @Published var progress: Double = 0
@@ -45,7 +47,8 @@ final class SFTPTask: ObservableObject, Identifiable {
         remotePath: String,
         title: String,
         connection: SSHConnection,
-        isDirectory: Bool = false
+        isDirectory: Bool = false,
+        fileSize: Int64? = nil
     ) {
         self.type = type
         self.localPath = localPath
@@ -53,6 +56,7 @@ final class SFTPTask: ObservableObject, Identifiable {
         self.title = title
         self.connection = connection
         self.isDirectory = isDirectory
+        self.fileSize = fileSize
     }
 
     var isActive: Bool {
