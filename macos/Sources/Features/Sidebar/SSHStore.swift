@@ -6,14 +6,8 @@ import Combine
 class SSHStore: ObservableObject {
     // MARK: - Published 属性
 
-    @Published var connections: [SSHConnection] = [] {
-        didSet { save() }
-    }
-
-    @Published var groups: [SSHGroup] = [] {
-        didSet { save() }
-    }
-
+    @Published var connections: [SSHConnection] = []
+    @Published var groups: [SSHGroup] = []
     @Published var searchText: String = ""
 
     // MARK: - 单例
@@ -29,20 +23,15 @@ class SSHStore: ObservableObject {
 
     // MARK: - 查询
 
-    /// 根据搜索文本过滤的连接列表
     var filteredConnections: [SSHConnection] {
-        if searchText.isEmpty {
-            return connections
-        }
+        if searchText.isEmpty { return connections }
         return connections.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
-    /// 获取某个分组的连接
     func connections(for groupID: UUID) -> [SSHConnection] {
         connections.filter { $0.groupID == groupID }
     }
 
-    /// 未分组的连接
     var ungroupedConnections: [SSHConnection] {
         connections.filter { $0.groupID == nil }
     }
@@ -51,21 +40,25 @@ class SSHStore: ObservableObject {
 
     func addConnection(_ conn: SSHConnection) {
         connections.append(conn)
+        save()
     }
 
     func removeConnection(_ id: UUID) {
         connections.removeAll { $0.id == id }
+        save()
     }
 
     func updateConnection(_ conn: SSHConnection) {
         guard let i = connections.firstIndex(where: { $0.id == conn.id }) else { return }
         connections[i] = conn
+        save()
     }
 
     // MARK: - CRUD 分组
 
     func addGroup(_ group: SSHGroup) {
         groups.append(group)
+        save()
     }
 
     func removeGroup(_ id: UUID) {
@@ -73,11 +66,15 @@ class SSHStore: ObservableObject {
         for i in connections.indices where connections[i].groupID == id {
             connections[i].groupID = nil
         }
+        // 显式通知数组变化（上面的属性赋值不会触发 didSet）
+        objectWillChange.send()
+        save()
     }
 
     func updateGroup(_ group: SSHGroup) {
         guard let i = groups.firstIndex(where: { $0.id == group.id }) else { return }
         groups[i] = group
+        save()
     }
 
     // MARK: - 持久化
@@ -89,6 +86,7 @@ class SSHStore: ObservableObject {
         if let groupData = try? JSONEncoder().encode(groups) {
             UserDefaults.standard.set(groupData, forKey: groupsKey)
         }
+        UserDefaults.standard.synchronize()
     }
 
     private func load() {
