@@ -265,18 +265,39 @@ struct SSHConfigFormView: View {
     private var groupSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             label("分组")
-            Picker("", selection: $groupID) {
-                Text("未分组").tag(nil as UUID?)
+            Menu {
+                Button("未分组") { groupID = nil }
                 ForEach(sshStore.groups) { group in
-                    Text(group.name).tag(group.id as UUID?)
+                    Button(group.name) { groupID = group.id }
                 }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(groupTitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(8)
+                .contentShape(Rectangle())
             }
-            .pickerStyle(.menu)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(.controlBackgroundColor))
-            .cornerRadius(8)
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
         }
+    }
+
+    private var groupTitle: String {
+        guard let id = groupID, let group = sshStore.groups.first(where: { $0.id == id }) else {
+            return "未分组"
+        }
+        return group.name
     }
 
     // MARK: - 连接方式
@@ -301,17 +322,32 @@ struct SSHConfigFormView: View {
     private var jumpHostPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
             label("跳板主机")
-            Picker("", selection: $jumpHostID) {
-                Text("请选择跳板主机").tag(nil as UUID?)
+            Menu {
+                Button("请选择跳板主机") { jumpHostID = nil }
                 ForEach(availableJumpHosts) { conn in
-                    Text("\(conn.name) (\(conn.host):\(conn.port))").tag(conn.id as UUID?)
+                    Button("\(conn.name) (\(conn.host):\(conn.port))") { jumpHostID = conn.id }
                 }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(jumpHostTitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(jumpHostID == nil ? .secondary : .primary)
+                        .lineLimit(1)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(8)
+                .contentShape(Rectangle())
             }
-            .pickerStyle(.menu)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(.controlBackgroundColor))
-            .cornerRadius(8)
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .disabled(availableJumpHosts.isEmpty)
 
             if availableJumpHosts.isEmpty {
                 Text("暂无可用跳板主机，请先创建其他 SSH 连接")
@@ -319,6 +355,13 @@ struct SSHConfigFormView: View {
                     .foregroundColor(.secondary)
             }
         }
+    }
+
+    private var jumpHostTitle: String {
+        guard let id = jumpHostID, let conn = availableJumpHosts.first(where: { $0.id == id }) else {
+            return "请选择跳板主机"
+        }
+        return "\(conn.name) (\(conn.host):\(conn.port))"
     }
 
     private var availableJumpHosts: [SSHConnection] {
@@ -447,6 +490,7 @@ struct SSHConfigFormView: View {
                                 : Color.clear
                         )
                         .cornerRadius(6)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -578,15 +622,15 @@ private struct SSHTestConfig {
 private enum SSHTester {
     enum TestError: LocalizedError {
         case sshNotFound
-        case sshpassNotFound
+        case expectNotFound
         case connectionFailed(String)
 
         var errorDescription: String? {
             switch self {
             case .sshNotFound:
                 return "未找到系统 ssh 命令"
-            case .sshpassNotFound:
-                return "未找到 sshpass，无法测试密码登录"
+            case .expectNotFound:
+                return "未找到 expect，无法测试密码登录"
             case .connectionFailed(let msg):
                 return msg
             }
@@ -599,7 +643,7 @@ private enum SSHTester {
         }
 
         var args: [String] = [
-            "-o", "ConnectTimeout=10",
+            "-o", "ConnectTimeout=30",
             "-o", "StrictHostKeyChecking=accept-new"
         ]
 
@@ -610,14 +654,13 @@ private enum SSHTester {
         }
 
         if config.authMode == .key, let keyPath = config.keyPath {
-            args += ["-i", keyPath, "-o", "BatchMode=yes"]
-        } else if config.authMode == .password, !config.password.isEmpty {
-            // 密码登录优先使用 sshpass 进行真实测试；否则退而求其次检测主机端口可达性
-            if FileManager.default.isExecutableFile(atPath: "/opt/homebrew/bin/sshpass") ||
-               FileManager.default.isExecutableFile(atPath: "/usr/local/bin/sshpass") {
-                return testWithSshpass(config: config)
+            guard FileManager.default.fileExists(atPath: keyPath) else {
+                return .failure(TestError.connectionFailed("密钥文件不存在：\(keyPath)"))
             }
-            return testHostReachability(config: config)
+            args += ["-i", keyPath, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes"]
+        } else if config.authMode == .password, !config.password.isEmpty {
+            // 密码登录使用系统自带的 expect 脚本自动输入密码进行真实测试
+            return testWithExpect(config: config)
         } else {
             args += ["-o", "BatchMode=yes"]
         }
@@ -634,38 +677,89 @@ private enum SSHTester {
         return runSSH(args: args)
     }
 
-    private static func testWithSshpass(config: SSHTestConfig) -> Result<Void, Error> {
-        let sshpassPath: String
-        if FileManager.default.isExecutableFile(atPath: "/opt/homebrew/bin/sshpass") {
-            sshpassPath = "/opt/homebrew/bin/sshpass"
-        } else if FileManager.default.isExecutableFile(atPath: "/usr/local/bin/sshpass") {
-            sshpassPath = "/usr/local/bin/sshpass"
-        } else {
-            return .failure(TestError.sshpassNotFound)
+    private static func testWithExpect(config: SSHTestConfig) -> Result<Void, Error> {
+        guard FileManager.default.isExecutableFile(atPath: "/usr/bin/expect") else {
+            return .failure(TestError.expectNotFound)
         }
 
-        var sshArgs = [
-            "-o", "ConnectTimeout=10",
-            "-o", "StrictHostKeyChecking=accept-new"
-        ]
+        var sshArgs = "-o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new"
 
         if config.connectionMethod == .jumpHost, let jump = config.jumpHost {
             let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
             let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
-            sshArgs += ["-J", "\(jumpUser)\(jump.host)\(jumpPort)"]
+            sshArgs += " -J \(jumpUser)\(jump.host)\(jumpPort)"
+        }
+
+        if config.port != 22 {
+            sshArgs += " -p \(config.port)"
         }
 
         let userPrefix = config.username.isEmpty ? "" : "\(config.username)@"
-        sshArgs += ["\(userPrefix)\(config.host)"]
+        sshArgs += " \(userPrefix)\(config.host) exit"
 
-        if config.port != 22 {
-            sshArgs += ["-p", String(config.port)]
+        let script = #"""
+        set timeout 60
+        set password $env(SSHPASS)
+        spawn /usr/bin/ssh \#(sshArgs)
+        set attempts 0
+        expect {
+            -nocase "password:" {
+                if { $attempts >= 3 } {
+                    puts "Authentication failed"
+                    exit 1
+                }
+                send "$password\r"
+                incr attempts
+                exp_continue
+            }
+            timeout {
+                puts "Connection timed out"
+                exit 124
+            }
+            eof {
+                catch wait result
+                exit [lindex $result 3]
+            }
         }
+        """#
 
-        sshArgs += ["exit"]
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghostty_ssh_test_\(UUID().uuidString).exp")
 
-        let args = ["-p", config.password, "/usr/bin/ssh"] + sshArgs
-        return runSSH(args: args, executable: sshpassPath)
+        do {
+            try script.write(to: tempURL, atomically: true, encoding: .utf8)
+        } catch {
+            return .failure(error)
+        }
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/expect")
+        task.arguments = [tempURL.path]
+        task.environment = ["SSHPASS": config.password, "SSH_AUTH_SOCK": ""]
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = pipe
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+            if task.terminationStatus == 0 {
+                return .success(())
+            } else if task.terminationStatus == 124 {
+                return .failure(TestError.connectionFailed("连接超时，请检查地址和端口"))
+            } else {
+                let message = output.isEmpty ? "SSH 认证失败" : output
+                return .failure(TestError.connectionFailed(message))
+            }
+        } catch {
+            return .failure(error)
+        }
     }
 
     private static func runSSH(args: [String], executable: String = "/usr/bin/ssh") -> Result<Void, Error> {
@@ -689,29 +783,6 @@ private enum SSHTester {
             } else {
                 let message = output.isEmpty ? "SSH 进程退出码 \(task.terminationStatus)" : output
                 return .failure(TestError.connectionFailed(message))
-            }
-        } catch {
-            return .failure(error)
-        }
-    }
-
-    private static func testHostReachability(config: SSHTestConfig) -> Result<Void, Error> {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/nc")
-        task.arguments = ["-z", "-G", "10", "-w", "10", config.host, String(config.port)]
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-
-        do {
-            try task.run()
-            task.waitUntilExit()
-
-            if task.terminationStatus == 0 {
-                return .success(())
-            } else {
-                return .failure(TestError.connectionFailed("无法连接到 \(config.host):\(config.port)，请检查地址和端口是否可达"))
             }
         } catch {
             return .failure(error)

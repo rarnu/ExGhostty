@@ -170,6 +170,25 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
             .help("Expand Sidebar")
+
+            Button(action: { onNewLocalTerminal?() }) {
+                Image(systemName: "plus.square")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .help("New Local Terminal")
+
+            Button(action: { onNewPortForward?() }) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .help("New Port Forward")
+
             Spacer()
             Button(action: {}) {
                 Image(systemName: "gearshape")
@@ -178,6 +197,7 @@ struct SidebarView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
+            .frame(height: 32)
             .help("Settings")
             .padding(.bottom, 8)
         }
@@ -261,14 +281,16 @@ struct SidebarView: View {
     private var settingsButton: some View {
         Button(action: {}) {
             HStack(spacing: 4) {
-                Image(systemName: "gearshape").font(.system(size: 11))
-                Text("Settings").font(.system(size: 11))
+                Image(systemName: "gearshape").font(.system(size: 13))
+                Text("Settings").font(.system(size: 13))
                 Spacer()
             }
             .foregroundColor(.secondary)
-            .padding(.horizontal, 12).padding(.vertical, 6)
+            .padding(.horizontal, 12)
         }
         .buttonStyle(.plain)
+        .frame(height: 32)
+        .fixedSize(horizontal: false, vertical: true)
         .help("Settings")
     }
 
@@ -278,13 +300,17 @@ struct SidebarView: View {
         List {
             let defaultConns = filtered(store.ungroupedConnections)
             let defaultCount = store.ungroupedConnections.count
-            Section("默认 (\(defaultCount))") {
+            Section {
                 if defaultConns.isEmpty {
-                    Text("No connections").font(.system(size: 11)).foregroundColor(.secondary)
+                    Text("No connections").font(.system(size: 12)).foregroundColor(.secondary)
                 }
                 ForEach(defaultConns) { conn in
                     connectionRow(conn)
                 }
+            } header: {
+                Text("默认 (\(defaultCount))")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.secondary)
             }
 
             ForEach(store.groups) { group in
@@ -292,7 +318,7 @@ struct SidebarView: View {
                 let totalCount = store.connections(for: group.id).count
                 Section {
                     if conns.isEmpty {
-                        Text("No connections").font(.system(size: 11)).foregroundColor(.secondary)
+                        Text("No connections").font(.system(size: 12)).foregroundColor(.secondary)
                     }
                     ForEach(conns) { conn in
                         connectionRow(conn)
@@ -319,15 +345,22 @@ struct SidebarView: View {
 
     private func connectionRow(_ conn: SSHConnection) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "server.rack").font(.system(size: 10)).foregroundColor(.accentColor).frame(width: 16)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(conn.name).font(.system(size: 12, weight: .medium)).lineLimit(1)
-                Text("\(conn.host):\(conn.port)").font(.system(size: 10)).foregroundColor(.secondary).lineLimit(1)
+            Image(systemName: "server.rack").font(.system(size: 12)).foregroundColor(.accentColor).frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(conn.name).font(.system(size: 14, weight: .medium)).lineLimit(1)
+                Text("\(conn.host):\(conn.port)").font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+                if !conn.notes.isEmpty {
+                    Text(conn.notes)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
             }
             Spacer()
-            Image(systemName: "ellipsis").font(.system(size: 9)).foregroundColor(.secondary.opacity(0.5))
+            Image(systemName: "ellipsis").font(.system(size: 10)).foregroundColor(.secondary.opacity(0.5))
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { onOpenSSH?(conn) }
         .contextMenu {
@@ -335,7 +368,9 @@ struct SidebarView: View {
                 editingConnection = conn
                 showEditSSHDialog()
             }
-            Button("Delete", role: .destructive) { store.removeConnection(conn.id) }
+            Button("Delete", role: .destructive) {
+                showDeleteConnectionConfirmation(conn)
+            }
         }
     }
 
@@ -344,6 +379,30 @@ struct SidebarView: View {
     }
 
     // MARK: - 弹窗
+
+    private func showDeleteConnectionConfirmation(_ conn: SSHConnection) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "删除连接"
+            alert.informativeText = "确定要删除 \"\(conn.name)\" 吗？此操作无法撤销。"
+            alert.addButton(withTitle: "删除")
+            alert.addButton(withTitle: "取消")
+            alert.buttons.first?.hasDestructiveAction = true
+
+            if let win = NSApp.keyWindow {
+                alert.beginSheetModal(for: win) { resp in
+                    if resp == .alertFirstButtonReturn {
+                        store.removeConnection(conn.id)
+                    }
+                }
+            } else {
+                let resp = alert.runModal()
+                if resp == .alertFirstButtonReturn {
+                    store.removeConnection(conn.id)
+                }
+            }
+        }
+    }
 
     private func showAddGroupDialog() {
         let alert = NSAlert()
@@ -442,7 +501,7 @@ struct GroupHeaderView: View {
 
     var body: some View {
         HStack {
-            Text("\(name) (\(count))").font(.system(size: 12, weight: .semibold)).foregroundColor(.secondary)
+            Text("\(name) (\(count))").font(.system(size: 14, weight: .semibold)).foregroundColor(.secondary)
             Spacer()
         }
         .padding(.vertical, 2)

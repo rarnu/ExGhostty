@@ -410,6 +410,13 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         controller.isBackgroundOpaque = parentController.isBackgroundOpaque
         guard let window = controller.window else { return controller }
 
+        // Inherit sidebar collapsed state from the parent window so that new tabs
+        // opened from a collapsed sidebar don't unexpectedly expand it.
+        if let parentContainer = parent.contentView as? SidebarTerminalTerminalViewContainer,
+           let childContainer = window.contentView as? SidebarTerminalTerminalViewContainer {
+            childContainer.collapsed = parentContainer.collapsed
+        }
+
         // If the parent is miniaturized, then macOS exhibits really strange behaviors
         // so we have to bring it back out.
         if parent.isMiniaturized { parent.deminiaturize(self) }
