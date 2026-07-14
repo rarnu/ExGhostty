@@ -6,7 +6,7 @@ import Combine
 class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     // MARK: - 子视图
 
-    fileprivate var sidebarHostingView: NSHostingView<SidebarView>
+    fileprivate let sidebarHostingView: NSHostingView<SidebarView>
     fileprivate let sidebarBackgroundView = SidebarBackgroundView()
     fileprivate let tabBarHostingView: NSHostingView<TabBarView>
     fileprivate let dividerView = SidebarDividerView()
@@ -393,57 +393,6 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         sidebarHostingView.rootView = newSidebar
         sidebarBackgroundView.backgroundColor = backgroundColor
     }
-
-    /// 完全销毁并重新创建 sidebarHostingView，丢弃所有旧 layer 及其 contents，
-    /// 消除拖拽 resize 后残留在旧边界处的竖线。
-    func recreateSidebarHostingView() {
-        guard let tc = terminalController else { return }
-        let config = tc.ghostty.config
-        let backgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
-
-        // 移除旧 hostingView 的所有约束
-        NSLayoutConstraint.deactivate(
-            self.constraints.filter { $0.firstItem === sidebarHostingView || $0.secondItem === sidebarHostingView }
-        )
-        sidebarHostingView.removeFromSuperview()
-
-        // 创建全新的 NSHostingView
-        let newSidebar = SidebarView(
-            collapsed: _collapsed,
-            backgroundColor: backgroundColor,
-            onToggleCollapse: { [weak self] in self?.collapsed.toggle() },
-            onNewLocalTerminal: { [weak tc] in
-                guard let tc, let window = tc.window else { return }
-                _ = TerminalController.newTab(tc.ghostty, from: window)
-            },
-            onNewPortForward: nil,
-            onOpenSSH: nil
-        )
-        sidebarHostingView = NSHostingView(rootView: newSidebar)
-        sidebarHostingView.wantsLayer = true
-        sidebarHostingView.layerContentsRedrawPolicy = .duringViewResize
-        sidebarHostingView.layer?.needsDisplayOnBoundsChange = true
-        sidebarHostingView.translatesAutoresizingMaskIntoConstraints = false
-
-        // 插入到 sidebarBackgroundView 之上、dividerView 之下
-        addSubview(sidebarHostingView, positioned: .above, relativeTo: sidebarBackgroundView)
-
-        // 重建约束
-        let swc = sidebarHostingView.widthAnchor.constraint(equalToConstant: collapsed ? 32 : _sidebarWidth)
-        swc.priority = .defaultHigh
-        sidebarWidthConstraint = swc
-
-        NSLayoutConstraint.activate([
-            sidebarHostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            sidebarHostingView.topAnchor.constraint(equalTo: topAnchor),
-            sidebarHostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            swc,
-            dividerView.leadingAnchor.constraint(equalTo: sidebarHostingView.trailingAnchor),
-        ])
-
-        sidebarBackgroundView.backgroundColor = backgroundColor
-    }
 }
 
 // MARK: - 扩展
@@ -467,14 +416,15 @@ class SidebarDividerView: NSView {
             guard let ev else { return }
             if ev.type == .leftMouseUp {
                 stop.pointee = true
-                // 禁用 Core Animation 隐式动画
+                // 禁用 Core Animation 隐式动画，防止 layer bounds 变化时旧 content 被拉伸，
+                // 在原边界处留下永久竖线。
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
                 container.sidebarWidth = initialWidth + ev.locationInWindow.x - initialX
                 container.layoutSubtreeIfNeeded()
                 CATransaction.commit()
-                // 完全销毁并重建 sidebarHostingView，丢弃所有旧 layer contents
-                container.recreateSidebarHostingView()
+                // 在无动画状态下重建内容并整体重绘
+                container.rebuildSidebarView()
                 container.layoutSubtreeIfNeeded()
                 container.display()
                 return
