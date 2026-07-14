@@ -415,6 +415,14 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         if let parentSplitVC = parentController.sidebarSplitViewController,
            let childSplitVC = window.contentViewController as? SidebarSplitViewController {
             childSplitVC.collapsed = parentSplitVC.collapsed
+            childSplitVC.sidebarWidth = parentSplitVC.sidebarWidth
+        }
+
+        // 新标签页加入标签组前，先把子窗口 frame 同步为父窗口 frame，
+        // 防止 windowDidLoad 里的 defaultSize / setContentSize 导致标签组被缩放或移到 (0,0)。
+        if !parent.styleMask.contains(.fullScreen),
+           !window.styleMask.contains(.fullScreen) {
+            window.setFrame(parent.frame, display: false)
         }
 
         // If the parent is miniaturized, then macOS exhibits really strange behaviors

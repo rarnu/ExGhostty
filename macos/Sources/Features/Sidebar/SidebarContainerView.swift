@@ -2,6 +2,19 @@ import AppKit
 import SwiftUI
 import Combine
 
+/// 将给定颜色调暗一点，用作左侧栏背景，使其比右侧终端区域稍深。
+private func sidebarBackgroundColor(from color: NSColor) -> NSColor {
+    color.shadow(withLevel: 0.08) ?? color
+}
+
+// MARK: - Split View
+
+/// 自定义 NSSplitView，隐藏可见分隔线但保留拖拽热区。
+class SidebarSplitView: NSSplitView {
+    /// 不绘制可见分隔线；系统仍保留 divider 热区用于拖拽。
+    override func drawDivider(in rect: NSRect) { }
+}
+
 // MARK: - Split View Controller
 
 /// 用原生 NSSplitView 实现的侧边栏 + 终端分栏布局。
@@ -22,7 +35,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         return v
     }()
 
-    private let splitView = NSSplitView()
+    private let splitView = SidebarSplitView()
 
     private var tabGroupObserver: NSKeyValueObservation?
     private var tabWindowsObserver: NSKeyValueObservation?
@@ -68,12 +81,13 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         self.terminalController = terminalController
 
         let config = terminalController.ghostty.config
-        let backgroundColor = NSColor(config.backgroundColor)
+        let terminalBackgroundColor = NSColor(config.backgroundColor)
             .withAlphaComponent(config.backgroundOpacity)
+        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
 
         let initialSidebar = SidebarView(
             collapsed: false,
-            backgroundColor: backgroundColor,
+            backgroundColor: sidebarBackgroundColor,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
             onNewPortForward: nil,
@@ -82,19 +96,19 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
         self.sidebarHostingView.wantsLayer = true
 
-        self.sidebarBackgroundView.backgroundColor = backgroundColor
+        self.sidebarBackgroundView.backgroundColor = sidebarBackgroundColor
 
         let initialTabBar = TabBarView(
             viewID: 0,
             windows: [],
             selectedWindow: nil,
-            backgroundColor: backgroundColor,
+            backgroundColor: terminalBackgroundColor,
             onSelectTab: nil,
             onCloseTab: nil
         )
         self.tabBarHostingView = NSHostingView(rootView: initialTabBar)
         self.tabBarHostingView.wantsLayer = true
-        self.tabBarHostingView.layer?.backgroundColor = backgroundColor.cgColor
+        self.tabBarHostingView.layer?.backgroundColor = terminalBackgroundColor.cgColor
 
         // terminalContentView 使用 TerminalViewContainer 包裹 SwiftUI root view，
         // 保留玻璃效果、初始内容尺寸等原有行为。
@@ -254,14 +268,14 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             selected = window
         }
 
-        let backgroundColor = NSColor(config.backgroundColor)
+        let terminalBackgroundColor = NSColor(config.backgroundColor)
             .withAlphaComponent(config.backgroundOpacity)
 
         let newBar = TabBarView(
             viewID: tabBarViewID,
             windows: windows,
             selectedWindow: selected,
-            backgroundColor: backgroundColor,
+            backgroundColor: terminalBackgroundColor,
             onSelectTab: { target in
                 target.makeKeyAndOrderFront(nil)
                 if let tg = window.tabGroup { tg.selectedWindow = target }
@@ -269,7 +283,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             onCloseTab: { target in target.close() }
         )
         tabBarHostingView.rootView = newBar
-        tabBarHostingView.layer?.backgroundColor = backgroundColor.cgColor
+        tabBarHostingView.layer?.backgroundColor = terminalBackgroundColor.cgColor
     }
 
     // MARK: - 侧边栏
@@ -279,12 +293,13 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         let collapsed = self._collapsed
         let config = tc.ghostty.config
 
-        let backgroundColor = NSColor(config.backgroundColor)
+        let terminalBackgroundColor = NSColor(config.backgroundColor)
             .withAlphaComponent(config.backgroundOpacity)
+        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
 
         let newSidebar = SidebarView(
             collapsed: collapsed,
-            backgroundColor: backgroundColor,
+            backgroundColor: sidebarBackgroundColor,
             onToggleCollapse: { [weak self] in self?.collapsed.toggle() },
             onNewLocalTerminal: { [weak tc] in
                 guard let tc, let window = tc.window else { return }
@@ -360,7 +375,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             }
         )
         sidebarHostingView.rootView = newSidebar
-        sidebarBackgroundView.backgroundColor = backgroundColor
+        sidebarBackgroundView.backgroundColor = sidebarBackgroundColor
     }
 
     // MARK: - 宽度控制
@@ -378,7 +393,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         constrainMinCoordinate proposedMinimumPosition: CGFloat,
         ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
-        0
+        collapsed ? 32 : 150
     }
 
     func splitView(
@@ -386,7 +401,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         constrainMaxCoordinate proposedMaximumPosition: CGFloat,
         ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
-        splitView.bounds.width - splitView.dividerThickness
+        min(400, splitView.bounds.width - splitView.dividerThickness)
     }
 
     func splitView(
@@ -394,13 +409,9 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         constrainSplitPosition proposedPosition: CGFloat,
         ofDividerAt dividerIndex: Int
     ) -> CGFloat {
-        let dividerThickness = splitView.dividerThickness
-        let maxPos = splitView.bounds.width - dividerThickness
-        if collapsed {
-            // 折叠状态下锁定在 32pt，不允许拖动展开。
-            return 32
-        }
-        return max(150, min(proposedPosition, maxPos))
+        let minPos: CGFloat = collapsed ? 32 : 150
+        let maxPos = min(400, splitView.bounds.width - splitView.dividerThickness)
+        return max(minPos, min(proposedPosition, maxPos))
     }
 
     /// 窗口整体 resize 时保持侧边栏宽度不变，只调整右侧终端区域。
