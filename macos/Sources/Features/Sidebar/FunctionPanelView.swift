@@ -1,18 +1,44 @@
 import AppKit
 import SwiftUI
 
-/// 右侧功能面板内容，目前只显示标题栏。
+/// 右侧功能面板内容。
 struct FunctionPanelView: View {
     let feature: RightSidebarFeature?
+    let terminalController: TerminalController?
     var onClose: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
             topToolbar
             Divider()
-            Spacer()
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch feature {
+        case .sftp:
+            if let connection = terminalController?.sshConnection {
+                SFTPPanelView(connection: connection, terminalController: terminalController)
+            } else {
+                placeholder("请先通过 SSH 连接")
+            }
+        case .sessionReuse, .systemMonitor, .codeSnippet, .aiAssistant, .none:
+            placeholder(feature?.title ?? "")
+        }
+    }
+
+    private func placeholder(_ title: String) -> some View {
+        VStack {
+            Spacer()
+            Text(title.isEmpty ? "选择右侧功能" : title)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+            Spacer()
+        }
     }
 
     private var topToolbar: some View {

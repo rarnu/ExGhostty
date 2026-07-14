@@ -81,7 +81,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     var functionPanelWidth: CGFloat {
         get { _functionPanelWidth }
         set {
-            _functionPanelWidth = max(200, min(newValue, 500))
+            _functionPanelWidth = max(300, min(newValue, 600))
             updateFunctionPanelWidth()
         }
     }
@@ -161,7 +161,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         self.rightSidebarBackgroundView.backgroundColor = sidebarBackgroundColor
 
         // 功能面板（默认隐藏）
-        let initialFunctionPanel = FunctionPanelView(feature: nil, onClose: nil)
+        let initialFunctionPanel = FunctionPanelView(feature: nil, terminalController: terminalController, onClose: nil)
         self.functionPanelHostingView = NSHostingView(rootView: initialFunctionPanel)
         self.functionPanelHostingView.wantsLayer = true
 
@@ -482,6 +482,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 if let ctrl {
                     ctrl.baseTitle = conn.name
                     ctrl.titleOverride = conn.name
+                    ctrl.sshConnection = conn
                     DispatchQueue.main.async {
                         if let splitVC = ctrl.window?.contentViewController as? SidebarSplitViewController {
                             splitVC.rebuildTabBar()
@@ -535,6 +536,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
 
         let newFunctionPanel = FunctionPanelView(
             feature: feature,
+            terminalController: tc,
             onClose: { [weak self] in
                 self?.functionPanelVisible = false
                 self?.selectedFunctionFeature = nil
@@ -581,7 +583,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         }
         if splitView === functionTerminalSplitView {
             let maxPos = splitView.bounds.width - splitView.dividerThickness
-            return functionPanelVisible ? maxPos - 500 : maxPos
+            return functionPanelVisible ? maxPos - 600 : maxPos
         }
         return collapsed ? 32 : 150
     }
@@ -597,7 +599,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         }
         if splitView === functionTerminalSplitView {
             let maxPos = splitView.bounds.width - splitView.dividerThickness
-            return functionPanelVisible ? maxPos - 200 : maxPos
+            return functionPanelVisible ? maxPos - 300 : maxPos
         }
         return collapsed ? 32 : min(400, splitView.bounds.width - splitView.dividerThickness)
     }
@@ -613,8 +615,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         }
         if splitView === functionTerminalSplitView {
             let maxPos = splitView.bounds.width - splitView.dividerThickness
-            let minPos: CGFloat = functionPanelVisible ? maxPos - 500 : maxPos
-            let maxAllowed: CGFloat = functionPanelVisible ? maxPos - 200 : maxPos
+            let minPos: CGFloat = functionPanelVisible ? maxPos - 600 : maxPos
+            let maxAllowed: CGFloat = functionPanelVisible ? maxPos - 300 : maxPos
             return max(minPos, min(proposedPosition, maxAllowed))
         }
         let minPos: CGFloat = collapsed ? 32 : 150
@@ -682,7 +684,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         if resizedSplitView === functionTerminalSplitView {
             guard functionPanelVisible else { return }
             let newWidth = resizedSplitView.subviews[1].frame.width
-            if newWidth >= 200 && newWidth <= 500 {
+            if newWidth >= 300 && newWidth <= 600 {
                 _functionPanelWidth = newWidth
             }
             return

@@ -83,6 +83,12 @@ class BaseTerminalController: NSWindowController,
     /// Track whether background is forced opaque (true) or using config transparency (false)
     var isBackgroundOpaque: Bool = false
 
+    /// 当前终端会话关联的 SSH 连接（仅 SSH 标签页有效）。
+    var sshConnection: SSHConnection? = nil
+
+    /// 当前聚焦终端所在目录（由 surface 通过 OSC 7 等上报）。
+    @Published var currentDirectoryURL: URL? = nil
+
     /// The cancellables related to our focused surface.
     private var focusedSurfaceCancellables: Set<AnyCancellable> = []
 
@@ -871,6 +877,8 @@ class BaseTerminalController: NSWindowController,
     }
 
     func pwdDidChange(to: URL?) {
+        currentDirectoryURL = to
+
         guard let window else { return }
 
         if derivedConfig.macosTitlebarProxyIcon == .visible {

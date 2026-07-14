@@ -152,8 +152,8 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         case timeoutMs, heartbeatMs, encoding, x11Forwarding
     }
 
-    /// 生成 SSH 命令行参数字符串（不含 "ssh" 前缀）
-    var sshBaseArgs: String {
+    /// 生成 SSH 选项参数字符串（不含主机名，用于 rsync 等需要自行指定主机的场景）。
+    var sshOptions: String {
         var args = ""
 
         // 连接超时（秒，支持小数）
@@ -183,13 +183,16 @@ struct SSHConnection: Identifiable, Codable, Hashable {
             args += "-i \(keyPath) "
         }
 
-        let userPrefix = username.isEmpty ? "" : "\(username)@"
-        args += "\(userPrefix)\(host)"
-
         if port != 22 {
-            args += " -p \(port)"
+            args += "-p \(port) "
         }
         return args
+    }
+
+    /// 生成 SSH 命令行参数字符串（不含 "ssh" 前缀）
+    var sshBaseArgs: String {
+        let userPrefix = username.isEmpty ? "" : "\(username)@"
+        return sshOptions + "\(userPrefix)\(host)"
     }
 
     /// 生成完整 SSH 命令行字符串
