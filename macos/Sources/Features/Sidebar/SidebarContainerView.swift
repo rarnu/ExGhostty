@@ -416,9 +416,14 @@ class SidebarDividerView: NSView {
             guard let ev else { return }
             if ev.type == .leftMouseUp {
                 stop.pointee = true
-                // 拖动过程中不 live-resize，松手时一次性设置最终宽度并整体刷新。
+                // 禁用 Core Animation 隐式动画，防止 layer bounds 变化时旧 content 被拉伸，
+                // 在原边界处留下永久竖线。
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
                 container.sidebarWidth = initialWidth + ev.locationInWindow.x - initialX
                 container.layoutSubtreeIfNeeded()
+                CATransaction.commit()
+                // 在无动画状态下重建内容并整体重绘
                 container.rebuildSidebarView()
                 container.layoutSubtreeIfNeeded()
                 container.display()
