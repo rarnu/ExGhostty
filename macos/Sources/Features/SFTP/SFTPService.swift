@@ -362,7 +362,16 @@ actor SFTPService {
         let name = source.lastPathComponent
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-        process.arguments = ["-czf", archive.path, "-C", parent, name]
+        process.arguments = [
+            "-czf", archive.path,
+            "--exclude=.DS_Store",
+            "--exclude=._*",
+            "--exclude=.Spotlight-V100",
+            "--exclude=.Trashes",
+            "--exclude=.fseventsd",
+            "--exclude=.TemporaryItems",
+            "-C", parent, name
+        ]
         try await runLocalProcess(process)
     }
 
