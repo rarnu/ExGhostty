@@ -222,6 +222,17 @@ actor SFTPService {
         _ = try await runSSHCommand(connection: connection, remoteCommand: cmd)
     }
 
+    // MARK: - 重命名
+
+    func rename(
+        connection: SSHConnection,
+        from oldPath: String,
+        to newPath: String
+    ) async throws {
+        let cmd = "mv \(shellEscape(oldPath)) \(shellEscape(newPath))"
+        _ = try await runSSHCommand(connection: connection, remoteCommand: cmd)
+    }
+
     // MARK: - 远程命令执行
 
     private func runSSHCommand(

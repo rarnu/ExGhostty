@@ -322,6 +322,28 @@ final class SFTPPanelViewModel: ObservableObject {
         return !selectedObjects.isEmpty
     }
 
+    // MARK: - 重命名
+
+    func rename(item: SFTPFileItem, to newName: String) async {
+        let oldPath = currentPath + "/" + item.name
+        let newPath = currentPath + "/" + newName
+        do {
+            try await SFTPService.shared.rename(
+                connection: connection,
+                from: oldPath,
+                to: newPath
+            )
+            await MainActor.run {
+                self.selectedItems.remove(item.id)
+                self.refresh()
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     // MARK: - 任务窗口
 
     func openTaskListWindow() {
@@ -462,8 +484,19 @@ struct SFTPPanelView: View {
                             .tag(item.id)
                             .contextMenu {
                                 downloadContextMenu(item: item)
-                                Button("删除") {
-                                    confirmDelete(item: item)
+                                if viewModel.selectedItems.count <= 1 {
+                                    Button("重命名") {
+                                        confirmRename(item: item)
+                                    }
+                                }
+                                if viewModel.selectedItems.count > 1 && viewModel.selectedItems.contains(item.id) {
+                                    Button("删除这些文件") {
+                                        confirmDeleteSelected()
+                                    }
+                                } else {
+                                    Button("删除") {
+                                        confirmDelete(item: item)
+                                    }
                                 }
                             }
                     }
@@ -575,6 +608,58 @@ struct SFTPPanelView: View {
             if response == .alertFirstButtonReturn {
                 Task {
                     await self.viewModel.delete(item: item)
+                }
+            }
+        }
+    }
+
+    private func confirmDeleteSelected() {
+        let selectedObjects = viewModel.items.filter { viewModel.selectedItems.contains($0.id) }
+        guard selectedObjects.count > 1 else {
+            if let first = selectedObjects.first {
+                confirmDelete(item: first)
+            }
+            return
+        }
+
+        let names = selectedObjects.map { "• \($0.name)" }.joined(separator: "\n")
+        let hasDirectory = selectedObjects.contains { $0.isDirectory }
+        let typeText = hasDirectory ? "项目" : "文件"
+
+        let alert = NSAlert()
+        alert.messageText = "确认删除 \(selectedObjects.count) 个\(typeText)"
+        alert.informativeText = "确定要删除以下\(typeText)吗？此操作不可撤销。\n\n\(names)"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "删除")
+        alert.addButton(withTitle: "取消")
+        alert.beginSheetModal(for: NSApp.keyWindow ?? NSWindow()) { response in
+            if response == .alertFirstButtonReturn {
+                Task {
+                    await self.viewModel.deleteSelected()
+                }
+            }
+        }
+    }
+
+    private func confirmRename(item: SFTPFileItem) {
+        let alert = NSAlert()
+        alert.messageText = "重命名\(item.isDirectory ? "目录" : "文件")"
+        alert.informativeText = "请输入新的名称："
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: "取消")
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 22))
+        textField.stringValue = item.name
+        textField.selectText(nil)
+        alert.accessoryView = textField
+
+        alert.beginSheetModal(for: NSApp.keyWindow ?? NSWindow()) { response in
+            if response == .alertFirstButtonReturn {
+                let newName = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !newName.isEmpty, newName != item.name else { return }
+                Task {
+                    await self.viewModel.rename(item: item, to: newName)
                 }
             }
         }
