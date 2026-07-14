@@ -1407,13 +1407,23 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                     @intFromFloat(@round(self.config.background_opacity * 255.0)),
                 };
 
-                // If we're on macOS and have glass styles, we remove
-                // the background opacity because the glass effect handles
-                // it.
+                // For macOS glass styles, the glass effect itself provides the visual
+                // background, so we don't want the renderer's bg color to
+                // fully override it. However, we still respect the configured
+                // background-opacity by scaling the alpha down proportionally
+                // rather than zeroing it out completely. This ensures that
+                // different opacity values (e.g. 0.3 vs 0.7) produce visibly
+                // different results even with glass enabled.
                 if (comptime builtin.os.tag == .macos) switch (self.config.background_blur) {
-                    .@"macos-glass-regular",
-                    .@"macos-glass-clear",
-                    => self.uniforms.bg_color[3] = 0,
+                    .@"macos-glass-clear" => self.uniforms.bg_color[3] = 0,
+
+                    .@"macos-glass-regular" => self.uniforms.bg_color[3] = blk: {
+                        // Scale the existing alpha (set from background_opacity)
+                        // by a glass-specific factor so the glass effect remains
+                        // the primary visual but opacity still has influence.
+                        const alpha_f: f64 = @floatFromInt(self.uniforms.bg_color[3]);
+                        break :blk @intFromFloat(@round(alpha_f * 0.5));
+                    },
 
                     else => {},
                 };

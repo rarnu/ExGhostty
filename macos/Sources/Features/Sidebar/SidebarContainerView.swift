@@ -411,7 +411,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         constrainMaxCoordinate proposedMaximumPosition: CGFloat,
         ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
-        min(400, splitView.bounds.width - splitView.dividerThickness)
+        collapsed ? 32 : min(400, splitView.bounds.width - splitView.dividerThickness)
     }
 
     func splitView(
