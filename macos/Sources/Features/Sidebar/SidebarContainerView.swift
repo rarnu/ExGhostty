@@ -110,6 +110,12 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
 
         super.init(rootView: rootView)
 
+        // 显式让 container layer-backed 并裁剪，防止 resize 时旧 layer content
+        // 在 sidebar 边界处被拉伸形成永久竖线。
+        self.wantsLayer = true
+        self.layer?.masksToBounds = true
+        self.layerContentsRedrawPolicy = .duringViewResize
+
         setupViews()
         setupConfigObserver()
 
