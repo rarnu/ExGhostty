@@ -11,8 +11,19 @@ private func sidebarBackgroundColor(from color: NSColor) -> NSColor {
 
 /// 自定义 NSSplitView，隐藏可见分隔线但保留拖拽热区。
 class SidebarSplitView: NSSplitView {
+    var dividerFillColor: NSColor?
+    
+    override var isOpaque: Bool {
+        false
+    }
+    
     /// 不绘制可见分隔线；系统仍保留 divider 热区用于拖拽。
-    override func drawDivider(in rect: NSRect) { }
+    override func drawDivider(in rect: NSRect) {
+        if let color = dividerFillColor {
+            color.setFill()
+            NSBezierPath.fill(rect)
+        }
+    }
 }
 
 // MARK: - Split View Controller
@@ -172,11 +183,15 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         splitView.dividerStyle = .thin
         splitView.delegate = self
         splitView.wantsLayer = true
+        splitView.layer?.backgroundColor = NSColor.clear.cgColor
+        
         if let config = terminalController?.ghostty.config {
             let terminalBackgroundColor = NSColor(config.backgroundColor)
                 .withAlphaComponent(config.backgroundOpacity)
-            splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
+            let sidebarColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+            splitView.dividerFillColor = sidebarColor
         }
+        
         splitView.addArrangedSubview(sidebarBackgroundView)
         splitView.addArrangedSubview(rightContainer)
 
@@ -221,10 +236,14 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             let dc = Ghostty.SurfaceView.DerivedConfig(config)
             window.syncAppearance(dc)
         }
-        // 同步 split view 背景色，确保 divider 间隙与右侧终端背景融为一体。
+        // 同步 divider 颜色，使其与左侧栏背景融为一体。
         let terminalBackgroundColor = NSColor(config.backgroundColor)
             .withAlphaComponent(config.backgroundOpacity)
-        splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
+        let sidebarColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+        splitView.dividerFillColor = sidebarColor
+        splitView.setNeedsDisplay(splitView.bounds)
+        // splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
+        
         rebuildSidebarView()
         rebuildTabBar()
     }
