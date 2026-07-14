@@ -416,15 +416,15 @@ class SidebarDividerView: NSView {
             guard let ev else { return }
             if ev.type == .leftMouseUp {
                 stop.pointee = true
-                // 拖动结束后整体刷新左侧栏：重建 SwiftUI 内容并强制同步布局/重绘，避免留下未初始化像素。
+                // 拖动过程中不 live-resize，松手时一次性设置最终宽度并整体刷新。
+                container.sidebarWidth = initialWidth + ev.locationInWindow.x - initialX
                 container.layoutSubtreeIfNeeded()
                 container.rebuildSidebarView()
                 container.layoutSubtreeIfNeeded()
                 container.display()
                 return
             }
-            // 拖动过程中只更新宽度约束，不立即刷新 SwiftUI 内容。
-            container.sidebarWidth = initialWidth + ev.locationInWindow.x - initialX
+            // 拖动过程中只跟踪鼠标，不更新宽度
         }
     }
 
