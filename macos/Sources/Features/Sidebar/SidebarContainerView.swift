@@ -56,6 +56,8 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
     private weak var terminalContentView: NSView?
     private weak var terminalController: TerminalController?
 
+    override var isOpaque: Bool { false }
+
     // MARK: - 初始化
 
     init<Root: View>(
@@ -65,33 +67,35 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         self.terminalController = terminalController
 
         let config = terminalController.ghostty.config
-        let isBlurEnabled = config.backgroundBlur.isEnabled
-        let isGlass = config.backgroundBlur.isGlassStyle
-        let backgroundColor = isGlass
-            ? NSColor.clear
-            : NSColor(config.backgroundColor).withAlphaComponent(config.backgroundOpacity)
+        let backgroundColor = NSColor(config.backgroundColor)
+            .withAlphaComponent(config.backgroundOpacity)
 
         let initialSidebar = SidebarView(
             collapsed: false,
             backgroundColor: backgroundColor,
-            useBlur: isBlurEnabled,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
             onNewPortForward: nil,
             onOpenSSH: nil
         )
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
+        self.sidebarHostingView.wantsLayer = true
+        self.sidebarHostingView.layer?.backgroundColor = NSColor.clear.cgColor
 
         let initialTabBar = TabBarView(
             viewID: 0,
             windows: [],
             selectedWindow: nil,
             backgroundColor: backgroundColor,
-            useBlur: isBlurEnabled,
             onSelectTab: nil,
             onCloseTab: nil
         )
         self.tabBarHostingView = NSHostingView(rootView: initialTabBar)
+        self.tabBarHostingView.wantsLayer = true
+        self.tabBarHostingView.layer?.backgroundColor = NSColor.clear.cgColor
+
+        self.rightContainerView.wantsLayer = true
+        self.rightContainerView.layer?.backgroundColor = NSColor.clear.cgColor
 
         super.init(rootView: rootView)
 
@@ -264,18 +268,14 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             selected = window
         }
 
-        let isBlurEnabled = config.backgroundBlur.isEnabled
-        let isGlass = config.backgroundBlur.isGlassStyle
-        let backgroundColor = isGlass
-            ? .clear
-            : NSColor(config.backgroundColor).withAlphaComponent(config.backgroundOpacity)
+        let backgroundColor = NSColor(config.backgroundColor)
+            .withAlphaComponent(config.backgroundOpacity)
 
         let newBar = TabBarView(
             viewID: tabBarViewID,
             windows: windows,
             selectedWindow: selected,
             backgroundColor: backgroundColor,
-            useBlur: isBlurEnabled,
             onSelectTab: { target in
                 target.makeKeyAndOrderFront(nil)
                 if let tg = window.tabGroup { tg.selectedWindow = target }
@@ -292,16 +292,12 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
         let collapsed = self._collapsed
         let config = tc.ghostty.config
 
-        let isBlurEnabled = config.backgroundBlur.isEnabled
-        let isGlass = config.backgroundBlur.isGlassStyle
-        let backgroundColor = isGlass
-            ? .clear
-            : NSColor(config.backgroundColor).withAlphaComponent(config.backgroundOpacity)
+        let backgroundColor = NSColor(config.backgroundColor)
+            .withAlphaComponent(config.backgroundOpacity)
 
         let newSidebar = SidebarView(
             collapsed: collapsed,
             backgroundColor: backgroundColor,
-            useBlur: isBlurEnabled,
             onToggleCollapse: { [weak self] in self?.collapsed.toggle() },
             onNewLocalTerminal: { [weak tc] in
                 guard let tc, let window = tc.window else { return }

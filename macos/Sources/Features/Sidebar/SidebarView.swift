@@ -123,10 +123,8 @@ func presentTextInputDialog(
 struct SidebarView: View {
     @ObservedObject private var store = SSHStore.shared
     let collapsed: Bool
-    /// 与终端保持一致的有效背景色（已包含 background-opacity alpha；glass 风格为 clear）
+    /// 与终端保持一致的背景色（已包含 background-opacity alpha）
     let backgroundColor: NSColor
-    /// 是否启用背景模糊（background-blur 非 false）
-    let useBlur: Bool
 
     var onToggleCollapse: (() -> Void)?
     var onNewLocalTerminal: (() -> Void)?
@@ -141,13 +139,8 @@ struct SidebarView: View {
 
     var body: some View {
         ZStack {
-            // 先绘制模糊层，再绘制带透明度的背景色，最后叠内容
-            if useBlur {
-                VisualEffectView(
-                    material: .underWindowBackground,
-                    blendingMode: .behindWindow
-                )
-            }
+            // 依赖窗口级的 background-blur / glass 效果；
+            // 这里只绘制带透明度的背景色，保证与终端一致。
             Color(nsColor: backgroundColor)
 
             if collapsed {
