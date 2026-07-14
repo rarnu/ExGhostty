@@ -129,7 +129,8 @@ actor SFTPService {
             remotePath: remoteArchive,
             task: task,
             progressOffset: 0.15,
-            progressScale: 0.70
+            progressScale: 0.70,
+            compress: true
         )
 
         // 3. 远程解压
@@ -193,13 +194,32 @@ actor SFTPService {
             localPath: localArchive.path,
             task: task,
             progressOffset: 0.25,
-            progressScale: 0.65
+            progressScale: 0.65,
+            compress: true
         )
 
         // 3. 本地解压
         await updateTask(task, progress: 0.93)
         try await extractTarArchive(archive: localArchive, destination: localDirectory)
         await updateTask(task, progress: 1.0, state: .completed)
+    }
+
+    // MARK: - 删除
+
+    func deleteFile(
+        connection: SSHConnection,
+        remotePath: String
+    ) async throws {
+        let cmd = "rm -f \(shellEscape(remotePath))"
+        _ = try await runSSHCommand(connection: connection, remoteCommand: cmd)
+    }
+
+    func deleteDirectory(
+        connection: SSHConnection,
+        remotePath: String
+    ) async throws {
+        let cmd = "rm -rf \(shellEscape(remotePath))"
+        _ = try await runSSHCommand(connection: connection, remoteCommand: cmd)
     }
 
     // MARK: - 远程命令执行
@@ -248,10 +268,12 @@ actor SFTPService {
         remotePath: String,
         task: SFTPTask,
         progressOffset: Double = 0,
-        progressScale: Double = 1
+        progressScale: Double = 1,
+        compress: Bool = false
     ) async throws {
         let (rsh, env) = try rsyncRSH(connection: connection)
-        var args = ["--partial", "--info=progress2", "-e", rsh]
+        var args = ["--partial", "--progress", "-e", rsh]
+        if compress { args.append("-z") }
         args.append(localPath)
         args.append("\(connection.host):\(remotePath)")
         try await runRsync(args: args, environment: env, task: task, progressOffset: progressOffset, progressScale: progressScale)
@@ -263,10 +285,12 @@ actor SFTPService {
         localPath: String,
         task: SFTPTask,
         progressOffset: Double = 0,
-        progressScale: Double = 1
+        progressScale: Double = 1,
+        compress: Bool = false
     ) async throws {
         let (rsh, env) = try rsyncRSH(connection: connection)
-        var args = ["--partial", "--info=progress2", "-e", rsh]
+        var args = ["--partial", "--progress", "-e", rsh]
+        if compress { args.append("-z") }
         args.append("\(connection.host):\(remotePath)")
         args.append(localPath)
         try await runRsync(args: args, environment: env, task: task, progressOffset: progressOffset, progressScale: progressScale)
@@ -284,22 +308,24 @@ actor SFTPService {
         process.arguments = args
         process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
 
         await MainActor.run { task.process = process }
 
         return try await withCheckedThrowingContinuation { continuation in
             var buffer = Data()
-            let handle = pipe.fileHandleForReading
-            handle.readabilityHandler = { fh in
+            let outHandle = outPipe.fileHandleForReading
+            outHandle.readabilityHandler = { fh in
                 let data = fh.availableData
                 guard !data.isEmpty else { return }
                 buffer.append(data)
-                if let range = buffer.range(of: Data("\n".utf8)),
-                   let line = String(data: buffer.subdata(in: 0..<range.upperBound), encoding: .utf8) {
+                while let range = buffer.range(of: Data("\n".utf8)) {
+                    let lineData = buffer.subdata(in: 0..<range.upperBound)
                     buffer.removeSubrange(0..<range.upperBound)
+                    guard let line = String(data: lineData, encoding: .utf8) else { continue }
                     if let percent = Self.parseRsyncProgress(line) {
                         let overall = progressOffset + percent * progressScale
                         DispatchQueue.main.async {
@@ -310,12 +336,12 @@ actor SFTPService {
             }
 
             process.terminationHandler = { _ in
-                handle.readabilityHandler = nil
+                outHandle.readabilityHandler = nil
                 DispatchQueue.main.async { task.process = nil }
                 if process.terminationStatus == 0 {
                     continuation.resume()
                 } else {
-                    let stderr = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    let stderr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
                     let cmd = (["rsync"] + args).joined(separator: " ")
                     let msg = stderr.isEmpty ? "rsync 退出码 \(process.terminationStatus)" : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
                     continuation.resume(throwing: SFTPError.transferFailed("[\(cmd)] \(msg)"))
@@ -423,7 +449,8 @@ actor SFTPService {
     // MARK: - 解析
 
     private static func parseRsyncProgress(_ line: String) -> Double? {
-        // 匹配类似 "  123,456  12%  123.45kB/s    0:00:05"
+        // 同时兼容 --progress 与 --info=progress2 的输出：
+        // "  123,456  12%  123.45kB/s    0:00:05"
         guard let range = line.range(of: "%") else { return nil }
         let prefix = line[..<range.lowerBound]
         let components = prefix.split(separator: " ")
@@ -578,6 +605,12 @@ final class SFTPTransferManager: ObservableObject {
                         localDirectory: destURL,
                         task: task
                     )
+                }
+            }
+            await MainActor.run {
+                task.progress = 1.0
+                if task.state != .cancelled && task.state != .paused {
+                    task.state = .completed
                 }
             }
         } catch {

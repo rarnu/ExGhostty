@@ -21,6 +21,8 @@ final class SFTPPanelViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     /// 远端用户主目录，用于把标题中的 `~` 展开为绝对路径。
     private var remoteHomeDirectory: String?
+    /// 目录内容定时刷新器，用于同步终端中 rm/mv/mkdir/touch 等引起的变化。
+    private var refreshTimer: Timer?
 
     init(connection: SSHConnection, terminalController: TerminalController?) {
         self.connection = connection
@@ -57,7 +59,27 @@ final class SFTPPanelViewModel: ObservableObject {
 
         updateTaskCounts(from: SFTPTransferManager.shared.tasks)
         fetchRemoteHomeDirectory()
+        startRefreshTimer()
         refresh()
+    }
+
+    deinit {
+        stopRefreshTimer()
+    }
+
+    private func startRefreshTimer() {
+        stopRefreshTimer()
+        let timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.refresh()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        refreshTimer = timer
+    }
+
+    private func stopRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
 
     /// 从标题栏文本推导绝对路径并应用。Ghostty bash integration 的 title 使用 \w，会显示为
@@ -120,8 +142,14 @@ final class SFTPPanelViewModel: ObservableObject {
 
     private func updateTaskCounts(from tasks: [SFTPTask]) {
         let connectionTasks = tasks.filter { $0.connection.id == self.connection.id }
-        self.activeUploadCount = connectionTasks.filter { $0.type == .upload && $0.isActive }.count
+        let newUploadCount = connectionTasks.filter { $0.type == .upload && $0.isActive }.count
         self.activeDownloadCount = connectionTasks.filter { $0.type == .download && $0.isActive }.count
+
+        // 上传任务数从大于 0 变少，说明有上传完成，刷新当前目录以显示新文件。
+        if newUploadCount < self.activeUploadCount && self.activeUploadCount > 0 {
+            self.refresh()
+        }
+        self.activeUploadCount = newUploadCount
     }
 
     // MARK: - 导航
@@ -236,6 +264,52 @@ final class SFTPPanelViewModel: ObservableObject {
             SFTPTransferManager.shared.addTask(task)
         }
         selectedItems.removeAll()
+    }
+
+    // MARK: - 删除
+
+    func delete(item: SFTPFileItem) async {
+        let remotePath = currentPath + "/" + item.name
+        do {
+            if item.isDirectory {
+                try await SFTPService.shared.deleteDirectory(connection: connection, remotePath: remotePath)
+            } else {
+                try await SFTPService.shared.deleteFile(connection: connection, remotePath: remotePath)
+            }
+            await MainActor.run {
+                self.selectedItems.remove(item.id)
+                self.refresh()
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func deleteSelected() async {
+        let selectedObjects = items.filter { selectedItems.contains($0.id) }
+        guard !selectedObjects.isEmpty else { return }
+
+        for item in selectedObjects {
+            let remotePath = currentPath + "/" + item.name
+            do {
+                if item.isDirectory {
+                    try await SFTPService.shared.deleteDirectory(connection: connection, remotePath: remotePath)
+                } else {
+                    try await SFTPService.shared.deleteFile(connection: connection, remotePath: remotePath)
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+                return
+            }
+        }
+        await MainActor.run {
+            self.selectedItems.removeAll()
+            self.refresh()
+        }
     }
 
     var hasSelection: Bool { !selectedItems.isEmpty }
@@ -375,6 +449,9 @@ struct SFTPPanelView: View {
                                 Button("下载\(item.isDirectory ? "目录" : "文件")") {
                                     download(item: item)
                                 }
+                                Button("删除") {
+                                    confirmDelete(item: item)
+                                }
                             }
                     }
                 }
@@ -440,5 +517,21 @@ struct SFTPPanelView: View {
     private func download(item: SFTPFileItem) {
         viewModel.selectedItems = [item.id]
         viewModel.downloadSelected()
+    }
+
+    private func confirmDelete(item: SFTPFileItem) {
+        let alert = NSAlert()
+        alert.messageText = "确认删除"
+        alert.informativeText = "确定要删除\(item.isDirectory ? "目录" : "文件") “\(item.name)” 吗？此操作不可撤销。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "删除")
+        alert.addButton(withTitle: "取消")
+        alert.beginSheetModal(for: NSApp.keyWindow ?? NSWindow()) { response in
+            if response == .alertFirstButtonReturn {
+                Task {
+                    await self.viewModel.delete(item: item)
+                }
+            }
+        }
     }
 }
