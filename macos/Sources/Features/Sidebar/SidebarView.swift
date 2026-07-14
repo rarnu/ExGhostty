@@ -32,6 +32,61 @@ func presentAsModalWindow<Content: View>(
     }
 }
 
+// MARK: - SSH 配置专用 Sheet 窗口
+
+/// 强制可成为 keyWindow，并显式将 Cmd+A/C/V/X 路由给 first responder，
+/// 以修复 AppKit sheet 中 SwiftUI 输入框无法复制粘贴的问题。
+final class SSHConfigSheetWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains(.command) else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        let selector: Selector?
+        switch event.keyCode {
+        case 0:  selector = NSSelectorFromString("selectAll:")
+        case 7:  selector = NSSelectorFromString("cut:")
+        case 8:  selector = NSSelectorFromString("copy:")
+        case 9:  selector = NSSelectorFromString("paste:")
+        default: selector = nil
+        }
+
+        if let selector, NSApp.sendAction(selector, to: nil, from: self) {
+            return true
+        }
+
+        return super.performKeyEquivalent(with: event)
+    }
+}
+
+/// 创建并呈现 SSH 配置 sheet
+func presentSSHConfigSheet<Content: View>(
+    _ view: Content,
+    title: String,
+    on parent: NSWindow
+) {
+    let hostView = NSHostingView(rootView: view)
+    let vc = NSViewController()
+    vc.view = hostView
+
+    let sheet = SSHConfigSheetWindow(contentViewController: vc)
+    sheet.title = title
+    sheet.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
+    sheet.titlebarAppearsTransparent = true
+    sheet.titleVisibility = .hidden
+    sheet.standardWindowButton(.closeButton)?.isHidden = true
+    sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
+    sheet.standardWindowButton(.zoomButton)?.isHidden = true
+    sheet.isMovableByWindowBackground = true
+    sheet.setContentSize(NSSize(width: 520, height: 620))
+    sheet.isReleasedWhenClosed = false
+
+    parent.beginSheet(sheet) { _ in }
+}
+
 /// 简单单行文本输入弹窗（NSAlert + accessoryView）
 func presentTextInputDialog(
     title: String,
@@ -343,32 +398,18 @@ struct SidebarView: View {
             guard let conn else { return }
             guard let parent = NSApp.keyWindow else { return }
 
-            let sheet = NSWindow(contentViewController: NSViewController())
-            sheet.title = "编辑主机"
-            sheet.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
-            sheet.titlebarAppearsTransparent = true
-            sheet.titleVisibility = .hidden
-            sheet.standardWindowButton(.closeButton)?.isHidden = true
-            sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
-            sheet.standardWindowButton(.zoomButton)?.isHidden = true
-            sheet.isMovableByWindowBackground = true
-            sheet.setContentSize(NSSize(width: 520, height: 620))
-            sheet.isReleasedWhenClosed = false
-
             let view = EditSSHView(
                 connection: conn,
                 sshStore: SSHStore.shared,
-                credentialStore: SSHCredentialStore.shared,
                 onSave: { updated in
                     SSHStore.shared.updateConnection(updated)
                 },
-                onDismiss: { [weak parent, weak sheet] in
-                    guard let parent, let sheet else { return }
+                onDismiss: { [weak parent] in
+                    guard let parent, let sheet = parent.attachedSheet else { return }
                     parent.endSheet(sheet)
                 }
             )
-            sheet.contentViewController?.view = NSHostingView(rootView: view)
-            parent.beginSheet(sheet) { _ in }
+            presentSSHConfigSheet(view, title: "编辑主机", on: parent)
         }
     }
 
@@ -376,31 +417,17 @@ struct SidebarView: View {
         DispatchQueue.main.async {
             guard let parent = NSApp.keyWindow else { return }
 
-            let sheet = NSWindow(contentViewController: NSViewController())
-            sheet.title = "创建主机"
-            sheet.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
-            sheet.titlebarAppearsTransparent = true
-            sheet.titleVisibility = .hidden
-            sheet.standardWindowButton(.closeButton)?.isHidden = true
-            sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
-            sheet.standardWindowButton(.zoomButton)?.isHidden = true
-            sheet.isMovableByWindowBackground = true
-            sheet.setContentSize(NSSize(width: 520, height: 620))
-            sheet.isReleasedWhenClosed = false
-
             let view = AddSSHView(
                 sshStore: SSHStore.shared,
-                credentialStore: SSHCredentialStore.shared,
                 onSave: { conn in
                     SSHStore.shared.addConnection(conn)
                 },
-                onDismiss: { [weak parent, weak sheet] in
-                    guard let parent, let sheet else { return }
+                onDismiss: { [weak parent] in
+                    guard let parent, let sheet = parent.attachedSheet else { return }
                     parent.endSheet(sheet)
                 }
             )
-            sheet.contentViewController?.view = NSHostingView(rootView: view)
-            parent.beginSheet(sheet) { _ in }
+            presentSSHConfigSheet(view, title: "创建主机", on: parent)
         }
     }
 }
