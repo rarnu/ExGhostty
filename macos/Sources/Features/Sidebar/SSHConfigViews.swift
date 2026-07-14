@@ -20,7 +20,7 @@ struct SSHConfigFormView: View {
     }
 
     let mode: Mode
-    let sshStore: SSHStore
+    @ObservedObject var sshStore: SSHStore
     let onSave: (SSHConnection) -> Void
     let onDismiss: () -> Void
 
@@ -42,6 +42,7 @@ struct SSHConfigFormView: View {
 
     @State private var isTesting = false
     @State private var testResult: TestResult?
+    @State private var availableJumpHosts: [SSHConnection] = []
 
     // MARK: - Init
 
@@ -107,6 +108,14 @@ struct SSHConfigFormView: View {
         .onAppear {
             // 确保配置窗口能成为 keyWindow，从而让输入框获得标准复制粘贴快捷键
             NSApp.keyWindow?.makeKey()
+            refreshAvailableJumpHosts()
+        }
+        .onReceive(sshStore.objectWillChange) {
+            // objectWillChange 在 @Published 属性实际变更前触发，
+            // 因此延后到下一个 runloop 再刷新，确保读到最新数据。
+            DispatchQueue.main.async {
+                refreshAvailableJumpHosts()
+            }
         }
         .onChange(of: testSignature) { _ in
             testResult = nil
@@ -348,6 +357,8 @@ struct SSHConfigFormView: View {
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .disabled(availableJumpHosts.isEmpty)
+            // 强制 Menu 随可用跳板机列表重建，避免 SwiftUI 缓存已删除的菜单项
+            .id(jumpHostMenuID)
 
             if availableJumpHosts.isEmpty {
                 Text("暂无可用跳板主机，请先创建其他 SSH 连接")
@@ -364,8 +375,31 @@ struct SSHConfigFormView: View {
         return "\(conn.name) (\(conn.host):\(conn.port))"
     }
 
-    private var availableJumpHosts: [SSHConnection] {
-        sshStore.connections.filter { $0.id != mode.editingID }
+    private var jumpHostMenuID: String {
+        availableJumpHosts.map(\.id.uuidString).sorted().joined(separator: "-")
+    }
+
+    private func refreshAvailableJumpHosts() {
+        availableJumpHosts = sshStore.connections.filter { candidate in
+            guard candidate.id != mode.editingID else { return false }
+            return !wouldCreateCycle(candidate)
+        }
+    }
+
+    /// 检测将 candidate 设为跳板机后是否会形成回环（即 candidate 的跳板链最终指向当前编辑的连接）
+    private func wouldCreateCycle(_ candidate: SSHConnection) -> Bool {
+        guard let editingID = mode.editingID else { return false }
+        var visited: Set<UUID> = []
+        var current: SSHConnection? = candidate
+        while let conn = current {
+            guard !visited.contains(conn.id) else { return true }
+            visited.insert(conn.id)
+            if conn.id == editingID { return true }
+            guard conn.connectionMethod == .jumpHost,
+                  let nextID = conn.jumpHostID else { break }
+            current = sshStore.connections.first(where: { $0.id == nextID })
+        }
+        return false
     }
 
     // MARK: - 备注
@@ -518,8 +552,7 @@ struct SSHConfigFormView: View {
 
     private func testConnection() {
         guard !isTesting else { return }
-        isTesting = true
-        testResult = nil
+        guard let parent = NSApp.keyWindow else { return }
 
         let testConfig = SSHTestConfig(
             host: host,
@@ -532,33 +565,32 @@ struct SSHConfigFormView: View {
             jumpHost: jumpHostConnection
         )
 
-        DispatchQueue.global(qos: .userInitiated).async { [self] in
-            let result = SSHTester.test(config: testConfig)
-            DispatchQueue.main.async { [self] in
-                isTesting = false
-                switch result {
-                case .success:
-                    testResult = .success
-                case .failure(let error):
-                    let message = error.localizedDescription
-                    testResult = .failure(message)
-                    showTestError(message)
-                }
-            }
+        let detailView = SSHTestDetailView(config: testConfig) { success in
+            self.isTesting = false
+            self.testResult = success ? .success : .failure("")
         }
+
+        let hostView = NSHostingView(rootView: detailView)
+        let vc = NSViewController()
+        vc.view = hostView
+
+        let sheet = NSWindow(contentViewController: vc)
+        sheet.title = "测试连接详情"
+        sheet.styleMask = [.titled, .closable]
+        sheet.titlebarAppearsTransparent = true
+        sheet.titleVisibility = .hidden
+        sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        sheet.standardWindowButton(.zoomButton)?.isHidden = true
+        sheet.isMovableByWindowBackground = true
+        sheet.setContentSize(NSSize(width: 680, height: 420))
+        sheet.isReleasedWhenClosed = false
+
+        parent.beginSheet(sheet) { _ in }
     }
 
     private var jumpHostConnection: SSHConnection? {
         guard connectionMethod == .jumpHost, let jumpHostID else { return nil }
         return sshStore.connections.first(where: { $0.id == jumpHostID })
-    }
-
-    private func showTestError(_ message: String) {
-        let alert = NSAlert()
-        alert.messageText = "连接测试失败"
-        alert.informativeText = message.isEmpty ? "无法连接到目标主机，请检查地址、端口、用户名及认证信息。" : message
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
     }
 
     private func save() {
@@ -601,193 +633,11 @@ struct SSHConfigFormView: View {
     }
 }
 
-// MARK: - 测试连接模型
+// MARK: - 测试连接结果（用于表单图标状态）
 
 private enum TestResult: Equatable {
     case success
     case failure(String)
-}
-
-private struct SSHTestConfig {
-    let host: String
-    let port: UInt16
-    let username: String
-    let authMode: SSHAuthMode
-    let password: String
-    let keyPath: String?
-    let connectionMethod: SSHConnectionMethod
-    let jumpHost: SSHConnection?
-}
-
-private enum SSHTester {
-    enum TestError: LocalizedError {
-        case sshNotFound
-        case expectNotFound
-        case connectionFailed(String)
-
-        var errorDescription: String? {
-            switch self {
-            case .sshNotFound:
-                return "未找到系统 ssh 命令"
-            case .expectNotFound:
-                return "未找到 expect，无法测试密码登录"
-            case .connectionFailed(let msg):
-                return msg
-            }
-        }
-    }
-
-    static func test(config: SSHTestConfig) -> Result<Void, Error> {
-        guard FileManager.default.isExecutableFile(atPath: "/usr/bin/ssh") else {
-            return .failure(TestError.sshNotFound)
-        }
-
-        var args: [String] = [
-            "-o", "ConnectTimeout=30",
-            "-o", "StrictHostKeyChecking=accept-new"
-        ]
-
-        if config.connectionMethod == .jumpHost, let jump = config.jumpHost {
-            let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
-            let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
-            args += ["-J", "\(jumpUser)\(jump.host)\(jumpPort)"]
-        }
-
-        if config.authMode == .key, let keyPath = config.keyPath {
-            guard FileManager.default.fileExists(atPath: keyPath) else {
-                return .failure(TestError.connectionFailed("密钥文件不存在：\(keyPath)"))
-            }
-            args += ["-i", keyPath, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes"]
-        } else if config.authMode == .password, !config.password.isEmpty {
-            // 密码登录使用系统自带的 expect 脚本自动输入密码进行真实测试
-            return testWithExpect(config: config)
-        } else {
-            args += ["-o", "BatchMode=yes"]
-        }
-
-        let userPrefix = config.username.isEmpty ? "" : "\(config.username)@"
-        args += ["\(userPrefix)\(config.host)"]
-
-        if config.port != 22 {
-            args += ["-p", String(config.port)]
-        }
-
-        args += ["exit"]
-
-        return runSSH(args: args)
-    }
-
-    private static func testWithExpect(config: SSHTestConfig) -> Result<Void, Error> {
-        guard FileManager.default.isExecutableFile(atPath: "/usr/bin/expect") else {
-            return .failure(TestError.expectNotFound)
-        }
-
-        var sshArgs = "-o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new"
-
-        if config.connectionMethod == .jumpHost, let jump = config.jumpHost {
-            let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
-            let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
-            sshArgs += " -J \(jumpUser)\(jump.host)\(jumpPort)"
-        }
-
-        if config.port != 22 {
-            sshArgs += " -p \(config.port)"
-        }
-
-        let userPrefix = config.username.isEmpty ? "" : "\(config.username)@"
-        sshArgs += " \(userPrefix)\(config.host) exit"
-
-        let script = #"""
-        set timeout 60
-        set password $env(SSHPASS)
-        spawn /usr/bin/ssh \#(sshArgs)
-        set attempts 0
-        expect {
-            -nocase "password:" {
-                if { $attempts >= 3 } {
-                    puts "Authentication failed"
-                    exit 1
-                }
-                send "$password\r"
-                incr attempts
-                exp_continue
-            }
-            timeout {
-                puts "Connection timed out"
-                exit 124
-            }
-            eof {
-                catch wait result
-                exit [lindex $result 3]
-            }
-        }
-        """#
-
-        let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ghostty_ssh_test_\(UUID().uuidString).exp")
-
-        do {
-            try script.write(to: tempURL, atomically: true, encoding: .utf8)
-        } catch {
-            return .failure(error)
-        }
-        defer { try? FileManager.default.removeItem(at: tempURL) }
-
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/expect")
-        task.arguments = [tempURL.path]
-        task.environment = ["SSHPASS": config.password, "SSH_AUTH_SOCK": ""]
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-
-        do {
-            try task.run()
-            task.waitUntilExit()
-
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-            if task.terminationStatus == 0 {
-                return .success(())
-            } else if task.terminationStatus == 124 {
-                return .failure(TestError.connectionFailed("连接超时，请检查地址和端口"))
-            } else {
-                let message = output.isEmpty ? "SSH 认证失败" : output
-                return .failure(TestError.connectionFailed(message))
-            }
-        } catch {
-            return .failure(error)
-        }
-    }
-
-    private static func runSSH(args: [String], executable: String = "/usr/bin/ssh") -> Result<Void, Error> {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: executable)
-        task.arguments = args
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-
-        do {
-            try task.run()
-            task.waitUntilExit()
-
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-            if task.terminationStatus == 0 {
-                return .success(())
-            } else {
-                let message = output.isEmpty ? "SSH 进程退出码 \(task.terminationStatus)" : output
-                return .failure(TestError.connectionFailed(message))
-            }
-        } catch {
-            return .failure(error)
-        }
-    }
 }
 
 // MARK: - 新增/编辑包装视图

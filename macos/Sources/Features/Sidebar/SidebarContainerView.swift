@@ -317,7 +317,41 @@ class SidebarTerminalTerminalViewContainer: TerminalViewContainer {
             onOpenSSH: { [weak tc] conn in
                 guard let tc, let window = tc.window else { return }
                 var cfg = Ghostty.SurfaceConfiguration()
-                cfg.command = conn.sshCommand
+
+                if conn.authMode == .password, !conn.password.isEmpty {
+                    // 密码登录：用 expect 脚本自动输入密码，避免终端再提示用户
+                    let expectScript = """
+                    set timeout 15
+                    set password $env(SSHPASS)
+                    log_user 0
+                    spawn /usr/bin/ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new \(conn.sshBaseArgs)
+                    expect {
+                        -nocase "password:" { send "$password\\r" }
+                        timeout { }
+                        eof { catch wait result; exit [lindex $result 3] }
+                    }
+                    sleep 0.5
+                    puts "\\033\\[2J\\033\\[H\\033\\[3J"
+                    log_user 1
+                    send "\\r"
+                    interact
+                    """
+
+                    let scriptURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")
+
+                    do {
+                        try expectScript.write(to: scriptURL, atomically: true, encoding: .utf8)
+                        cfg.command = "/usr/bin/expect \(scriptURL.path)"
+                        cfg.environmentVariables["SSHPASS"] = conn.password
+                    } catch {
+                        // 写入失败时回退到普通 ssh 命令
+                        cfg.command = conn.sshCommand
+                    }
+                } else {
+                    cfg.command = conn.sshCommand
+                }
+
                 let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: cfg)
                 if let ctrl {
                     ctrl.baseTitle = conn.name

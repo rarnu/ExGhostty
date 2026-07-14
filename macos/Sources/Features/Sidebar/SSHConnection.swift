@@ -106,29 +106,34 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         case authMode, password, keyPath, connectionMethod, jumpHostID, notes
     }
 
-    /// 生成 SSH 命令行参数字符串
-    var sshCommand: String {
-        var cmd = "ssh"
+    /// 生成 SSH 命令行参数字符串（不含 "ssh" 前缀）
+    var sshBaseArgs: String {
+        var args = ""
 
         if connectionMethod == .jumpHost,
            let jumpHostID,
            let jump = SSHStore.shared.connections.first(where: { $0.id == jumpHostID }) {
             let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
             let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
-            cmd += " -J \(jumpUser)\(jump.host)\(jumpPort)"
+            args += "-J \(jumpUser)\(jump.host)\(jumpPort) "
         }
 
         if let keyPath, !keyPath.isEmpty {
-            cmd += " -i \(keyPath)"
+            args += "-i \(keyPath) "
         }
 
         let userPrefix = username.isEmpty ? "" : "\(username)@"
-        cmd += " \(userPrefix)\(host)"
+        args += "\(userPrefix)\(host)"
 
         if port != 22 {
-            cmd += " -p \(port)"
+            args += " -p \(port)"
         }
-        return cmd
+        return args
+    }
+
+    /// 生成完整 SSH 命令行字符串
+    var sshCommand: String {
+        "ssh \(sshBaseArgs)"
     }
 }
 

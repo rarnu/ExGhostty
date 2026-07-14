@@ -44,7 +44,18 @@ class SSHStore: ObservableObject {
     }
 
     func removeConnection(_ id: UUID) {
+        // 先通知视图即将变化
+        objectWillChange.send()
         connections.removeAll { $0.id == id }
+        var changed = false
+        for i in connections.indices where connections[i].jumpHostID == id {
+            connections[i].jumpHostID = nil
+            connections[i].connectionMethod = .direct
+            changed = true
+        }
+        if changed {
+            objectWillChange.send()
+        }
         save()
     }
 
@@ -92,11 +103,25 @@ class SSHStore: ObservableObject {
     private func load() {
         if let connData = UserDefaults.standard.data(forKey: connectionsKey),
            let conns = try? JSONDecoder().decode([SSHConnection].self, from: connData) {
-            connections = conns
+            connections = cleanupJumpHostReferences(conns)
         }
         if let groupData = UserDefaults.standard.data(forKey: groupsKey),
            let gs = try? JSONDecoder().decode([SSHGroup].self, from: groupData) {
             groups = gs
+        }
+    }
+
+    /// 清理指向已不存在连接（包括自身）的跳板机引用，防止加载旧数据时显示幽灵项目
+    private func cleanupJumpHostReferences(_ conns: [SSHConnection]) -> [SSHConnection] {
+        let validIDs = Set(conns.map(\.id))
+        return conns.map { conn in
+            guard conn.connectionMethod == .jumpHost,
+                  let jumpID = conn.jumpHostID,
+                  (!validIDs.contains(jumpID) || jumpID == conn.id) else { return conn }
+            var updated = conn
+            updated.jumpHostID = nil
+            updated.connectionMethod = .direct
+            return updated
         }
     }
 }
