@@ -6,6 +6,7 @@ import Combine
 struct SFTPTaskListView: View {
     @StateObject private var manager = SFTPTransferManager.shared
     let connection: SSHConnection?
+    @Environment(\.dismiss) private var dismiss
 
     private var displayedTasks: [SFTPTask] {
         guard let connection else { return manager.tasks }
@@ -14,10 +15,30 @@ struct SFTPTaskListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            topBar
             taskList
             bottomToolbar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var topBar: some View {
+        HStack {
+            Text("传输任务")
+                .font(.system(size: 13, weight: .medium))
+            Spacer()
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .help("关闭")
+        }
+        .frame(height: 32)
+        .padding(.horizontal, 12)
+        .background(Color(.controlBackgroundColor).opacity(0.2))
     }
 
     private var taskList: some View {
@@ -76,7 +97,9 @@ private struct SFTPTaskRow: View {
                         .frame(width: 120)
                     Text(statusText)
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(task.state == .failed ? .red : .secondary)
+                        .lineLimit(1)
+                        .textSelection(.enabled)
                 }
             }
 
@@ -99,6 +122,18 @@ private struct SFTPTaskRow: View {
     @ViewBuilder
     private var actionButtons: some View {
         HStack(spacing: 4) {
+            if task.state == .failed, let error = task.errorMessage {
+                Button(action: {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(error, forType: .string)
+                }) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.plain)
+                .help("复制错误信息")
+            }
+
             switch task.state {
             case .running:
                 Button(action: { SFTPTransferManager.shared.pauseTask(task) }) {

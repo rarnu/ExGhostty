@@ -89,6 +89,9 @@ class BaseTerminalController: NSWindowController,
     /// 当前聚焦终端所在目录（由 surface 通过 OSC 7 等上报）。
     @Published var currentDirectoryURL: URL? = nil
 
+    /// 当前聚焦 surface 的原始标题，SFTP 面板可据此在 OSC 7 不可用时推导当前目录。
+    @Published var focusedSurfaceRawTitle: String? = nil
+
     /// The cancellables related to our focused surface.
     private var focusedSurfaceCancellables: Set<AnyCancellable> = []
 
@@ -843,9 +846,16 @@ class BaseTerminalController: NSWindowController,
                 .map { [weak self] in self?.computeTitle(title: $0, bell: $1) ?? "" }
                 .sink { [weak self] in self?.titleDidChange(to: $0) }
                 .store(in: &focusedSurfaceCancellables)
+
+            titleSurface.$title
+                .sink { [weak self] title in
+                    self?.focusedSurfaceRawTitle = title.isEmpty ? nil : title
+                }
+                .store(in: &focusedSurfaceCancellables)
         } else {
             // There is no surface to listen to titles for.
             titleDidChange(to: "👻")
+            focusedSurfaceRawTitle = nil
         }
     }
 

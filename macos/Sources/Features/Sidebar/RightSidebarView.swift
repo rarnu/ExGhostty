@@ -32,14 +32,22 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
     }
 }
 
-/// 右侧栏图标条，始终显示 5 个功能按钮。
+/// 右侧栏图标条，始终显示功能按钮；SFTP 仅在当前终端为 SSH 连接时显示。
 struct RightSidebarView: View {
     let selectedFeature: RightSidebarFeature?
+    let terminalController: TerminalController?
     var onSelectFeature: ((RightSidebarFeature) -> Void)?
+
+    private var visibleFeatures: [RightSidebarFeature] {
+        guard terminalController?.sshConnection == nil else {
+            return RightSidebarFeature.allCases
+        }
+        return RightSidebarFeature.allCases.filter { $0 != .sftp }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            ForEach(RightSidebarFeature.allCases) { feature in
+            ForEach(visibleFeatures) { feature in
                 Button(action: { onSelectFeature?(feature) }) {
                     Image(systemName: feature.icon)
                         .font(.system(size: 14))

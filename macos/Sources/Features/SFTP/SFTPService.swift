@@ -316,7 +316,9 @@ actor SFTPService {
                     continuation.resume()
                 } else {
                     let stderr = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                    continuation.resume(throwing: SFTPError.transferFailed(stderr.trimmingCharacters(in: .whitespacesAndNewlines)))
+                    let cmd = (["rsync"] + args).joined(separator: " ")
+                    let msg = stderr.isEmpty ? "rsync 退出码 \(process.terminationStatus)" : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+                    continuation.resume(throwing: SFTPError.transferFailed("[\(cmd)] \(msg)"))
                 }
             }
             do {
@@ -561,7 +563,7 @@ final class SFTPTransferManager: ObservableObject {
                     )
                 }
             case .download:
-                let destURL = URL(fileURLWithPath: task.localPath).deletingLastPathComponent()
+                let destURL = URL(fileURLWithPath: task.localPath)
                 if task.isDirectory {
                     try await SFTPService.shared.downloadDirectory(
                         connection: task.connection,

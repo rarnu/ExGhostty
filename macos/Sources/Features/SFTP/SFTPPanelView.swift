@@ -19,6 +19,8 @@ final class SFTPPanelViewModel: ObservableObject {
     @Published var activeDownloadCount: Int = 0
 
     private var cancellables = Set<AnyCancellable>()
+    /// 远端用户主目录，用于把标题中的 `~` 展开为绝对路径。
+    private var remoteHomeDirectory: String?
 
     init(connection: SSHConnection, terminalController: TerminalController?) {
         self.connection = connection
@@ -26,12 +28,22 @@ final class SFTPPanelViewModel: ObservableObject {
         self.currentPath = terminalController?.currentDirectoryURL?.path
             ?? "/home/\(connection.username)"
 
+        // 终端通过 OSC 7 上报当前目录（需要远端 shell 启用了 Ghostty shell integration）。
         terminalController?.$currentDirectoryURL
             .receive(on: DispatchQueue.main)
             .sink { [weak self] url in
                 guard let self, let path = url?.path, path != self.currentPath else { return }
                 self.currentPath = path
                 self.refresh()
+            }
+            .store(in: &cancellables)
+
+        // 若 OSC 7 不可用，尝试从标题栏回推当前目录（Ghostty integration 的 title 特征为 \w）。
+        terminalController?.$focusedSurfaceRawTitle
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] title in
+                guard let self, let title else { return }
+                self.applyTitleDerivedPath(title)
             }
             .store(in: &cancellables)
 
@@ -44,8 +56,66 @@ final class SFTPPanelViewModel: ObservableObject {
             .store(in: &cancellables)
 
         updateTaskCounts(from: SFTPTransferManager.shared.tasks)
-
+        fetchRemoteHomeDirectory()
         refresh()
+    }
+
+    /// 从标题栏文本推导绝对路径并应用。Ghostty bash integration 的 title 使用 \w，会显示为
+    /// `~` 或 `/home/user/...` 形式；仅当标题看起来像路径时才使用，避免命令名误识别。
+    private func applyTitleDerivedPath(_ title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let path: String?
+        // 优先处理以 `~` 开头的路径（含 `user@host:~/path` 这种前缀）。
+        if let tildeRange = trimmed.range(of: "~") {
+            let suffix = String(trimmed[tildeRange.lowerBound...])
+            let rest = String(suffix.dropFirst())
+            let home = remoteHomeDirectory ?? "/home/\(connection.username)"
+            path = rest.isEmpty ? home : (home + rest)
+        } else if let slashRange = trimmed.range(of: "/") {
+            // 提取第一个 `/` 开始的后缀，如 `user@host:/path` → `/path`。
+            path = String(trimmed[slashRange.lowerBound...])
+        } else {
+            path = nil
+        }
+
+        guard let path, path != currentPath else { return }
+        currentPath = path
+        refresh()
+    }
+
+    /// 获取远端用户主目录，用于标题中 `~` 的展开。
+    private func fetchRemoteHomeDirectory() {
+        Task {
+            do {
+                let home = try await SFTPService.shared.currentRemoteDirectory(connection: connection)
+                await MainActor.run {
+                    self.remoteHomeDirectory = home
+                }
+            } catch {
+                // 失败时使用默认 /home/username
+            }
+        }
+    }
+
+    /// 手动同步终端当前目录。
+    func syncWithTerminal() {
+        Task {
+            do {
+                let remotePath = try await SFTPService.shared.currentRemoteDirectory(connection: connection)
+                await MainActor.run {
+                    if remotePath != self.currentPath {
+                        self.currentPath = remotePath
+                        self.refresh()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
     }
 
     private func updateTaskCounts(from tasks: [SFTPTask]) {
@@ -89,6 +159,13 @@ final class SFTPPanelViewModel: ObservableObject {
         let parent = (currentPath as NSString).deletingLastPathComponent
         guard parent != currentPath else { return }
         currentPath = parent
+        selectedItems.removeAll()
+        refresh()
+    }
+
+    func enterDirectory(_ item: SFTPFileItem) {
+        guard item.isDirectory else { return }
+        currentPath = currentPath + "/" + item.name
         selectedItems.removeAll()
         refresh()
     }
@@ -214,9 +291,10 @@ struct SFTPPanelView: View {
     // MARK: - 工具栏
 
     private var toolbar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             toolbarButton(icon: "arrow.up", label: "上级") { viewModel.goUp() }
             toolbarButton(icon: "arrow.clockwise", label: "刷新") { viewModel.refresh() }
+            toolbarButton(icon: "arrow.2.circlepath", label: "同步") { viewModel.syncWithTerminal() }
             toolbarButton(
                 icon: viewModel.showHidden ? "eye" : "eye.slash",
                 label: viewModel.showHidden ? "隐藏隐藏内容" : "显示隐藏内容"
@@ -229,7 +307,7 @@ struct SFTPPanelView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 4)
         .padding(.vertical, 4)
     }
 
@@ -237,12 +315,12 @@ struct SFTPPanelView: View {
         Button(action: action) {
             VStack(spacing: 1) {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                 Text(label)
-                    .font(.system(size: 9))
+                    .font(.system(size: 8))
             }
             .foregroundColor(.secondary)
-            .frame(width: 48, height: 32)
+            .frame(width: 38, height: 30)
         }
         .buttonStyle(.plain)
         .help(label)
@@ -325,6 +403,12 @@ struct SFTPPanelView: View {
             Spacer()
         }
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            if item.isDirectory {
+                viewModel.enterDirectory(item)
+            }
+        }
     }
 
     // MARK: - 操作
