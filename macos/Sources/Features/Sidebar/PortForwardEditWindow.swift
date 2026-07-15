@@ -6,8 +6,8 @@ import GhosttyKit
 
 /// 端口转发规则创建/编辑窗口控制器。
 /// 标准 macOS 窗口（带三色灯），仅关闭按钮可用，支持 ESC 关闭，
-/// 背景透明/磨砂效果与 SFTP 任务窗口一致。
-final class PortForwardEditWindowController: NSWindowController, NSWindowDelegate {
+/// 背景透明/磨砂效果与主窗口一致。
+final class PortForwardEditWindowController: ModalWindowController {
     private static var activeControllers = NSHashTable<PortForwardEditWindowController>(options: .strongMemory)
 
     private let onSave: (PortForwardRule) -> Void
@@ -31,8 +31,7 @@ final class PortForwardEditWindowController: NSWindowController, NSWindowDelegat
         }
 
         let window = PortForwardEditWindow(config: config, contentHeight: contentHeight)
-        super.init(window: window)
-        window.delegate = self
+        super.init(window: window, parentWindow: parentWindow)
         Self.activeControllers.add(self)
 
         let view = PortForwardEditView(
@@ -64,11 +63,11 @@ final class PortForwardEditWindowController: NSWindowController, NSWindowDelegat
 
         window.contentView = container
         window.title = "端口转发配置"
-        window.centerRelative(to: parentWindow)
         window.configureBackgroundBlur(config: config, container: container)
     }
 
-    func windowWillClose(_ notification: Notification) {
+    override func windowWillClose(_ notification: Notification) {
+        super.windowWillClose(notification)
         Self.activeControllers.remove(self)
         onDismiss()
     }
@@ -79,34 +78,13 @@ final class PortForwardEditWindowController: NSWindowController, NSWindowDelegat
     }
 }
 
-private final class PortForwardEditWindow: NSWindow {
+private final class PortForwardEditWindow: GhosttyPanelWindow {
     init(config: Ghostty.Config, contentHeight: CGFloat) {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: contentHeight),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
+            config: config
         )
 
         self.minSize = NSSize(width: 520, height: contentHeight)
-        self.isReleasedWhenClosed = false
-
-        // 仅关闭按钮可用。
-        standardWindowButton(.miniaturizeButton)?.isEnabled = false
-        standardWindowButton(.zoomButton)?.isEnabled = false
-
-        // 与 SFTP 任务窗口一致的透明/磨砂处理。
-        let opacity = config.backgroundOpacity
-        let blur = config.backgroundBlur
-        let needsTransparency = opacity < 1 || blur.isGlassStyle
-        guard needsTransparency else { return }
-
-        self.isOpaque = false
-        let baseColor = NSColor(config.backgroundColor)
-        self.backgroundColor = baseColor.withAlphaComponent(opacity.clamped(to: 0.001...1))
-    }
-
-    override func cancelOperation(_ sender: Any?) {
-        self.close()
     }
 }

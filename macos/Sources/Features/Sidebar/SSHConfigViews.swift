@@ -84,13 +84,6 @@ struct SSHConfigFormView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            titleBar
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-
-            Divider()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     nameSection
@@ -104,6 +97,7 @@ struct SSHConfigFormView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
             }
+            .padding(.top, 12)
 
             Divider()
 
@@ -112,7 +106,7 @@ struct SSHConfigFormView: View {
                 .padding(.vertical, 12)
         }
         .frame(minWidth: 520, maxWidth: .infinity, minHeight: 560, maxHeight: .infinity)
-        .background(Color(.windowBackgroundColor))
+        .background(Color.clear)
         .onAppear {
             // 确保配置窗口能成为 keyWindow，从而让输入框获得标准复制粘贴快捷键
             NSApp.keyWindow?.makeKey()
@@ -127,24 +121,6 @@ struct SSHConfigFormView: View {
         }
         .onChange(of: testSignature) { _ in
             testResult = nil
-        }
-    }
-
-    // MARK: - Title Bar
-
-    private var titleBar: some View {
-        HStack {
-            Text(mode.isAdd ? "创建主机" : "编辑主机")
-                .font(.system(size: 15, weight: .semibold))
-            Spacer()
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .frame(width: 22, height: 22)
-            }
-            .buttonStyle(.plain)
-            .help("关闭")
         }
     }
 

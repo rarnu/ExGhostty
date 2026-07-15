@@ -1,143 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Attach window 工具函数
-
-extension View {
-    /// 获取当前视图所在的 NSWindow
-    var hostingWindow: NSWindow? {
-        NSApp.keyWindow
-    }
-}
-
-/// 在指定窗口上弹出一个 SwiftUI 视图作为模态窗口
-func presentAsModalWindow<Content: View>(
-    _ view: Content,
-    title: String,
-    on window: NSWindow? = NSApp.keyWindow
-) {
-    let hostView = NSHostingView(rootView: view)
-    let vc = NSViewController()
-    vc.view = hostView
-
-    let win = NSWindow(contentViewController: vc)
-    win.title = title
-    win.styleMask = [.titled, .closable, .resizable]
-    win.isReleasedWhenClosed = false
-
-    if let parent = window {
-        parent.beginSheet(win) { _ in }
-    } else {
-        win.makeKeyAndOrderFront(nil)
-    }
-}
-
-/// 弹出端口转发规则创建/编辑窗口（标准 macOS 窗口，带三色灯，仅关闭可用）。
-func presentPortForwardEditWindow(
-    rule: PortForwardRule,
-    isNew: Bool,
-    on parent: NSWindow,
-    onSave: @escaping (PortForwardRule) -> Void,
-    onDismiss: @escaping () -> Void
-) {
-    guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-    let controller = PortForwardEditWindowController(
-        config: appDelegate.ghostty.config,
-        rule: rule,
-        isNew: isNew,
-        parentWindow: parent,
-        onSave: onSave,
-        onDismiss: onDismiss
-    )
-    controller.showWindow(nil)
-}
-
-// MARK: - SSH 配置专用 Sheet 窗口
-
-/// 强制可成为 keyWindow，并显式将 Cmd+A/C/V/X 路由给 first responder，
-/// 以修复 AppKit sheet 中 SwiftUI 输入框无法复制粘贴的问题。
-final class SSHConfigSheetWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
-
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard event.modifierFlags.contains(.command) else {
-            return super.performKeyEquivalent(with: event)
-        }
-
-        let selector: Selector?
-        switch event.keyCode {
-        case 0:  selector = NSSelectorFromString("selectAll:")
-        case 7:  selector = NSSelectorFromString("cut:")
-        case 8:  selector = NSSelectorFromString("copy:")
-        case 9:  selector = NSSelectorFromString("paste:")
-        default: selector = nil
-        }
-
-        if let selector, NSApp.sendAction(selector, to: nil, from: self) {
-            return true
-        }
-
-        return super.performKeyEquivalent(with: event)
-    }
-}
-
-/// 创建并呈现 SSH 配置 sheet
-func presentSSHConfigSheet<Content: View>(
-    _ view: Content,
-    title: String,
-    on parent: NSWindow
-) {
-    let hostView = NSHostingView(rootView: view)
-    let vc = NSViewController()
-    vc.view = hostView
-
-    let sheet = SSHConfigSheetWindow(contentViewController: vc)
-    sheet.title = title
-    sheet.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
-    sheet.titlebarAppearsTransparent = true
-    sheet.titleVisibility = .hidden
-    sheet.standardWindowButton(.closeButton)?.isHidden = true
-    sheet.standardWindowButton(.miniaturizeButton)?.isHidden = true
-    sheet.standardWindowButton(.zoomButton)?.isHidden = true
-    sheet.isMovableByWindowBackground = true
-    sheet.setContentSize(NSSize(width: 520, height: 620))
-    sheet.isReleasedWhenClosed = false
-
-    parent.beginSheet(sheet) { _ in }
-}
-
-/// 简单单行文本输入弹窗（NSAlert + accessoryView）
-func presentTextInputDialog(
-    title: String,
-    message: String,
-    placeholder: String = "",
-    defaultText: String = "",
-    on window: NSWindow? = NSApp.keyWindow,
-    completion: @escaping (String?) -> Void
-) {
-    let alert = NSAlert()
-    alert.messageText = title
-    alert.informativeText = message
-    alert.addButton(withTitle: "OK")
-    alert.addButton(withTitle: "Cancel")
-
-    let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
-    textField.placeholderString = placeholder
-    textField.stringValue = defaultText
-    textField.bezelStyle = .roundedBezel
-    alert.accessoryView = textField
-
-    if let parent = window {
-        alert.beginSheetModal(for: parent) { resp in
-            completion(resp == .alertFirstButtonReturn ? textField.stringValue : nil)
-        }
-    } else {
-        let resp = alert.runModal()
-        completion(resp == .alertFirstButtonReturn ? textField.stringValue : nil)
-    }
-}
-
 // MARK: - SidebarView
 
 struct SidebarView: View {
@@ -405,50 +268,42 @@ struct SidebarView: View {
     }
 
     private func showAddGroupDialog() {
-        let alert = NSAlert()
-        alert.messageText = "New Group"
-        alert.addButton(withTitle: "Add")
-        alert.addButton(withTitle: "Cancel")
-
-        let tf = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
-        tf.placeholderString = "Group Name"
-        tf.bezelStyle = .roundedBezel
-        alert.accessoryView = tf
-
-        if let win = NSApp.keyWindow {
-            alert.beginSheetModal(for: win) { resp in
-                if resp == .alertFirstButtonReturn, !tf.stringValue.isEmpty {
-                    let group = SSHGroup(name: tf.stringValue)
-                    store.addGroup(group)
-                    onAddGroup?(group)
-                }
-            }
+        guard let parent = NSApp.keyWindow else { return }
+        let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
+        let store = self.store
+        let onAddGroup = self.onAddGroup
+        let controller = GroupNameWindowController(
+            title: "New Group",
+            placeholder: "Group Name",
+            config: config,
+            parentWindow: parent
+        ) { name in
+            guard let name, !name.isEmpty else { return }
+            let group = SSHGroup(name: name)
+            store.addGroup(group)
+            onAddGroup?(group)
         }
+        controller.showModal()
     }
 
     private func showRenameGroupDialog() {
         guard let group = editingGroup else { return }
-        DispatchQueue.main.async {
-            let alert = NSAlert()
-            alert.messageText = "Rename Group"
-            alert.addButton(withTitle: "Save")
-            alert.addButton(withTitle: "Cancel")
-
-            let tf = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
-            tf.stringValue = group.name
-            tf.bezelStyle = .roundedBezel
-            alert.accessoryView = tf
-
-            if let win = NSApp.keyWindow {
-                alert.beginSheetModal(for: win) { resp in
-                    if resp == .alertFirstButtonReturn, !tf.stringValue.isEmpty {
-                        var updated = group
-                        updated.name = tf.stringValue
-                        self.store.updateGroup(updated)
-                    }
-                }
-            }
+        guard let parent = NSApp.keyWindow else { return }
+        let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
+        let store = self.store
+        let controller = GroupNameWindowController(
+            title: "Rename Group",
+            placeholder: "Group Name",
+            defaultText: group.name,
+            config: config,
+            parentWindow: parent
+        ) { name in
+            guard let name, !name.isEmpty else { return }
+            var updated = group
+            updated.name = name
+            store.updateGroup(updated)
         }
+        controller.showModal()
     }
 
     private func showEditSSHDialog() {
@@ -456,37 +311,36 @@ struct SidebarView: View {
         DispatchQueue.main.async {
             guard let conn else { return }
             guard let parent = NSApp.keyWindow else { return }
+            let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
 
-            let view = EditSSHView(
-                connection: conn,
+            let controller = SSHConfigWindowController(
+                mode: .edit(conn),
                 sshStore: SSHStore.shared,
+                config: config,
+                parentWindow: parent,
                 onSave: { updated in
                     SSHStore.shared.updateConnection(updated)
-                },
-                onDismiss: { [weak parent] in
-                    guard let parent, let sheet = parent.attachedSheet else { return }
-                    parent.endSheet(sheet)
                 }
             )
-            presentSSHConfigSheet(view, title: "编辑主机", on: parent)
+            controller.showModal()
         }
     }
 
     private func showAddSSHDialog() {
         DispatchQueue.main.async {
             guard let parent = NSApp.keyWindow else { return }
+            let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
 
-            let view = AddSSHView(
+            let controller = SSHConfigWindowController(
+                mode: .add,
                 sshStore: SSHStore.shared,
+                config: config,
+                parentWindow: parent,
                 onSave: { conn in
                     SSHStore.shared.addConnection(conn)
-                },
-                onDismiss: { [weak parent] in
-                    guard let parent, let sheet = parent.attachedSheet else { return }
-                    parent.endSheet(sheet)
                 }
             )
-            presentSSHConfigSheet(view, title: "创建主机", on: parent)
+            controller.showModal()
         }
     }
 }

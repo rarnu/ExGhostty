@@ -79,106 +79,18 @@ final class SFTPTaskListWindowController: NSWindowController, NSWindowDelegate {
     }
 }
 
-/// 任务列表窗口。
-private final class SFTPTaskListWindow: NSWindow {
+/// 任务列表窗口：永远在最前，但非模态。
+private final class SFTPTaskListWindow: GhosttyPanelWindow {
     init(config: Ghostty.Config?) {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 720, height: 480),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
+            config: config
         )
 
         self.minSize = NSSize(width: 700, height: 450)
 
-        // 只允许使用关闭按钮，最小化/缩放按钮置为不可用。
-        standardWindowButton(.miniaturizeButton)?.isEnabled = false
-        standardWindowButton(.zoomButton)?.isEnabled = false
-
-        // 根据配置设置窗口透明背景，与 TerminalWindow 保持一致。
-        let opacity = config?.backgroundOpacity ?? 1
-        let blur = config?.backgroundBlur ?? .disabled
-        let needsTransparency = opacity < 1 || blur.isGlassStyle
-        guard needsTransparency else { return }
-
-        self.isOpaque = false
-        // 使用配置背景色作为底色（主窗口由终端 surface 提供颜色，任务窗口没有 surface，直接用配置色）。
-        let baseColor = config.map { NSColor($0.backgroundColor) } ?? NSColor.windowBackgroundColor
-        self.backgroundColor = baseColor.withAlphaComponent(opacity.clamped(to: 0.001...1))
-    }
-
-    override func cancelOperation(_ sender: Any?) {
-        self.close()
+        // 永远在最前，但不阻塞父窗口。
+        self.level = .floating
+        self.collectionBehavior = [.moveToActiveSpace, .transient]
     }
 }
-
-// MARK: - 背景模糊与窗口定位
-
-extension NSWindow {
-    /// 相对于指定父窗口居中；无父窗口时回退到屏幕居中。
-    func centerRelative(to parentWindow: NSWindow?) {
-        guard let parentWindow, let screen = parentWindow.screen else {
-            self.center()
-            return
-        }
-
-        let parentFrame = parentWindow.frame
-        let windowSize = self.frame.size
-        var origin = NSPoint(
-            x: parentFrame.midX - windowSize.width / 2,
-            y: parentFrame.midY - windowSize.height / 2
-        )
-
-        // 确保窗口不会超出当前屏幕可见区域。
-        let visibleFrame = screen.visibleFrame
-        origin.x = min(max(origin.x, visibleFrame.minX), visibleFrame.maxX - windowSize.width)
-        origin.y = min(max(origin.y, visibleFrame.minY), visibleFrame.maxY - windowSize.height)
-
-        self.setFrameOrigin(origin)
-    }
-
-    func configureBackgroundBlur(config: Ghostty.Config?, container: NSView) {
-        let opacity = config?.backgroundOpacity ?? 1
-        let blur = config?.backgroundBlur ?? .disabled
-        let needsTransparency = opacity < 1 || blur.isGlassStyle
-        guard needsTransparency else { return }
-
-        if blur.isGlassStyle {
-            addGlassEffect(config: config, container: container)
-        } else if blur.isEnabled {
-            // 非玻璃磨砂：使用与 TerminalWindow 相同的私有 API 设置窗口背景模糊。
-            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-            ghostty_set_window_background_blur(
-                appDelegate.ghostty.app,
-                Unmanaged.passUnretained(self).toOpaque()
-            )
-        }
-    }
-
-    private func addGlassEffect(config: Ghostty.Config?, container: NSView) {
-        guard #available(macOS 26.0, *) else { return }
-        guard let config else { return }
-
-        let style: NSGlassEffectView.Style
-        switch config.backgroundBlur {
-        case .macosGlassClear:
-            style = .clear
-        default:
-            style = .regular
-        }
-
-        let glassView = NSGlassEffectView()
-        glassView.style = style
-        glassView.tintColor = NSColor(config.backgroundColor).withAlphaComponent(config.backgroundOpacity)
-        glassView.translatesAutoresizingMaskIntoConstraints = false
-
-        container.addSubview(glassView, positioned: .below, relativeTo: container.subviews.first)
-        NSLayoutConstraint.activate([
-            glassView.topAnchor.constraint(equalTo: container.topAnchor),
-            glassView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            glassView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            glassView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-        ])
-    }
-}
-
