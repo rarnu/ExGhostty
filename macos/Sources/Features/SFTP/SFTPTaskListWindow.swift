@@ -94,7 +94,7 @@ private final class SFTPTaskListWindow: NSWindow {
 
 // MARK: - 背景模糊与窗口定位
 
-private extension NSWindow {
+extension NSWindow {
     /// 相对于指定父窗口居中；无父窗口时回退到屏幕居中。
     func centerRelative(to parentWindow: NSWindow?) {
         guard let parentWindow, let screen = parentWindow.screen else {
@@ -161,3 +161,4 @@ private extension NSWindow {
         ])
     }
 }
+

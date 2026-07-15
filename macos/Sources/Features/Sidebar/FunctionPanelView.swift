@@ -26,6 +26,8 @@ struct FunctionPanelView: View {
             } else {
                 placeholder("请先通过 SSH 连接")
             }
+        case .portForward:
+            PortForwardListView()
         case .sessionReuse, .systemMonitor, .codeSnippet, .aiAssistant, .none:
             placeholder(feature?.title ?? "")
         }

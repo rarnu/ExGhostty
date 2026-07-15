@@ -3,6 +3,7 @@ import SwiftUI
 
 /// 右侧栏支持的功能项。
 enum RightSidebarFeature: String, CaseIterable, Identifiable {
+    case portForward
     case sftp
     case sessionReuse
     case systemMonitor
@@ -13,6 +14,7 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .portForward:    return "端口转发"
         case .sftp:           return "SFTP"
         case .sessionReuse:   return "会话复用"
         case .systemMonitor:  return "系统监控"
@@ -23,6 +25,7 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
+        case .portForward:    return "arrow.triangle.branch"
         case .sftp:           return "folder"
         case .sessionReuse:   return "doc.on.doc"
         case .systemMonitor:  return "cpu"

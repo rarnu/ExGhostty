@@ -126,7 +126,6 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             backgroundColor: sidebarBackgroundColor,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
-            onNewPortForward: nil,
             onOpenSSH: nil
         )
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
@@ -423,13 +422,6 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             onNewLocalTerminal: { [weak tc] in
                 guard let tc, let window = tc.window else { return }
                 _ = TerminalController.newTab(tc.ghostty, from: window)
-            },
-            onNewPortForward: {
-                let alert = NSAlert()
-                alert.messageText = "Port Forwarding"
-                alert.informativeText = "Not yet implemented."
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
             },
             onOpenSSH: { [weak tc] conn in
                 guard let tc, let window = tc.window else { return }
@@ -785,3 +777,7 @@ class SidebarBackgroundView: NSView {
         layer?.masksToBounds = true
     }
 }
+
+// MARK: - 端口转发 Tab 窗口
+
+/// 端口转发管理页窗口控制器，作为 Tab 加入当前 TerminalWindow 的标签组。
