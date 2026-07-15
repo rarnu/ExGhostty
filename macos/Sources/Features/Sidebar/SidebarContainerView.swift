@@ -445,6 +445,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
 
                 if conn.authMode == .password, !conn.password.isEmpty {
                     // 密码登录：用 expect 脚本自动输入密码，并在断开后支持按任意键重连。
+                    // 只隐藏 spawn 命令和密码提示本身的输出，登录成功后正常显示远程 shell。
                     expectScript = """
                     set timeout 15
                     set password $env(SSHPASS)
@@ -465,10 +466,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                             timeout { sshlog "password timeout" }
                             eof { sshlog "ssh eof" }
                         }
-                        sleep 0.5
-                        puts "\\033\\[2J\\033\\[H\\033\\[3J"
                         log_user 1
-                        send "\\r"
                         interact
                         sshlog "interact returned"
                         puts ""
@@ -480,6 +478,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                     cfg.environmentVariables["SSHPASS"] = conn.password
                 } else {
                     // 密钥登录：同样用 expect 包装，实现断线后按任意键重连。
+                    // 只隐藏 spawn 命令本身的输出，其余 SSH 输出保持可见。
                     expectScript = """
                     set logfile [open "\(logPath)" "a"]
                     proc sshlog {msg} {
@@ -491,7 +490,9 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                     trap { sshlog "SIGINT ignored" } SIGINT
                     while {1} {
                         sshlog "spawn ssh"
+                        log_user 0
                         spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                        log_user 1
                         interact
                         sshlog "interact returned"
                         puts ""
