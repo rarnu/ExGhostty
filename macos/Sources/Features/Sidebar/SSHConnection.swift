@@ -174,12 +174,27 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 puts $logfile "[clock format [clock seconds]] \\(msg)"
                 flush $logfile
             }
+            proc sync_ssh_pty {spawn_id} {
+                if {[catch {
+                    # 通过外部 /bin/stty 读取本地终端尺寸，避免 expect 内置 stty 读到 ssh 子进程 PTY。
+                    set size [exec /bin/stty size]
+                    sshlog "local stty size: $size"
+                    set rows [lindex $size 0]
+                    set cols [lindex $size 1]
+                    stty rows $rows columns $cols < $spawn_id
+                    sshlog "set ssh pty to $rows $cols"
+                } err]} {
+                    sshlog "sync pty failed: $err"
+                }
+            }
             trap { sshlog "SIGTERM ignored" } SIGTERM
             trap { sshlog "SIGINT ignored" } SIGINT
             while {1} {
                 sshlog "spawn ssh"
                 log_user 0
                 spawn /usr/bin/ssh \(sshBaseArgs)
+                sync_ssh_pty $spawn_id
+                trap { sync_ssh_pty $spawn_id } SIGWINCH
                 expect {
                     -nocase "password:" { send "$password\\r" }
                     timeout { sshlog "password timeout" }
@@ -203,12 +218,27 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 puts $logfile "[clock format [clock seconds]] \\(msg)"
                 flush $logfile
             }
+            proc sync_ssh_pty {spawn_id} {
+                if {[catch {
+                    # 通过外部 /bin/stty 读取本地终端尺寸，避免 expect 内置 stty 读到 ssh 子进程 PTY。
+                    set size [exec /bin/stty size]
+                    sshlog "local stty size: $size"
+                    set rows [lindex $size 0]
+                    set cols [lindex $size 1]
+                    stty rows $rows columns $cols < $spawn_id
+                    sshlog "set ssh pty to $rows $cols"
+                } err]} {
+                    sshlog "sync pty failed: $err"
+                }
+            }
             trap { sshlog "SIGTERM ignored" } SIGTERM
             trap { sshlog "SIGINT ignored" } SIGINT
             while {1} {
                 sshlog "spawn ssh"
                 log_user 0
                 spawn /usr/bin/ssh \(sshBaseArgs)
+                sync_ssh_pty $spawn_id
+                trap { sync_ssh_pty $spawn_id } SIGWINCH
                 log_user 1
                 interact
                 sshlog "interact returned"

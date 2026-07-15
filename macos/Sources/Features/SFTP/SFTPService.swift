@@ -242,6 +242,14 @@ actor SFTPService {
         }
     }
 
+    /// 执行任意远程命令并返回标准输出。
+    func executeCommand(
+        connection: SSHConnection,
+        remoteCommand: String
+    ) async throws -> String {
+        return try await runSSHCommand(connection: connection, remoteCommand: remoteCommand)
+    }
+
     private func runSSHCommand(
         connection: SSHConnection,
         remoteCommand: String

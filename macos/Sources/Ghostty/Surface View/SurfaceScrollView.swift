@@ -209,10 +209,9 @@ class SurfaceScrollView: NSView {
         // Only update the pty if we have a valid (non-zero) content size. The content size
         // can be zero when this is added early to a view, or to an invisible hierarchy.
         // Practically, this happened in the quick terminal.
-        let width = scrollView.contentSize.width
-        let height = surfaceView.frame.height
-        if width > 0 && height > 0 {
-            surfaceView.sizeDidChange(CGSize(width: width, height: height))
+        let size = bounds.size
+        if size.width > 0 && size.height > 0 {
+            surfaceView.sizeDidChange(size)
         }
     }
 

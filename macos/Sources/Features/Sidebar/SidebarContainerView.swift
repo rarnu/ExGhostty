@@ -427,6 +427,11 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 guard let tc, let window = tc.window else { return }
                 var cfg = Ghostty.SurfaceConfiguration()
 
+                // 把当前终端的真实行列数传给 expect，避免 expect 子进程读到的 stdin 尺寸错误。
+                let gridSize = self.currentTerminalGridSize(for: tc) ?? (rows: 24, cols: 80)
+                cfg.environmentVariables["GHOSTTY_ROWS"] = "\(gridSize.rows)"
+                cfg.environmentVariables["GHOSTTY_COLS"] = "\(gridSize.cols)"
+
                 let scriptURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")
 
@@ -434,6 +439,27 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 let logURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).log")
                 let logPath = logURL.path
+
+                let syncPtyProc = """
+                proc sync_ssh_pty {} {
+                    global spawn_out
+                    if {[catch {
+                        # 先尝试 expect 内置 stty 读当前 PTY 尺寸（iTerm2 等脚本的标准做法）。
+                        if {[catch {
+                            set rows [stty rows]
+                            set cols [stty columns]
+                        } tty_err]} {
+                            set rows $env(GHOSTTY_ROWS)
+                            set cols $env(GHOSTTY_COLS)
+                            sshlog "fallback to env size: $rows $cols"
+                        }
+                        stty rows $rows columns $cols < $spawn_out(slave,name)
+                        sshlog "set ssh pty to $rows $cols"
+                    } err]} {
+                        sshlog "sync pty failed: $err"
+                    }
+                }
+                """
 
                 if conn.authMode == .password, !conn.password.isEmpty {
                     // 密码登录：用 expect 脚本自动输入密码，并在断开后支持按任意键重连。
@@ -447,12 +473,15 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         puts $logfile "[clock format [clock seconds]] \\(msg)"
                         flush $logfile
                     }
+                    \(syncPtyProc)
                     trap { sshlog "SIGTERM ignored" } SIGTERM
                     trap { sshlog "SIGINT ignored" } SIGINT
                     while {1} {
                         sshlog "spawn ssh"
                         log_user 0
                         spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                        sync_ssh_pty
+                        trap { sync_ssh_pty } SIGWINCH
                         expect {
                             -nocase "password:" { send "$password\\r" }
                             timeout { sshlog "password timeout" }
@@ -478,12 +507,15 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         puts $logfile "[clock format [clock seconds]] \\(msg)"
                         flush $logfile
                     }
+                    \(syncPtyProc)
                     trap { sshlog "SIGTERM ignored" } SIGTERM
                     trap { sshlog "SIGINT ignored" } SIGINT
                     while {1} {
                         sshlog "spawn ssh"
                         log_user 0
                         spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                        sync_ssh_pty
+                        trap { sync_ssh_pty } SIGWINCH
                         log_user 1
                         interact
                         sshlog "interact returned"
@@ -605,6 +637,17 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         let dividerThickness = functionTerminalSplitView.dividerThickness
         let position = max(0, functionTerminalSplitView.bounds.width - width - dividerThickness)
         functionTerminalSplitView.setPosition(position, ofDividerAt: 0)
+    }
+
+    /// 根据当前聚焦的终端 surface 计算行/列数，用于 expect 脚本初始化 SSH PTY 尺寸。
+    private func currentTerminalGridSize(for controller: TerminalController?) -> (rows: Int, cols: Int)? {
+        guard let surface = controller?.focusedSurface else { return nil }
+        let size = surface.bounds.size
+        let cellSize = surface.cellSize
+        guard cellSize.width > 0, cellSize.height > 0, size.width > 0, size.height > 0 else { return nil }
+        let cols = max(1, Int(size.width / cellSize.width))
+        let rows = max(1, Int(size.height / cellSize.height))
+        return (rows, cols)
     }
 
     // MARK: - NSSplitViewDelegate

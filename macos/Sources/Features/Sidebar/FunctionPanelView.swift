@@ -28,7 +28,9 @@ struct FunctionPanelView: View {
             }
         case .portForward:
             PortForwardListView()
-        case .sessionReuse, .systemMonitor, .codeSnippet, .aiAssistant, .none:
+        case .sessionReuse:
+            SessionReusePanelView(terminalController: terminalController)
+        case .systemMonitor, .codeSnippet, .aiAssistant, .none:
             placeholder(feature?.title ?? "")
         }
     }
