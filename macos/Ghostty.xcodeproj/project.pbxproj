@@ -96,7 +96,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8193245D2F24E80800A9ED8F /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		8193245D2F24E80800A9ED8F /* Exceptions for "Sources" folder in "DockTilePlugin" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Features/Custom App Icon/AppIcon.swift",
@@ -113,7 +113,7 @@
 			);
 			target = 8193244C2F24E6C000A9ED8F /* DockTilePlugin */;
 		};
-		81F82CB02E8281F5001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		81F82CB02E8281F5001EDFA7 /* Exceptions for "Sources" folder in "Ghostty-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/macOS/AppDelegate.swift,
@@ -258,7 +258,7 @@
 			);
 			target = A5D4499C2B53AE7B000F5B83 /* Ghostty-iOS */;
 		};
-		81F82CB12E8281F9001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		81F82CB12E8281F9001EDFA7 /* Exceptions for "Sources" folder in "Ghostty" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/iOS/iOSApp.swift,
@@ -270,9 +270,42 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		810ACCA02E9D3302004F8F92 /* GhosttyUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = GhosttyUITests; sourceTree = "<group>"; };
-		81F82BC72E82815D001EDFA7 /* Sources */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (81F82CB12E8281F9001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 81F82CB02E8281F5001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 8193245D2F24E80800A9ED8F /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Sources; sourceTree = "<group>"; };
-		A54F45F42E1F047A0046BD5C /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
+		810ACCA02E9D3302004F8F92 /* GhosttyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = GhosttyUITests;
+			sourceTree = "<group>";
+		};
+		81F82BC72E82815D001EDFA7 /* Sources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				81F82CB12E8281F9001EDFA7 /* Exceptions for "Sources" folder in "Ghostty" target */,
+				81F82CB02E8281F5001EDFA7 /* Exceptions for "Sources" folder in "Ghostty-iOS" target */,
+				8193245D2F24E80800A9ED8F /* Exceptions for "Sources" folder in "DockTilePlugin" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A54F45F42E1F047A0046BD5C /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -395,8 +428,6 @@
 				810ACCA02E9D3302004F8F92 /* GhosttyUITests */,
 			);
 			name = GhosttyUITests;
-			packageProductDependencies = (
-			);
 			productName = GhosttyUITests;
 			productReference = 810ACC9F2E9D3301004F8F92 /* GhosttyUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -414,8 +445,6 @@
 			dependencies = (
 			);
 			name = DockTilePlugin;
-			packageProductDependencies = (
-			);
 			productName = DockTilePlugin;
 			productReference = 8193244D2F24E6C000A9ED8F /* DockTilePlugin.plugin */;
 			productType = "com.apple.product-type.bundle";
@@ -437,8 +466,6 @@
 				A54F45F42E1F047A0046BD5C /* Tests */,
 			);
 			name = GhosttyTests;
-			packageProductDependencies = (
-			);
 			productName = GhosttyTests;
 			productReference = A54F45F32E1F047A0046BD5C /* GhosttyTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";

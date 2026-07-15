@@ -233,42 +233,21 @@ actor SFTPService {
         _ = try await runSSHCommand(connection: connection, remoteCommand: cmd)
     }
 
-    // MARK: - 远程命令执行
+    // MARK: - 内部辅助
+
+    private func backend(for connection: SSHConnection) throws -> SFTPBackend {
+        switch connection.authMode {
+        case .key: return KeySFTPBackend(connection: connection)
+        case .password: return PasswordSFTPBackend(connection: connection)
+        }
+    }
 
     private func runSSHCommand(
         connection: SSHConnection,
         remoteCommand: String
     ) async throws -> String {
-        let (url, args, env) = try sshProcessInfo(connection: connection)
-        let process = Process()
-        process.executableURL = url
-        process.arguments = args + [remoteCommand]
-        if !env.isEmpty {
-            process.environment = ProcessInfo.processInfo.environment.merging(env) { _, new in new }
-        }
-
-        let outPipe = Pipe()
-        let errPipe = Pipe()
-        process.standardOutput = outPipe
-        process.standardError = errPipe
-
-        return try await withCheckedThrowingContinuation { continuation in
-            process.terminationHandler = { _ in
-                let stdout = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                let stderr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                if process.terminationStatus == 0 {
-                    continuation.resume(returning: stdout)
-                } else {
-                    let msg = stderr.isEmpty ? stdout : stderr
-                    continuation.resume(throwing: SFTPError.transferFailed(msg.trimmingCharacters(in: .whitespacesAndNewlines)))
-                }
-            }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
+        let backend = try backend(for: connection)
+        return try await backend.execute(remoteCommand: remoteCommand)
     }
 
     // MARK: - rsync 传输
@@ -282,12 +261,14 @@ actor SFTPService {
         progressScale: Double = 1,
         compress: Bool = false
     ) async throws {
-        let (rsh, env) = try rsyncRSH(connection: connection)
-        var args = ["--partial", "--progress", "-e", rsh]
-        if compress { args.append("-z") }
-        args.append(localPath)
-        args.append("\(connection.host):\(remotePath)")
-        try await runRsync(args: args, environment: env, task: task, progressOffset: progressOffset, progressScale: progressScale)
+        let backend = try backend(for: connection)
+        try await backend.withRsyncChannel { socket in
+            var args = ["--partial", "--progress", "-e", "ssh -S \(socket)"]
+            if compress { args.append("-z") }
+            args.append(localPath)
+            args.append("\(connection.host):\(remotePath)")
+            try await runRsync(args: args, environment: [:], task: task, progressOffset: progressOffset, progressScale: progressScale)
+        }
     }
 
     private func runRsyncDownload(
@@ -299,12 +280,14 @@ actor SFTPService {
         progressScale: Double = 1,
         compress: Bool = false
     ) async throws {
-        let (rsh, env) = try rsyncRSH(connection: connection)
-        var args = ["--partial", "--progress", "-e", rsh]
-        if compress { args.append("-z") }
-        args.append("\(connection.host):\(remotePath)")
-        args.append(localPath)
-        try await runRsync(args: args, environment: env, task: task, progressOffset: progressOffset, progressScale: progressScale)
+        let backend = try backend(for: connection)
+        try await backend.withRsyncChannel { socket in
+            var args = ["--partial", "--progress", "-e", "ssh -S \(socket)"]
+            if compress { args.append("-z") }
+            args.append("\(connection.host):\(remotePath)")
+            args.append(localPath)
+            try await runRsync(args: args, environment: [:], task: task, progressOffset: progressOffset, progressScale: progressScale)
+        }
     }
 
     private func runRsync(
@@ -410,63 +393,88 @@ actor SFTPService {
         }
     }
 
-    // MARK: - 进程信息
+    // MARK: - Backend 共享工具
 
-    private func sshProcessInfo(connection: SSHConnection) throws -> (URL, [String], [String: String]) {
-        guard FileManager.default.fileExists(atPath: "/usr/bin/ssh") else {
-            throw SFTPError.commandNotFound("ssh")
-        }
-        let args = connection.sshBaseArgs.split(separator: " ").map(String.init)
-        if connection.authMode == .password, !connection.password.isEmpty {
-            let helper = try expectHelperURL()
-            var env: [String: String] = [:]
-            env["SSHPASS"] = connection.password
-            return (URL(fileURLWithPath: "/usr/bin/expect"), [helper.path] + args, env)
-        }
-        return (URL(fileURLWithPath: "/usr/bin/ssh"), args, [:])
+    fileprivate struct SSHCommandInvocation {
+        let executableURL: URL
+        let arguments: [String]
+        let environment: [String: String]
     }
 
-    private func rsyncRSH(connection: SSHConnection) throws -> (String, [String: String]) {
-        guard FileManager.default.fileExists(atPath: "/usr/bin/rsync") else {
-            throw SFTPError.commandNotFound("rsync")
+    /// 运行一次 SSH 命令调用，返回标准输出；失败时抛出包含标准错误的 SFTPError。
+    fileprivate static func runCommand(_ invocation: SSHCommandInvocation) async throws -> String {
+        let (stdout, stderr, status) = try await run(invocation: invocation, captureOutput: true)
+        if status == 0 {
+            return stdout
+        } else {
+            let msg = stderr.isEmpty ? stdout : stderr
+            throw SFTPError.transferFailed(msg.trimmingCharacters(in: .whitespacesAndNewlines))
         }
-        guard FileManager.default.fileExists(atPath: "/usr/bin/ssh") else {
-            throw SFTPError.commandNotFound("ssh")
-        }
-        let options = connection.sshOptions.trimmingCharacters(in: .whitespaces)
-        if connection.authMode == .password, !connection.password.isEmpty {
-            let helper = try expectHelperURL()
-            let rsh = "expect \(helper.path) \(options)"
-            return (rsh, ["SSHPASS": connection.password])
-        }
-        let rsh = "ssh \(options)"
-        return (rsh, [:])
     }
 
-    private func expectHelperURL() throws -> URL {
-        if let url = expectHelperURLCache { return url }
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ghostty_ssh_password_helper.exp")
-        let script = """
-        set password $env(SSHPASS)
-        set timeout 30
-        spawn /usr/bin/ssh {*}$argv
-        expect {
-            -nocase "password:" { send "$password\\r"; exp_continue }
-            -nocase "passphrase" { send "$password\\r"; exp_continue }
-            timeout { }
-            eof { }
+    /// 运行一次 SSH 命令调用，不返回输出；失败时抛出包含标准错误的 SFTPError。
+    fileprivate static func run(_ invocation: SSHCommandInvocation) async throws {
+        let (_, stderr, status) = try await run(invocation: invocation, captureOutput: false)
+        if status != 0 {
+            let msg = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw SFTPError.transferFailed(msg.isEmpty ? "本地进程退出码 \(status)" : msg)
         }
-        interact
-        """
-        try script.write(to: url, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
-        expectHelperURLCache = url
-        return url
     }
-    private var expectHelperURLCache: URL?
 
-    // MARK: - 解析
+    private static func run(
+        invocation: SSHCommandInvocation,
+        captureOutput: Bool
+    ) async throws -> (stdout: String, stderr: String, status: Int32) {
+        let process = Process()
+        process.executableURL = invocation.executableURL
+        process.arguments = invocation.arguments
+        if !invocation.environment.isEmpty {
+            process.environment = ProcessInfo.processInfo.environment.merging(invocation.environment) { _, new in new }
+        }
+
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        if captureOutput {
+            process.standardOutput = outPipe
+        } else {
+            process.standardOutput = FileHandle.nullDevice
+        }
+        process.standardError = errPipe
+
+        return try await withCheckedThrowingContinuation { continuation in
+            process.terminationHandler = { _ in
+                let stdout = captureOutput
+                    ? String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    : ""
+                let stderr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                continuation.resume(returning: (stdout, stderr, process.terminationStatus))
+            }
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
+    fileprivate static func controlSocketPath(for connection: SSHConnection) -> String {
+        return "/tmp/ghostty_ssh_control_\(connection.id.uuidString).sock"
+    }
+
+    fileprivate static func cleanupSocket(at path: String) {
+        if FileManager.default.fileExists(atPath: path) {
+            try? FileManager.default.removeItem(atPath: path)
+        }
+    }
+
+    fileprivate static func closeControlMaster(socket: String, connection: SSHConnection) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+        process.arguments = ["-S", socket, "-O", "exit"] + connection.sshBaseArgs.split(separator: " ").map(String.init)
+        try? process.run()
+    }
+
+    // MARK: - 解析工具
 
     private static func parseRsyncProgress(_ line: String) -> Double? {
         // 同时兼容 --progress 与 --info=progress2 的输出：
@@ -514,6 +522,165 @@ actor SFTPService {
             task.progress = progress
             if let state { task.state = state }
         }
+    }
+}
+
+// MARK: - SFTP Backend
+
+/// 统一的后端接口：执行远程命令，以及为 rsync 提供已认证的 SSH 通道。
+private protocol SFTPBackend: AnyObject {
+    func execute(remoteCommand: String) async throws -> String
+    func withRsyncChannel<T>(_ operation: (String) async throws -> T) async throws -> T
+}
+
+/// 后端基类，实现除认证方式以外的通用逻辑。
+private class BaseSFTPBackend {
+    let connection: SSHConnection
+    init(connection: SSHConnection) { self.connection = connection }
+
+    /// 子类实现：构造普通 SSH 命令的调用方式。
+    func sshInvocation(args: [String]) throws -> SFTPService.SSHCommandInvocation {
+        fatalError("子类必须实现 sshInvocation")
+    }
+
+    /// 子类可重写：构造建立 ControlMaster 的调用方式。默认与普通命令一致。
+    func controlMasterInvocation(args: [String]) throws -> SFTPService.SSHCommandInvocation {
+        return try sshInvocation(args: args)
+    }
+}
+
+extension BaseSFTPBackend: SFTPBackend {
+    func execute(remoteCommand: String) async throws -> String {
+        let args = connection.sshBaseArgs.split(separator: " ").map(String.init) + [remoteCommand]
+        let invocation = try sshInvocation(args: args)
+        return try await SFTPService.runCommand(invocation)
+    }
+
+    func withRsyncChannel<T>(_ operation: (String) async throws -> T) async throws -> T {
+        let socket = SFTPService.controlSocketPath(for: connection)
+        SFTPService.cleanupSocket(at: socket)
+
+        var args = connection.sshBaseArgs.split(separator: " ").map(String.init)
+        args.insert(contentsOf: ["-M", "-S", socket, "-f", "-N"], at: 0)
+        let invocation = try controlMasterInvocation(args: args)
+
+        do {
+            try await SFTPService.run(invocation)
+        } catch {
+            SFTPService.cleanupSocket(at: socket)
+            throw SFTPError.transferFailed("建立 SSH 控制通道失败: \(error.localizedDescription)")
+        }
+
+        guard FileManager.default.fileExists(atPath: socket) else {
+            SFTPService.cleanupSocket(at: socket)
+            throw SFTPError.transferFailed("SSH 控制通道未创建")
+        }
+
+        defer {
+            SFTPService.closeControlMaster(socket: socket, connection: connection)
+            SFTPService.cleanupSocket(at: socket)
+        }
+
+        return try await operation(socket)
+    }
+}
+
+// MARK: - 密钥登录后端
+
+private final class KeySFTPBackend: BaseSFTPBackend {
+    override func sshInvocation(args: [String]) throws -> SFTPService.SSHCommandInvocation {
+        guard FileManager.default.fileExists(atPath: "/usr/bin/ssh") else {
+            throw SFTPError.commandNotFound("ssh")
+        }
+        return SFTPService.SSHCommandInvocation(
+            executableURL: URL(fileURLWithPath: "/usr/bin/ssh"),
+            arguments: args,
+            environment: [:]
+        )
+    }
+}
+
+// MARK: - 密码登录后端
+
+private final class PasswordSFTPBackend: BaseSFTPBackend {
+    private var askpassHelperURLCache: URL?
+    private var expectHelperURLCache: URL?
+
+    override func sshInvocation(args: [String]) throws -> SFTPService.SSHCommandInvocation {
+        guard FileManager.default.fileExists(atPath: "/usr/bin/ssh") else {
+            throw SFTPError.commandNotFound("ssh")
+        }
+        guard !connection.password.isEmpty else {
+            throw SFTPError.transferFailed("密码为空")
+        }
+        let helper = try askpassHelperURL()
+        var env = ProcessInfo.processInfo.environment
+        env["GHOSTTY_ASKPASS_PASSWORD"] = connection.password
+        env["SSH_ASKPASS"] = helper.path
+        env["SSH_ASKPASS_REQUIRE"] = "force"
+        return SFTPService.SSHCommandInvocation(
+            executableURL: URL(fileURLWithPath: "/usr/bin/ssh"),
+            arguments: args,
+            environment: env
+        )
+    }
+
+    override func controlMasterInvocation(args: [String]) throws -> SFTPService.SSHCommandInvocation {
+        guard FileManager.default.fileExists(atPath: "/usr/bin/ssh") else {
+            throw SFTPError.commandNotFound("ssh")
+        }
+        guard !connection.password.isEmpty else {
+            throw SFTPError.transferFailed("密码为空")
+        }
+        let helper = try expectHelperURL()
+        var env = ProcessInfo.processInfo.environment
+        env["SSHPASS"] = connection.password
+        return SFTPService.SSHCommandInvocation(
+            executableURL: URL(fileURLWithPath: "/usr/bin/expect"),
+            arguments: [helper.path, URL(fileURLWithPath: "/usr/bin/ssh").path] + args,
+            environment: env
+        )
+    }
+
+    private func askpassHelperURL() throws -> URL {
+        if let url = askpassHelperURLCache { return url }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghostty_ssh_askpass.sh")
+        let script = """
+        #!/bin/bash
+        printf '%s\\n' "$GHOSTTY_ASKPASS_PASSWORD"
+        """
+        try script.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        askpassHelperURLCache = url
+        return url
+    }
+
+    private func expectHelperURL() throws -> URL {
+        if let url = expectHelperURLCache { return url }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghostty_ssh_expect.exp")
+        let script = """
+        #!/usr/bin/expect -f
+        set password $env(SSHPASS)
+        set timeout 30
+        set sshCmd [lindex $argv 0]
+        set sshArgs [lrange $argv 1 end]
+        log_user 0
+        spawn $sshCmd {*}$sshArgs
+        expect {
+            -nocase "password:" { send "$password\\r" }
+            timeout { exit 1 }
+            eof { exit 1 }
+        }
+        # 密码已发送，等待 ssh 完成认证并 fork 成控制通道；超时缩短为 10 秒。
+        set timeout 10
+        expect eof
+        """
+        try script.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        expectHelperURLCache = url
+        return url
     }
 }
 

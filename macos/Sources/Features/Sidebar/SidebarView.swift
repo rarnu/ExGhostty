@@ -365,8 +365,11 @@ struct SidebarView: View {
                 editingConnection = conn
                 showEditSSHDialog()
             }
-            Button("Delete", role: .destructive) {
+            Button(role: .destructive) {
                 showDeleteConnectionConfirmation(conn)
+            } label: {
+                Text("Delete")
+                    .foregroundColor(.red)
             }
         }
     }
@@ -537,7 +540,10 @@ struct GroupHeaderView: View {
         .padding(.vertical, 2)
         .contextMenu {
             Button("Rename", action: { onRename?() })
-            Button("Delete", role: .destructive, action: { onDelete?() })
+            Button(role: .destructive, action: { onDelete?() }) {
+                Text("Delete")
+                    .foregroundColor(.red)
+            }
         }
     }
 }

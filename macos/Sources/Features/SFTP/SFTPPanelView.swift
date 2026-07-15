@@ -22,6 +22,10 @@ final class SFTPPanelViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     /// 远端用户主目录，用于把标题中的 `~` 展开为绝对路径。
     private var remoteHomeDirectory: String?
+    /// 根据用户名推断的默认远端主目录。root 用户为 /root，其他用户为 /home/<username>。
+    private var defaultHomeDirectory: String {
+        connection.username == "root" ? "/root" : "/home/\(connection.username)"
+    }
     /// 目录内容定时刷新器，用于同步终端中 rm/mv/mkdir/touch 等引起的变化。
     private var refreshTimer: Timer?
 
@@ -29,7 +33,7 @@ final class SFTPPanelViewModel: ObservableObject {
         self.connection = connection
         self.terminalController = terminalController
         self.currentPath = terminalController?.currentDirectoryURL?.path
-            ?? "/home/\(connection.username)"
+            ?? defaultHomeDirectory
 
         // 终端通过 OSC 7 上报当前目录（需要远端 shell 启用了 Ghostty shell integration）。
         terminalController?.$currentDirectoryURL
@@ -94,7 +98,7 @@ final class SFTPPanelViewModel: ObservableObject {
         if let tildeRange = trimmed.range(of: "~") {
             let suffix = String(trimmed[tildeRange.lowerBound...])
             let rest = String(suffix.dropFirst())
-            let home = remoteHomeDirectory ?? "/home/\(connection.username)"
+            let home = remoteHomeDirectory ?? defaultHomeDirectory
             path = rest.isEmpty ? home : (home + rest)
         } else if let slashRange = trimmed.range(of: "/") {
             // 提取第一个 `/` 开始的后缀，如 `user@host:/path` → `/path`。
@@ -115,9 +119,15 @@ final class SFTPPanelViewModel: ObservableObject {
                 let home = try await SFTPService.shared.currentRemoteDirectory(connection: connection)
                 await MainActor.run {
                     self.remoteHomeDirectory = home
+                    // 如果当前路径仍停留在默认的 /home/<user>（对 root 是 /home/root，
+                    // 但实际不存在），则用真实的 home 目录修正。
+                    if self.currentPath == self.defaultHomeDirectory && self.currentPath != home {
+                        self.currentPath = home
+                        self.refresh()
+                    }
                 }
             } catch {
-                // 失败时使用默认 /home/username
+                // 失败时使用默认 home
             }
         }
     }
@@ -490,12 +500,18 @@ struct SFTPPanelView: View {
                                     }
                                 }
                                 if viewModel.selectedItems.count > 1 && viewModel.selectedItems.contains(item.id) {
-                                    Button("删除这些文件") {
+                                    Button(role: .destructive) {
                                         confirmDeleteSelected()
+                                    } label: {
+                                        Text("删除这些文件")
+                                            .foregroundColor(.red)
                                     }
                                 } else {
-                                    Button("删除") {
+                                    Button(role: .destructive) {
                                         confirmDelete(item: item)
+                                    } label: {
+                                        Text("删除")
+                                            .foregroundColor(.red)
                                     }
                                 }
                             }
