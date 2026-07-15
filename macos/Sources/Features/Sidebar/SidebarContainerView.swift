@@ -433,37 +433,78 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 guard let tc, let window = tc.window else { return }
                 var cfg = Ghostty.SurfaceConfiguration()
 
+                let scriptURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")
+
+                let expectScript: String
+                let logURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).log")
+                let logPath = logURL.path
+
                 if conn.authMode == .password, !conn.password.isEmpty {
-                    // 密码登录：用 expect 脚本自动输入密码，避免终端再提示用户
-                    let expectScript = """
+                    // 密码登录：用 expect 脚本自动输入密码，并在断开后支持按任意键重连。
+                    expectScript = """
                     set timeout 15
                     set password $env(SSHPASS)
-                    log_user 0
-                    spawn /usr/bin/ssh \(conn.sshBaseArgs)
-                    expect {
-                        -nocase "password:" { send "$password\\r" }
-                        timeout { }
-                        eof { catch wait result; exit [lindex $result 3] }
+                    set logfile [open "\(logPath)" "a"]
+                    proc sshlog {msg} {
+                        global logfile
+                        puts $logfile "[clock format [clock seconds]] \\(msg)"
+                        flush $logfile
                     }
-                    sleep 0.5
-                    puts "\\033\\[2J\\033\\[H\\033\\[3J"
-                    log_user 1
-                    send "\\r"
-                    interact
+                    trap { sshlog "SIGTERM ignored" } SIGTERM
+                    trap { sshlog "SIGINT ignored" } SIGINT
+                    while {1} {
+                        sshlog "spawn ssh"
+                        log_user 0
+                        spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                        expect {
+                            -nocase "password:" { send "$password\\r" }
+                            timeout { sshlog "password timeout" }
+                            eof { sshlog "ssh eof" }
+                        }
+                        sleep 0.5
+                        puts "\\033\\[2J\\033\\[H\\033\\[3J"
+                        log_user 1
+                        send "\\r"
+                        interact
+                        sshlog "interact returned"
+                        puts ""
+                        puts "按任意键进行重连"
+                        expect_user -re . {}
+                        sshlog "reconnect key pressed"
+                    }
                     """
-
-                    let scriptURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")
-
-                    do {
-                        try expectScript.write(to: scriptURL, atomically: true, encoding: .utf8)
-                        cfg.command = "/usr/bin/expect \(scriptURL.path)"
-                        cfg.environmentVariables["SSHPASS"] = conn.password
-                    } catch {
-                        // 写入失败时回退到普通 ssh 命令
-                        cfg.command = conn.sshCommand
-                    }
+                    cfg.environmentVariables["SSHPASS"] = conn.password
                 } else {
+                    // 密钥登录：同样用 expect 包装，实现断线后按任意键重连。
+                    expectScript = """
+                    set logfile [open "\(logPath)" "a"]
+                    proc sshlog {msg} {
+                        global logfile
+                        puts $logfile "[clock format [clock seconds]] \\(msg)"
+                        flush $logfile
+                    }
+                    trap { sshlog "SIGTERM ignored" } SIGTERM
+                    trap { sshlog "SIGINT ignored" } SIGINT
+                    while {1} {
+                        sshlog "spawn ssh"
+                        spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                        interact
+                        sshlog "interact returned"
+                        puts ""
+                        puts "按任意键进行重连"
+                        expect_user -re . {}
+                        sshlog "reconnect key pressed"
+                    }
+                    """
+                }
+
+                do {
+                    try expectScript.write(to: scriptURL, atomically: true, encoding: .utf8)
+                    cfg.command = "/usr/bin/expect \(scriptURL.path)"
+                } catch {
+                    // 写入失败时回退到普通 ssh 命令
                     cfg.command = conn.sshCommand
                 }
 
