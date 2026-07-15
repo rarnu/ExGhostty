@@ -122,12 +122,12 @@ final class SessionReusePanelViewModel: ObservableObject {
             do {
                 let output: String
                 if let connection = connection {
-                    output = try await SFTPService.shared.executeCommand(
-                        connection: connection,
-                        remoteCommand: "uname -s"
+                    output = try await SSHCommandExecutor.shared.execute(
+                        remoteCommand: "uname -s",
+                        connection: connection
                     )
                 } else {
-                    output = try await runLocalCommand("uname -s")
+                    output = try await ProcessRunner.run(shellCommand: "uname -s")
                 }
                 let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
                 let detected: HostOS? = switch trimmed {
@@ -150,26 +150,18 @@ final class SessionReusePanelViewModel: ObservableObject {
         hostOS ?? .linux
     }
 
-    /// 去掉 ANSI 转义序列（如 zellij 输出里的 [32;1m...[m）。
-    private static func stripANSISequences(_ string: String) -> String {
-        let pattern = "\\x1B\\[[0-9;]*m"
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return string }
-        let range = NSRange(string.startIndex..., in: string)
-        return regex.stringByReplacingMatches(in: string, options: [], range: range, withTemplate: "")
-    }
-
     // MARK: - 工具安装检测
 
     private func checkInstalled(command: String) async -> Bool {
         do {
             if let connection = connection {
-                _ = try await SFTPService.shared.executeCommand(
-                    connection: connection,
-                    remoteCommand: "command -v \(command)"
+                _ = try await SSHCommandExecutor.shared.execute(
+                    remoteCommand: "command -v \(command)",
+                    connection: connection
                 )
             } else {
                 // 使用 `which` 而非 `command -v`，以便支持 zsh alias（如 tmux 插件返回的 alias）。
-                _ = try await runLocalCommand("which \(command)")
+                _ = try await ProcessRunner.run(shellCommand: "which \(command)")
             }
             return true
         } catch {
@@ -183,13 +175,13 @@ final class SessionReusePanelViewModel: ObservableObject {
         do {
             let output: String
             if let connection = connection {
-                output = try await SFTPService.shared.executeCommand(
-                    connection: connection,
-                    remoteCommand: "tmux list-sessions -F '#S'"
+                output = try await SSHCommandExecutor.shared.execute(
+                    remoteCommand: "tmux list-sessions -F '#S'",
+                    connection: connection
                 )
             } else {
                 // 用 `command tmux` 绕过 zsh alias/plugin wrapper，直接调用二进制。
-                output = try await runLocalCommand("command tmux list-sessions -F '#S'")
+                output = try await ProcessRunner.run(shellCommand: "command tmux list-sessions -F '#S'")
             }
             return output
                 .split(separator: "\n", omittingEmptySubsequences: true)
@@ -204,17 +196,17 @@ final class SessionReusePanelViewModel: ObservableObject {
         do {
             let output: String
             if let connection = connection {
-                output = try await SFTPService.shared.executeCommand(
-                    connection: connection,
-                    remoteCommand: "zellij list-sessions"
+                output = try await SSHCommandExecutor.shared.execute(
+                    remoteCommand: "zellij list-sessions",
+                    connection: connection
                 )
             } else {
-                output = try await runLocalCommand("command zellij list-sessions")
+                output = try await ProcessRunner.run(shellCommand: "command zellij list-sessions")
             }
             return output
                 .split(separator: "\n", omittingEmptySubsequences: true)
                 .compactMap { line in
-                    let cleaned = Self.stripANSISequences(String(line))
+                    let cleaned = String(line).strippingANSISequences()
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !cleaned.isEmpty else { return nil }
                     let first = cleaned.split(separator: " ", omittingEmptySubsequences: true).first
@@ -222,53 +214,6 @@ final class SessionReusePanelViewModel: ObservableObject {
                 }
         } catch {
             return []
-        }
-    }
-
-    // MARK: - 本地命令执行
-
-    private func localLoginShell() -> String {
-        if FileManager.default.isExecutableFile(atPath: "/bin/zsh") {
-            return "/bin/zsh"
-        } else if FileManager.default.isExecutableFile(atPath: "/bin/bash") {
-            return "/bin/bash"
-        } else {
-            return "/bin/sh"
-        }
-    }
-
-    private func runLocalCommand(_ command: String) async throws -> String {
-        return try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: localLoginShell())
-            // -l 让 shell 作为登录 shell 运行，从而加载 .zshrc/.bash_profile 等，
-            // 确保能识别通过 Homebrew 等路径安装的 tmux/zellij。
-            process.arguments = ["-l", "-c", command]
-
-            let outPipe = Pipe()
-            let errPipe = Pipe()
-            process.standardOutput = outPipe
-            process.standardError = errPipe
-
-            process.terminationHandler = { _ in
-                let stdout = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                let stderr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                if process.terminationStatus == 0 {
-                    continuation.resume(returning: stdout)
-                } else {
-                    continuation.resume(throwing: NSError(
-                        domain: "SessionReuse",
-                        code: Int(process.terminationStatus),
-                        userInfo: [NSLocalizedDescriptionKey: stderr]
-                    ))
-                }
-            }
-
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(throwing: error)
-            }
         }
     }
 
@@ -299,38 +244,34 @@ final class SessionReusePanelViewModel: ObservableObject {
 
     // MARK: - 命令拼接
 
-    private func escapeShellArgument(_ argument: String) -> String {
-        argument.replacingOccurrences(of: "\"", with: "\\\"")
-    }
-
     private func tmuxNewSessionCommand(name: String) -> String {
-        let escaped = escapeShellArgument(name)
-        return "tmux new -s \"\(escaped)\""
+        let escaped = name.singleQuotedShellArgument()
+        return "tmux new -s \(escaped)"
     }
 
     private func tmuxAttachCommand(session: String) -> String {
-        let escaped = escapeShellArgument(session)
-        return "if [ -n \"$TMUX\" ]; then tmux switch-client -t \"\(escaped)\"; else tmux attach-session -t \"\(escaped)\"; fi"
+        let escaped = session.singleQuotedShellArgument()
+        return "if [ -n \"$TMUX\" ]; then tmux switch-client -t \(escaped); else tmux attach-session -t \(escaped); fi"
     }
 
     private func tmuxKillSessionCommand(session: String) -> String {
-        let escaped = escapeShellArgument(session)
-        return "tmux kill-session -t \"\(escaped)\""
+        let escaped = session.singleQuotedShellArgument()
+        return "tmux kill-session -t \(escaped)"
     }
 
     private func zellijNewSessionCommand(name: String) -> String {
-        let escaped = escapeShellArgument(name)
-        return "zellij attach --create \"\(escaped)\""
+        let escaped = name.singleQuotedShellArgument()
+        return "zellij attach --create \(escaped)"
     }
 
     private func zellijAttachCommand(session: String) -> String {
-        let escaped = escapeShellArgument(session)
-        return "zellij attach \"\(escaped)\""
+        let escaped = session.singleQuotedShellArgument()
+        return "zellij attach \(escaped)"
     }
 
     private func zellijKillSessionCommand(session: String) -> String {
-        let escaped = escapeShellArgument(session)
-        return "zellij kill-session \"\(escaped)\""
+        let escaped = session.singleQuotedShellArgument()
+        return "zellij kill-session \(escaped)"
     }
 
     // MARK: - 操作入口

@@ -555,12 +555,12 @@ struct PortForwardListView: View {
             return
         }
 
-        guard let pid = pidListening(on: rule.localListenPort) else {
+        guard let pid = ProcessInspector.pidListening(on: rule.localListenPort) else {
             store.startRule(rule.id)
             return
         }
 
-        let process = processName(for: pid) ?? "未知进程"
+        let process = ProcessInspector.processName(for: pid) ?? "未知进程"
         let alert = NSAlert()
         alert.messageText = "端口 \(rule.localListenPort) 已被占用"
         alert.informativeText = "进程: \(process) (PID \(pid))\n是否结束该进程并启动端口转发？"
@@ -568,7 +568,7 @@ struct PortForwardListView: View {
         alert.addButton(withTitle: "取消")
 
         let proceed = {
-            if killProcess(pid: pid) {
+            if ProcessInspector.killProcess(pid: pid) {
                 self.store.startRule(rule.id)
             } else {
                 self.showKillFailedAlert(process: process, pid: pid)
@@ -593,63 +593,6 @@ struct PortForwardListView: View {
             alert.beginSheetModal(for: win) { _ in }
         } else {
             alert.runModal()
-        }
-    }
-
-    /// 查询占用指定 TCP 端口的监听进程 PID，使用 lsof -ti :<port>。
-    private func pidListening(on port: UInt16) -> Int32? {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
-        task.arguments = ["-nP", "-iTCP:\(port)", "-sTCP:LISTEN", "-t"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !text.isEmpty,
-                  let firstLine = text.components(separatedBy: .newlines).first,
-                  let pid = Int32(firstLine) else {
-                return nil
-            }
-            return pid
-        } catch {
-            return nil
-        }
-    }
-
-    /// 根据 PID 获取进程名称。
-    private func processName(for pid: Int32) -> String? {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/ps")
-        task.arguments = ["-p", "\(pid)", "-o", "comm="]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            return nil
-        }
-    }
-
-    /// 结束指定 PID 的进程。
-    @discardableResult
-    private func killProcess(pid: Int32) -> Bool {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/kill")
-        task.arguments = ["-9", "\(pid)"]
-        do {
-            try task.run()
-            task.waitUntilExit()
-            return task.terminationStatus == 0
-        } catch {
-            return false
         }
     }
 

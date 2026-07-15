@@ -264,8 +264,8 @@ class PortForwardStore: ObservableObject {
         if let rule = rules.first(where: { $0.id == id }),
            (rule.type == .local || rule.type == .dynamic),
            rule.localListenPort > 0,
-           let sshPID = pidListening(on: rule.localListenPort) {
-            forceKill(pid: sshPID)
+           let sshPID = ProcessInspector.pidListening(on: rule.localListenPort) {
+            ProcessInspector.forceKill(pid: sshPID)
         }
 
         // 先尝试优雅终止 expect 进程。
@@ -276,10 +276,10 @@ class PortForwardStore: ObservableObject {
             guard let self else { return }
             guard let proc = self.runningProcesses[id], proc.isRunning else { return }
             let expectPID = Int32(proc.processIdentifier)
-            for child in self.childPIDs(of: expectPID) {
-                self.forceKill(pid: child)
+            for child in ProcessInspector.childPIDs(of: expectPID) {
+                ProcessInspector.forceKill(pid: child)
             }
-            self.forceKill(pid: expectPID)
+            ProcessInspector.forceKill(pid: expectPID)
         }
     }
 
@@ -344,66 +344,6 @@ class PortForwardStore: ObservableObject {
             }
         } else {
             intentionallyStopped.remove(id)
-        }
-    }
-
-    // MARK: - 进程清理辅助
-
-    /// 查询占用指定 TCP 端口的监听进程 PID。
-    private func pidListening(on port: UInt16) -> Int32? {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
-        task.arguments = ["-nP", "-iTCP:\(port)", "-sTCP:LISTEN", "-t"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !text.isEmpty,
-                  let firstLine = text.components(separatedBy: .newlines).first,
-                  let pid = Int32(firstLine) else {
-                return nil
-            }
-            return pid
-        } catch {
-            return nil
-        }
-    }
-
-    /// 获取指定 PID 的直接子进程 PID 列表。
-    private func childPIDs(of pid: Int32) -> [Int32] {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        task.arguments = ["-P", "\(pid)"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !text.isEmpty else {
-                return []
-            }
-            return text.components(separatedBy: .newlines).compactMap { Int32($0) }
-        } catch {
-            return []
-        }
-    }
-
-    /// 使用 SIGKILL 强制结束指定 PID 的进程。
-    private func forceKill(pid: Int32) {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/kill")
-        task.arguments = ["-9", "\(pid)"]
-        do {
-            try task.run()
-        } catch {
-            logger.warning("Failed to force kill PID \(pid): \(error.localizedDescription)")
         }
     }
 

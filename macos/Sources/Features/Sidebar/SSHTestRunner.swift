@@ -33,44 +33,6 @@ enum SSHTestEvent {
     case failure(String)
 }
 
-// MARK: - 输出缓冲 Actor
-
-/// 将子进程输出按行拆分的线程安全缓冲
-private actor OutputBuffer {
-    private var data = Data()
-    private let continuation: AsyncStream<SSHTestEvent>.Continuation
-
-    init(continuation: AsyncStream<SSHTestEvent>.Continuation) {
-        self.continuation = continuation
-    }
-
-    func append(_ newData: Data) {
-        guard !newData.isEmpty else { return }
-        data.append(newData)
-        var searchStart = 0
-        while let newlineIndex = data[searchStart...].firstIndex(of: UInt8(ascii: "\n")) {
-            let lineData = data[searchStart..<newlineIndex]
-            if let line = String(data: lineData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !line.isEmpty {
-                continuation.yield(.log(line))
-            }
-            searchStart = newlineIndex + 1
-        }
-        if searchStart > 0 {
-            data.removeSubrange(0..<searchStart)
-        }
-    }
-
-    func flush() {
-        if !data.isEmpty,
-           let line = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !line.isEmpty {
-            continuation.yield(.log(line))
-        }
-        data.removeAll()
-    }
-}
-
 // MARK: - 测试执行器
 
 enum SSHTester {
@@ -298,40 +260,36 @@ enum SSHTester {
         env: [String: String],
         continuation: AsyncStream<SSHTestEvent>.Continuation
     ) async -> Result<Void, Error> {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = args
-        process.environment = ProcessInfo.processInfo.environment.merging(env) { $1 }
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
-        let buffer = OutputBuffer(continuation: continuation)
-
-        pipe.fileHandleForReading.readabilityHandler = { handle in
-            let data = handle.availableData
-            guard !data.isEmpty else { return }
-            Task { await buffer.append(data) }
-        }
-
         do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            pipe.fileHandleForReading.readabilityHandler = nil
-            return .failure(error)
-        }
-
-        pipe.fileHandleForReading.readabilityHandler = nil
-        await buffer.flush()
-
-        if process.terminationStatus == 0 {
+            let stdout = try await ProcessRunner.run(
+                executable: URL(fileURLWithPath: executable),
+                arguments: args,
+                environment: ProcessInfo.processInfo.environment.merging(env) { $1 }
+            )
+            for line in stdout.split(separator: "\n", omittingEmptySubsequences: true) {
+                let trimmed = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    continuation.yield(.log(trimmed))
+                }
+            }
             return .success(())
-        } else if process.terminationStatus == 124 {
-            return .failure(TestError.connectionFailed("连接超时"))
-        } else {
-            return .failure(TestError.connectionFailed("SSH 进程退出码 \(process.terminationStatus)"))
+        } catch let error as ProcessRunnerError {
+            if case .executionFailed(_, let status, let stderr) = error {
+                for line in stderr.split(separator: "\n", omittingEmptySubsequences: true) {
+                    let trimmed = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        continuation.yield(.log(trimmed))
+                    }
+                }
+                if status == 124 {
+                    return .failure(TestError.connectionFailed("连接超时"))
+                } else {
+                    return .failure(TestError.connectionFailed("SSH 进程退出码 \(status)"))
+                }
+            }
+            return .failure(error)
+        } catch {
+            return .failure(error)
         }
     }
 }
