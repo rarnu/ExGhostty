@@ -17,6 +17,28 @@ enum HostOS: String, CaseIterable, Identifiable {
     }
 }
 
+/// 会话类型，用于区分 tmux / zellij 的通用操作。
+enum SessionType: String, CaseIterable, Identifiable {
+    case tmux
+    case zellij
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .tmux: return "tmux"
+        case .zellij: return "zellij"
+        }
+    }
+}
+
+/// 删除会话确认数据。
+struct DeleteConfirmation: Identifiable {
+    let id = UUID()
+    let type: SessionType
+    let name: String
+}
+
 /// 会话复用面板视图模型。
 final class SessionReusePanelViewModel: ObservableObject {
     weak var terminalController: TerminalController?
@@ -29,6 +51,10 @@ final class SessionReusePanelViewModel: ObservableObject {
     @Published var zellijSessions: [String] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+
+    // MARK: - 模态/确认状态
+
+    @Published var deleteConfirmation: DeleteConfirmation?
 
     private var refreshTimer: Timer?
 
@@ -101,7 +127,7 @@ final class SessionReusePanelViewModel: ObservableObject {
                         remoteCommand: "uname -s"
                     )
                 } else {
-                    output = try await runLocalCommand(["/usr/bin/uname", "-s"])
+                    output = try await runLocalCommand("uname -s")
                 }
                 let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
                 let detected: HostOS? = switch trimmed {
@@ -124,6 +150,14 @@ final class SessionReusePanelViewModel: ObservableObject {
         hostOS ?? .linux
     }
 
+    /// 去掉 ANSI 转义序列（如 zellij 输出里的 [32;1m...[m）。
+    private static func stripANSISequences(_ string: String) -> String {
+        let pattern = "\\x1B\\[[0-9;]*m"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return string }
+        let range = NSRange(string.startIndex..., in: string)
+        return regex.stringByReplacingMatches(in: string, options: [], range: range, withTemplate: "")
+    }
+
     // MARK: - 工具安装检测
 
     private func checkInstalled(command: String) async -> Bool {
@@ -134,7 +168,8 @@ final class SessionReusePanelViewModel: ObservableObject {
                     remoteCommand: "command -v \(command)"
                 )
             } else {
-                _ = try await runLocalCommand(["/usr/bin/env", "which", command])
+                // 使用 `which` 而非 `command -v`，以便支持 zsh alias（如 tmux 插件返回的 alias）。
+                _ = try await runLocalCommand("which \(command)")
             }
             return true
         } catch {
@@ -153,7 +188,8 @@ final class SessionReusePanelViewModel: ObservableObject {
                     remoteCommand: "tmux list-sessions -F '#S'"
                 )
             } else {
-                output = try await runLocalCommand(["/usr/bin/env", "tmux", "list-sessions", "-F", "#S"])
+                // 用 `command tmux` 绕过 zsh alias/plugin wrapper，直接调用二进制。
+                output = try await runLocalCommand("command tmux list-sessions -F '#S'")
             }
             return output
                 .split(separator: "\n", omittingEmptySubsequences: true)
@@ -173,14 +209,15 @@ final class SessionReusePanelViewModel: ObservableObject {
                     remoteCommand: "zellij list-sessions"
                 )
             } else {
-                output = try await runLocalCommand(["/usr/bin/env", "zellij", "list-sessions"])
+                output = try await runLocalCommand("command zellij list-sessions")
             }
             return output
                 .split(separator: "\n", omittingEmptySubsequences: true)
                 .compactMap { line in
-                    let trimmed = line.trimmingCharacters(in: .whitespaces)
-                    guard !trimmed.isEmpty else { return nil }
-                    let first = trimmed.split(separator: " ", omittingEmptySubsequences: true).first
+                    let cleaned = Self.stripANSISequences(String(line))
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !cleaned.isEmpty else { return nil }
+                    let first = cleaned.split(separator: " ", omittingEmptySubsequences: true).first
                     return first.map(String.init)
                 }
         } catch {
@@ -190,11 +227,23 @@ final class SessionReusePanelViewModel: ObservableObject {
 
     // MARK: - 本地命令执行
 
-    private func runLocalCommand(_ args: [String]) async throws -> String {
+    private func localLoginShell() -> String {
+        if FileManager.default.isExecutableFile(atPath: "/bin/zsh") {
+            return "/bin/zsh"
+        } else if FileManager.default.isExecutableFile(atPath: "/bin/bash") {
+            return "/bin/bash"
+        } else {
+            return "/bin/sh"
+        }
+    }
+
+    private func runLocalCommand(_ command: String) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: args[0])
-            process.arguments = Array(args.dropFirst())
+            process.executableURL = URL(fileURLWithPath: localLoginShell())
+            // -l 让 shell 作为登录 shell 运行，从而加载 .zshrc/.bash_profile 等，
+            // 确保能识别通过 Homebrew 等路径安装的 tmux/zellij。
+            process.arguments = ["-l", "-c", command]
 
             let outPipe = Pipe()
             let errPipe = Pipe()
@@ -228,85 +277,143 @@ final class SessionReusePanelViewModel: ObservableObject {
     @MainActor
     private func sendToTerminal(_ command: String) {
         guard let surface = terminalController?.focusedSurface?.surfaceModel else { return }
-        surface.sendText(command + "\r")
+        // 先发命令文本，再模拟按一下回车键。直接用 \r/\n 文本在某些 PTY 输入模式下不会被识别为提交，
+        // 而发送真正的 Return 键事件可以复用 Ghostty 的键盘编码路径，和手动按回车一致。
+        surface.sendText(command)
+        surface.sendKeyEvent(Ghostty.Input.KeyEvent(key: .enter, action: .press, text: "\r"))
+    }
+
+    /// 依次发送一组按键事件，按键之间留一个小间隔，避免 multiplexer 把组合键当成同时按下。
+    @MainActor
+    private func sendKeyEvents(_ events: [Ghostty.Input.KeyEvent], delayNanoseconds: UInt64 = 80_000_000) {
+        guard let surface = terminalController?.focusedSurface?.surfaceModel else { return }
+        Task { @MainActor in
+            for (index, event) in events.enumerated() {
+                if index > 0 {
+                    try? await Task.sleep(nanoseconds: delayNanoseconds)
+                }
+                surface.sendKeyEvent(event)
+            }
+        }
     }
 
     // MARK: - 命令拼接
 
-    private func tmuxNewSessionCommand(os: HostOS) -> String {
-        switch os {
-        case .linux, .macOS:
-            return "tmux new-session"
-        }
+    private func escapeShellArgument(_ argument: String) -> String {
+        argument.replacingOccurrences(of: "\"", with: "\\\"")
     }
 
-    private func tmuxDetachCommand(os: HostOS) -> String {
-        switch os {
-        case .linux, .macOS:
-            return "tmux detach"
-        }
+    private func tmuxNewSessionCommand(name: String) -> String {
+        let escaped = escapeShellArgument(name)
+        return "tmux new -s \"\(escaped)\""
     }
 
-    private func tmuxAttachCommand(os: HostOS, session: String) -> String {
-        let escaped = session.replacingOccurrences(of: "\"", with: "\\\"")
-        switch os {
-        case .linux, .macOS:
-            return "tmux attach -t \"\(escaped)\""
-        }
+    private func tmuxAttachCommand(session: String) -> String {
+        let escaped = escapeShellArgument(session)
+        return "if [ -n \"$TMUX\" ]; then tmux switch-client -t \"\(escaped)\"; else tmux attach-session -t \"\(escaped)\"; fi"
     }
 
-    private func zellijNewSessionCommand(os: HostOS) -> String {
-        switch os {
-        case .linux, .macOS:
-            return "zellij"
-        }
+    private func tmuxKillSessionCommand(session: String) -> String {
+        let escaped = escapeShellArgument(session)
+        return "tmux kill-session -t \"\(escaped)\""
     }
 
-    private func zellijDetachCommand(os: HostOS) -> String {
-        switch os {
-        case .linux, .macOS:
-            return "zellij action detach"
-        }
+    private func zellijNewSessionCommand(name: String) -> String {
+        let escaped = escapeShellArgument(name)
+        return "zellij attach --create \"\(escaped)\""
     }
 
-    private func zellijAttachCommand(os: HostOS, session: String) -> String {
-        let escaped = session.replacingOccurrences(of: "\"", with: "\\\"")
-        switch os {
-        case .linux, .macOS:
-            return "zellij attach \"\(escaped)\""
-        }
+    private func zellijAttachCommand(session: String) -> String {
+        let escaped = escapeShellArgument(session)
+        return "zellij attach \"\(escaped)\""
+    }
+
+    private func zellijKillSessionCommand(session: String) -> String {
+        let escaped = escapeShellArgument(session)
+        return "zellij kill-session \"\(escaped)\""
     }
 
     // MARK: - 操作入口
 
     @MainActor
-    func newTmuxSession() {
-        sendToTerminal(tmuxNewSessionCommand(os: currentOS()))
+    func promptNewSession(type: SessionType) {
+        guard let tc = terminalController, let window = tc.window else { return }
+        let controller = NewSessionNameWindowController(
+            config: tc.ghostty.config,
+            type: type,
+            parentWindow: window,
+            onConfirm: { [weak self] name in
+                self?.confirmNewSession(type: type, name: name)
+            },
+            onDismiss: {}
+        )
+        controller.showModal()
+    }
+
+    @MainActor
+    private func confirmNewSession(type: SessionType, name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        switch type {
+        case .tmux:
+            sendToTerminal(tmuxNewSessionCommand(name: trimmed))
+        case .zellij:
+            sendToTerminal(zellijNewSessionCommand(name: trimmed))
+        }
     }
 
     @MainActor
     func detachTmux() {
-        sendToTerminal(tmuxDetachCommand(os: currentOS()))
+        // sendText 会把控制字符当成粘贴显示成 ^B，所以这里必须用键盘事件。
+        // macOS 用 nil text 时 tmux 能正确识别前缀；Linux 需要显式带上控制字符 text。
+        switch currentOS() {
+        case .macOS:
+            sendKeyEvents([
+                Ghostty.Input.KeyEvent(key: .b, action: .press, mods: .ctrl),
+                Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
+            ])
+        case .linux:
+            sendKeyEvents([
+                Ghostty.Input.KeyEvent(key: .b, action: .press, text: "\u{0002}", mods: .ctrl),
+                Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
+            ])
+        }
     }
 
     @MainActor
     func attachTmux(session: String) {
-        sendToTerminal(tmuxAttachCommand(os: currentOS(), session: session))
+        sendToTerminal(tmuxAttachCommand(session: session))
     }
 
     @MainActor
-    func newZellijSession() {
-        sendToTerminal(zellijNewSessionCommand(os: currentOS()))
+    func killTmux(session: String) {
+        sendToTerminal(tmuxKillSessionCommand(session: session))
     }
 
     @MainActor
     func detachZellij() {
-        sendToTerminal(zellijDetachCommand(os: currentOS()))
+        switch currentOS() {
+        case .macOS:
+            sendKeyEvents([
+                Ghostty.Input.KeyEvent(key: .o, action: .press, mods: .ctrl),
+                Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
+            ])
+        case .linux:
+            sendKeyEvents([
+                Ghostty.Input.KeyEvent(key: .o, action: .press, text: "\u{000F}", mods: .ctrl),
+                Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
+            ])
+        }
     }
 
     @MainActor
     func attachZellij(session: String) {
-        sendToTerminal(zellijAttachCommand(os: currentOS(), session: session))
+        sendToTerminal(zellijAttachCommand(session: session))
+    }
+
+    @MainActor
+    func killZellij(session: String) {
+        sendToTerminal(zellijKillSessionCommand(session: session))
     }
 }
 
@@ -325,6 +432,9 @@ struct SessionReusePanelView: View {
             content
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .alert(item: $viewModel.deleteConfirmation) { item in
+            deleteAlert(item: item)
+        }
     }
 
     @ViewBuilder
@@ -349,10 +459,11 @@ struct SessionReusePanelView: View {
                 VStack(spacing: 0) {
                     if viewModel.tmuxInstalled {
                         sessionSection(
+                            type: .tmux,
                             title: "tmux",
                             icon: "terminal",
                             newLabel: "新建tmux会话",
-                            newAction: { viewModel.newTmuxSession() },
+                            newAction: { viewModel.promptNewSession(type: .tmux) },
                             detachLabel: "从当前会话分离",
                             detachAction: { viewModel.detachTmux() },
                             sessions: viewModel.tmuxSessions,
@@ -367,10 +478,11 @@ struct SessionReusePanelView: View {
 
                     if viewModel.zellijInstalled {
                         sessionSection(
+                            type: .zellij,
                             title: "zellij",
                             icon: "square.grid.2x2",
                             newLabel: "新建zellij会话",
-                            newAction: { viewModel.newZellijSession() },
+                            newAction: { viewModel.promptNewSession(type: .zellij) },
                             detachLabel: "从当前会话分离",
                             detachAction: { viewModel.detachZellij() },
                             sessions: viewModel.zellijSessions,
@@ -383,7 +495,22 @@ struct SessionReusePanelView: View {
         }
     }
 
+    private func deleteAlert(item: DeleteConfirmation) -> Alert {
+        Alert(
+            title: Text("删除\(item.type.displayName)会话"),
+            message: Text("确定要删除会话 \"\(item.name)\" 吗？此操作不可撤销。"),
+            primaryButton: .destructive(Text("删除")) {
+                switch item.type {
+                case .tmux: viewModel.killTmux(session: item.name)
+                case .zellij: viewModel.killZellij(session: item.name)
+                }
+            },
+            secondaryButton: .cancel(Text("取消"))
+        )
+    }
+
     private func sessionSection(
+        type: SessionType,
         title: String,
         icon: String,
         newLabel: String,
@@ -394,14 +521,16 @@ struct SessionReusePanelView: View {
         attachAction: @escaping (String) -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
+            // 分类标题：更醒目的头部
+            HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .frame(width: 16)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
 
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.primary)
 
                 Spacer()
 
@@ -421,8 +550,12 @@ struct SessionReusePanelView: View {
                 .buttonStyle(.plain)
                 .help(detachLabel)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             .padding(.vertical, 6)
+            .background(Color.secondary.opacity(0.12))
+            .cornerRadius(6)
+            .padding(.horizontal, 8)
+            .padding(.top, 6)
 
             if sessions.isEmpty {
                 HStack {
@@ -450,6 +583,17 @@ struct SessionReusePanelView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .contentShape(Rectangle())
+                    .contextMenu {
+                        Button("连接") {
+                            attachAction(session)
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            viewModel.deleteConfirmation = DeleteConfirmation(type: type, name: session)
+                        } label: {
+                            Text("删除")
+                        }
+                    }
                     .onTapGesture(count: 2) {
                         attachAction(session)
                     }
