@@ -491,9 +491,11 @@ class TerminalWindow: NSWindow {
             // set by the user, rather than being hardcoded to near-fully transparent.
             // We use white as the base color (matching Terminal.app behavior) and
             // apply the configured opacity.
-            backgroundColor = .white.withAlphaComponent(
-                surfaceConfig.backgroundOpacity.clamped(to: 0.001...1)
-            )
+//            backgroundColor = .white.withAlphaComponent(
+//                surfaceConfig.backgroundOpacity.clamped(to: 0.001...1)
+//            )
+            
+            backgroundColor = .white.withAlphaComponent(0.001)
 
             // We don't need to set blur when using glass
             if !surfaceConfig.backgroundBlur.isGlassStyle, let appDelegate = NSApp.delegate as? AppDelegate {

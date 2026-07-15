@@ -326,9 +326,11 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         rightSidebarSplitView.setNeedsDisplay(rightSidebarSplitView.bounds)
         functionTerminalSplitView.dividerFillColor = sidebarColor
         functionTerminalSplitView.setNeedsDisplay(functionTerminalSplitView.bounds)
+        
         rightSidebarBackgroundView.backgroundColor = sidebarColor
         functionPanelBackgroundView.backgroundColor = sidebarColor
-        // splitView.layer?.backgroundColor = terminalBackgroundColor.cgColor
+        
+        // splitView.layer?.backgroundColor = NSColor.clear.cgColor
         
         rebuildSidebarView()
         rebuildRightSidebarView()
