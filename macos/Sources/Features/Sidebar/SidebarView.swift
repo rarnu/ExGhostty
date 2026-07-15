@@ -177,7 +177,7 @@ struct SidebarView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .sidebarTooltip("新建端口转发")
+            .sidebarTooltip("端口转发")
 
             Spacer()
             Button(action: {}) {
@@ -241,7 +241,7 @@ struct SidebarView: View {
 
                     Button(action: { onNewPortForward?() }) {
                         Image(systemName: "arrow.triangle.branch").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).sidebarTooltip("新建端口转发")
+                    }.buttonStyle(.plain).sidebarTooltip("端口转发")
                 }
                 .padding(.trailing, 4)
             }
