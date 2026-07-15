@@ -612,17 +612,9 @@ class TerminalWindow: NSWindow {
             self.backgroundOpacity = config.backgroundOpacity
             self.macosWindowButtons = config.macosWindowButtons
             self.backgroundBlur = config.backgroundBlur
-            self.macosTitlebarStyle = config.macosTitlebarStyle
-
-            // Set corner radius based on macos-titlebar-style
-            // Native, transparent, and hidden styles use 16pt radius
-            // Tabs style uses 20pt radius
-            switch config.macosTitlebarStyle {
-            case .tabs:
-                self.windowCornerRadius = 20
-            default:
-                self.windowCornerRadius = 16
-            }
+            // 标题栏样式已硬编码为透明，不再读取配置。
+            self.macosTitlebarStyle = .transparent
+            self.windowCornerRadius = 16
         }
     }
 }

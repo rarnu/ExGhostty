@@ -502,6 +502,7 @@ struct SFTPPanelView: View {
                     }
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
     }

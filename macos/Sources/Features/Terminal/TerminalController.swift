@@ -7,8 +7,14 @@ import GhosttyKit
 /// A classic, tabbed terminal experience.
 class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Controller {
     override var windowNibName: NSNib.Name? {
-        // 侧边栏模式：始终使用基础 Terminal nib，不在标题栏中显示标签
-        return "Terminal"
+        // 硬编码使用透明标题栏 nib，让标题栏/三色灯区域也能跟随背景透明度和磨砂效果。
+        // 无窗口装饰时回退到基础 Terminal nib。
+        guard let appDelegate = NSApp.delegate as? AppDelegate else {
+            return "Terminal"
+        }
+        return appDelegate.ghostty.config.windowDecorations
+            ? "TerminalTransparentTitlebar"
+            : "Terminal"
     }
 
     /// 侧边栏模式专用：用于 pwd 订阅，独立于 surfaceAppearanceCancellables（不会被 focusedSurfaceDidChange 清除）
@@ -1649,7 +1655,8 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         init(_ config: Ghostty.Config) {
             self.backgroundColor = config.backgroundColor
             self.macosWindowButtons = config.macosWindowButtons
-            self.macosTitlebarStyle = config.macosTitlebarStyle
+            // 标题栏样式已硬编码为透明，不再读取配置。
+            self.macosTitlebarStyle = .transparent
             self.maximize = config.maximize
             self.windowPositionX = config.windowPositionX
             self.windowPositionY = config.windowPositionY
