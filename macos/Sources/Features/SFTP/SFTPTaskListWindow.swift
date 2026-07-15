@@ -47,6 +47,26 @@ final class SFTPTaskListWindowController: NSWindowController, NSWindowDelegate {
 
         // 配置与主窗口一致的背景模糊。
         window.configureBackgroundBlur(config: config, container: container)
+
+        // 监听 ESC 键，确保即使 SwiftUI 列表持有焦点也能关闭窗口。
+        setupEscapeMonitor()
+    }
+
+    deinit {
+        if let monitor = escapeEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+    }
+
+    private var escapeEventMonitor: Any?
+
+    private func setupEscapeMonitor() {
+        escapeEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // 53 是 ESC 的虚拟键码。
+            guard event.keyCode == 53 else { return event }
+            self?.window?.close()
+            return nil
+        }
     }
 
     func windowWillClose(_ notification: Notification) {
