@@ -24,7 +24,7 @@ struct SFTPTaskListView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if displayedTasks.isEmpty {
-                    Text("暂无传输任务")
+                    Text("No Transfer Tasks".localized)
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .padding(.top, 60)
@@ -42,7 +42,7 @@ struct SFTPTaskListView: View {
     private var bottomToolbar: some View {
         HStack {
             Spacer()
-            Button("清空全部") {
+            Button("Clear All".localized) {
                 manager.clearCompleted(for: connection)
             }
             .font(.system(size: 12))
@@ -128,7 +128,7 @@ private struct SFTPTaskRow: View {
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
-                .help("复制错误信息")
+                .help("Copy Error".localized)
             }
 
             switch task.state {
@@ -138,14 +138,14 @@ private struct SFTPTaskRow: View {
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
-                .help("暂停")
+                .help("Pause".localized)
             case .paused:
                 Button(action: { SFTPTransferManager.shared.resumeTask(task) }) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
-                .help("恢复")
+                .help("Resume".localized)
             default:
                 EmptyView()
             }
@@ -155,7 +155,7 @@ private struct SFTPTaskRow: View {
                     .font(.system(size: 12))
             }
             .buttonStyle(.plain)
-            .help("删除")
+            .help("Delete".localized)
         }
         .foregroundColor(.secondary)
     }
@@ -172,12 +172,12 @@ private struct SFTPTaskRow: View {
 
     private var statusText: String {
         switch task.state {
-        case .pending:   return "等待中"
+        case .pending:   return "Pending".localized
         case .running:   return String(format: "%.0f%%", task.progress * 100)
-        case .paused:    return "已暂停"
-        case .completed: return "已完成"
-        case .failed:    return task.errorMessage ?? "失败"
-        case .cancelled: return "已取消"
+        case .paused:    return "Paused".localized
+        case .completed: return "Completed".localized
+        case .failed:    return task.errorMessage ?? "Failed".localized
+        case .cancelled: return "Cancelled".localized
         }
     }
 

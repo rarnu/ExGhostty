@@ -48,7 +48,7 @@ struct SSHTestDetailView: View {
                 .foregroundColor(isFinished ? (isSuccess ? .green : .red) : .accentColor)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("测试连接")
+                Text("Test Connection".localized)
                     .font(.system(size: 15, weight: .semibold))
                 Text(targetDescription)
                     .font(.system(size: 12))
@@ -142,14 +142,14 @@ struct SSHTestDetailView: View {
                         .lineLimit(2)
                 }
             } else {
-                Text("正在测试，请稍候...")
+                Text("Testing, please wait...".localized)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
-            Button("关闭") {
+            Button("Close".localized) {
                 onComplete?(isSuccess)
                 dismiss()
             }

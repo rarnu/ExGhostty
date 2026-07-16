@@ -45,11 +45,11 @@ enum SSHTester {
         var errorDescription: String? {
             switch self {
             case .sshNotFound:
-                return "未找到系统 ssh 命令"
+                return "System ssh command not found".localized
             case .expectNotFound:
-                return "未找到 expect，无法测试密码登录"
+                return "expect not found; cannot test password login".localized
             case .invalidPort:
-                return "端口号无效"
+                return "Invalid port number".localized
             case .connectionFailed(let msg):
                 return msg
             }
@@ -78,7 +78,7 @@ enum SSHTester {
             return
         }
 
-        continuation.yield(.step("检查系统 SSH 命令"))
+        continuation.yield(.step("Checking system SSH command".localized))
         continuation.yield(.log("Found /usr/bin/ssh"))
 
         var sshArgs: [String] = ["-v", "-o", "StrictHostKeyChecking=accept-new"]
@@ -88,39 +88,39 @@ enum SSHTester {
             let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
             let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
             sshArgs += ["-J", "\(jumpUser)\(jump.host)\(jumpPort)"]
-            continuation.yield(.step("使用跳板机：\(jump.name) (\(jump.host)\(jumpPort))"))
+            continuation.yield(.step(L("Using jump host: %@ (%@)", jump.name, "\(jump.host)\(jumpPort)")))
         } else {
-            continuation.yield(.step("直接连接目标主机"))
+            continuation.yield(.step("Connecting directly to target host".localized))
         }
 
-        continuation.yield(.step("构建 SSH 命令"))
+        continuation.yield(.step("Building SSH command".localized))
 
         let targetDescription: String
         switch config.authMode {
         case .password:
             if config.password.isEmpty {
-                continuation.yield(.step("密码为空，使用 BatchMode 进行连通性测试"))
+                continuation.yield(.step("Password empty; using BatchMode for connectivity test".localized))
                 sshArgs += ["-o", "BatchMode=yes"]
-                targetDescription = "密码为空，仅测试网络连通性"
+                targetDescription = "Password empty; testing network connectivity only".localized
             } else {
-                continuation.yield(.step("使用 expect 自动输入密码进行认证测试"))
+                continuation.yield(.step("Using expect to auto-enter password for authentication test".localized))
                 await testWithExpect(config: config, continuation: continuation)
                 return
             }
         case .key:
             if let keyPath = config.keyPath {
                 guard FileManager.default.fileExists(atPath: keyPath) else {
-                    continuation.yield(.failure("密钥文件不存在：\(keyPath)"))
+                    continuation.yield(.failure(L("Key file does not exist: %@", keyPath)))
                     continuation.finish()
                     return
                 }
-                continuation.yield(.step("使用密钥认证：\(keyPath)"))
+                continuation.yield(.step(L("Using key authentication: %@", keyPath)))
                 sshArgs += ["-i", keyPath, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes"]
-                targetDescription = "密钥认证"
+                targetDescription = "Key Authentication".localized
             } else {
-                continuation.yield(.step("未指定密钥，使用 BatchMode 进行连通性测试"))
+                continuation.yield(.step("No key specified; using BatchMode for connectivity test".localized))
                 sshArgs += ["-o", "BatchMode=yes"]
-                targetDescription = "密钥为空，仅测试网络连通性"
+                targetDescription = "No key specified; testing network connectivity only".localized
             }
         }
 
@@ -132,7 +132,7 @@ enum SSHTester {
         sshArgs += ["exit"]
 
         continuation.yield(.log("$ ssh \(sshArgs.joined(separator: " "))"))
-        continuation.yield(.step("执行 SSH 测试连接"))
+        continuation.yield(.step("Executing SSH test connection".localized))
 
         let result = await runProcess(
             executable: "/usr/bin/ssh",
@@ -143,7 +143,7 @@ enum SSHTester {
 
         switch result {
         case .success:
-            continuation.yield(.success("连接测试通过（\(targetDescription)）"))
+            continuation.yield(.success(L("Connection test passed (%@)", targetDescription)))
         case .failure(let error):
             continuation.yield(.failure(error.localizedDescription))
         }
@@ -160,7 +160,7 @@ enum SSHTester {
             return
         }
 
-        continuation.yield(.step("检查系统 expect 命令"))
+        continuation.yield(.step("Checking system expect command".localized))
         continuation.yield(.log("Found /usr/bin/expect"))
 
         var sshArgs = "-v -o StrictHostKeyChecking=accept-new " + commonSSHOptions(config: config).joined(separator: " ")
@@ -210,7 +210,7 @@ enum SSHTester {
         do {
             try script.write(to: tempURL, atomically: true, encoding: .utf8)
         } catch {
-            continuation.yield(.failure("写入 expect 脚本失败：\(error.localizedDescription)"))
+            continuation.yield(.failure(L("Failed to write expect script: %@", error.localizedDescription)))
             continuation.finish()
             return
         }
@@ -218,7 +218,7 @@ enum SSHTester {
 
         continuation.yield(.log("$ expect \(tempURL.path)"))
         continuation.yield(.log("$ ssh \(sshArgs)"))
-        continuation.yield(.step("执行 expect 自动输入密码测试"))
+        continuation.yield(.step("Executing expect password auto-entry test".localized))
 
         let result = await runProcess(
             executable: "/usr/bin/expect",
@@ -229,10 +229,10 @@ enum SSHTester {
 
         switch result {
         case .success:
-            continuation.yield(.success("连接测试通过（密码认证）"))
+            continuation.yield(.success("Connection test passed (password authentication)".localized))
         case .failure(let error):
             if case TestError.connectionFailed(let msg) = error, msg.contains("timed out") {
-                continuation.yield(.failure("连接超时，请检查地址、端口及跳板机可达性"))
+                continuation.yield(.failure("Connection timed out. Check address, port, and jump host reachability.".localized))
             } else {
                 continuation.yield(.failure(error.localizedDescription))
             }
@@ -282,9 +282,9 @@ enum SSHTester {
                     }
                 }
                 if status == 124 {
-                    return .failure(TestError.connectionFailed("连接超时"))
+                    return .failure(TestError.connectionFailed("Connection timed out".localized))
                 } else {
-                    return .failure(TestError.connectionFailed("SSH 进程退出码 \(status)"))
+                    return .failure(TestError.connectionFailed(L("SSH process exit code %d", status)))
                 }
             }
             return .failure(error)

@@ -11,11 +11,11 @@ enum SSHCommandError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .commandNotFound(let cmd):
-            return "找不到命令: \(cmd)"
+            return L("Command not found: %@", cmd)
         case .controlChannelFailed(let msg):
-            return "建立 SSH 控制通道失败: \(msg)"
+            return L("Failed to establish SSH control channel: %@", msg)
         case .executionFailed(let command, _, let stderr, let status):
-            let msg = stderr.isEmpty ? "本地进程退出码 \(status)" : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let msg = stderr.isEmpty ? L("Local process exit code %d", status) : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             return "[\(command)] \(msg)"
         }
     }
@@ -102,7 +102,7 @@ actor SSHCommandExecutor {
 
         guard FileManager.default.fileExists(atPath: socket) else {
             Self.cleanupSocket(at: socket)
-            throw SSHCommandError.controlChannelFailed("SSH 控制通道未创建")
+            throw SSHCommandError.controlChannelFailed("SSH control channel not created".localized)
         }
 
         defer {
@@ -167,7 +167,7 @@ private class BaseSSHBackend {
     init(connection: SSHConnection) { self.connection = connection }
 
     func sshInvocation(args: [String]) throws -> SSHCommandInvocation {
-        fatalError("子类必须实现 sshInvocation")
+        fatalError("Subclass must implement sshInvocation".localized)
     }
 
     func controlMasterInvocation(args: [String]) throws -> SSHCommandInvocation {
@@ -203,7 +203,7 @@ private final class PasswordSSHBackend: BaseSSHBackend {
             throw SSHCommandError.commandNotFound("ssh")
         }
         guard !connection.password.isEmpty else {
-            throw SSHCommandError.executionFailed(command: "ssh", stdout: "", stderr: "密码为空", status: 1)
+            throw SSHCommandError.executionFailed(command: "ssh", stdout: "", stderr: "Password is empty".localized, status: 1)
         }
         let helper = try askpassHelperURL()
         var env = ProcessInfo.processInfo.environment
@@ -222,7 +222,7 @@ private final class PasswordSSHBackend: BaseSSHBackend {
             throw SSHCommandError.commandNotFound("ssh")
         }
         guard !connection.password.isEmpty else {
-            throw SSHCommandError.executionFailed(command: "ssh", stdout: "", stderr: "密码为空", status: 1)
+            throw SSHCommandError.executionFailed(command: "ssh", stdout: "", stderr: "Password is empty".localized, status: 1)
         }
         let helper = try expectHelperURL()
         var env = ProcessInfo.processInfo.environment

@@ -12,12 +12,12 @@ enum SFTPError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidConnection: return "无效的 SSH 连接"
-        case .commandNotFound(let cmd): return "找不到命令: \(cmd)"
-        case .listingFailed(let msg): return "目录列表失败: \(msg)"
-        case .transferFailed(let msg): return "传输失败: \(msg)"
-        case .helperSetupFailed: return "密码助手脚本创建失败"
-        case .unsupportedAuth: return "不支持的认证方式"
+        case .invalidConnection: return "Invalid SSH connection".localized
+        case .commandNotFound(let cmd): return L("Command not found: %@", cmd)
+        case .listingFailed(let msg): return L("Failed to list directory: %@", msg)
+        case .transferFailed(let msg): return L("Transfer failed: %@", msg)
+        case .helperSetupFailed: return "Failed to create password helper script".localized
+        case .unsupportedAuth: return "Unsupported authentication method".localized
         }
     }
 }
@@ -317,7 +317,7 @@ actor SFTPService {
                 } else {
                     let stderr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
                     let cmd = (["rsync"] + args).joined(separator: " ")
-                    let msg = stderr.isEmpty ? "rsync 退出码 \(process.terminationStatus)" : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let msg = stderr.isEmpty ? L("rsync exit code %d", process.terminationStatus) : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
                     continuation.resume(throwing: SFTPError.transferFailed("[\(cmd)] \(msg)"))
                 }
             }

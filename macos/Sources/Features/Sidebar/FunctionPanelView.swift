@@ -24,7 +24,7 @@ struct FunctionPanelView: View {
             if let connection = terminalController?.sshConnection {
                 SFTPPanelView(connection: connection, terminalController: terminalController)
             } else {
-                placeholder("请先通过 SSH 连接")
+                placeholder("Connect via SSH first".localized)
             }
         case .portForward:
             PortForwardListView()
@@ -42,7 +42,7 @@ struct FunctionPanelView: View {
     private func placeholder(_ title: String) -> some View {
         VStack {
             Spacer()
-            Text(title.isEmpty ? "选择右侧功能" : title)
+            Text(title.isEmpty ? "Choose a feature".localized : title)
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
             Spacer()
@@ -62,7 +62,7 @@ struct FunctionPanelView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .help("关闭")
+            .help("Close".localized)
         }
         .frame(height: 32)
         .padding(.horizontal, 8)

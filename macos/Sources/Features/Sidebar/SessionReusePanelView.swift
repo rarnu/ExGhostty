@@ -338,11 +338,11 @@ final class SessionReusePanelViewModel: ObservableObject {
     func promptNewSession(type: SessionType) {
         guard let tc = terminalController, let window = tc.window else { return }
         let controller = GroupNameWindowController(
-            title: "新建\(type.displayName)会话",
-            message: "输入\(type.displayName)会话名称",
-            placeholder: "会话名称",
-            confirmTitle: "确认",
-            cancelTitle: "取消",
+            title: L("New %@ Session", type.displayName),
+            message: L("Enter %@ session name", type.displayName),
+            placeholder: "Session name".localized,
+            confirmTitle: "Confirm".localized,
+            cancelTitle: "Cancel".localized,
             filter: { text in
                 // tmux/zellij 会话名仅允许英文和数字。
                 text.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
@@ -450,7 +450,7 @@ struct SessionReusePanelView: View {
                 Image(systemName: "doc.on.doc")
                     .font(.system(size: 32))
                     .foregroundColor(.secondary)
-                Text("请安装 tmux 或 zellij")
+                Text("Please install tmux or zellij".localized)
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
@@ -463,9 +463,9 @@ struct SessionReusePanelView: View {
                             type: .tmux,
                             title: "tmux",
                             icon: "terminal",
-                            newLabel: "新建tmux会话",
+                            newLabel: "New tmux Session".localized,
                             newAction: { viewModel.promptNewSession(type: .tmux) },
-                            detachLabel: "从当前会话分离",
+                            detachLabel: "Detach from Current Session".localized,
                             detachAction: { viewModel.detachTmux() },
                             sessions: viewModel.tmuxSessions,
                             attachAction: { viewModel.attachTmux(session: $0) }
@@ -482,9 +482,9 @@ struct SessionReusePanelView: View {
                             type: .zellij,
                             title: "zellij",
                             icon: "square.grid.2x2",
-                            newLabel: "新建zellij会话",
+                            newLabel: "New zellij Session".localized,
                             newAction: { viewModel.promptNewSession(type: .zellij) },
-                            detachLabel: "从当前会话分离",
+                            detachLabel: "Detach from Current Session".localized,
                             detachAction: { viewModel.detachZellij() },
                             sessions: viewModel.zellijSessions,
                             attachAction: { viewModel.attachZellij(session: $0) }
@@ -498,15 +498,15 @@ struct SessionReusePanelView: View {
 
     private func deleteAlert(item: DeleteConfirmation) -> Alert {
         Alert(
-            title: Text("删除\(item.type.displayName)会话"),
-            message: Text("确定要删除会话 \"\(item.name)\" 吗？此操作不可撤销。"),
-            primaryButton: .destructive(Text("删除")) {
+            title: Text(L("Delete %@ Session", item.type.displayName)),
+            message: Text(L("Are you sure you want to delete session \"%@\"? This action cannot be undone.", item.name)),
+            primaryButton: .destructive(Text("Delete".localized)) {
                 switch item.type {
                 case .tmux: viewModel.killTmux(session: item.name)
                 case .zellij: viewModel.killZellij(session: item.name)
                 }
             },
-            secondaryButton: .cancel(Text("取消"))
+            secondaryButton: .cancel(Text("Cancel".localized))
         )
     }
 
@@ -560,7 +560,7 @@ struct SessionReusePanelView: View {
 
             if sessions.isEmpty {
                 HStack {
-                    Text("暂无会话")
+                    Text("No Sessions".localized)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     Spacer()
@@ -585,14 +585,14 @@ struct SessionReusePanelView: View {
                     .padding(.vertical, 5)
                     .contentShape(Rectangle())
                     .contextMenu {
-                        Button("连接") {
+                        Button("Connect".localized) {
                             attachAction(session)
                         }
                         Divider()
                         Button(role: .destructive) {
                             viewModel.deleteConfirmation = DeleteConfirmation(type: type, name: session)
                         } label: {
-                            Text("删除")
+                            Text("Delete".localized)
                                 .foregroundColor(.red)
                         }
                     }

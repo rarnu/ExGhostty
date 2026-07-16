@@ -492,7 +492,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         interact
                         sshlog "interact returned"
                         puts ""
-                        puts "按任意键进行重连"
+                        puts "Press any key to reconnect".localized
                         expect_user -re . {}
                         sshlog "reconnect key pressed"
                     }
@@ -521,7 +521,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         interact
                         sshlog "interact returned"
                         puts ""
-                        puts "按任意键进行重连"
+                        puts "Press any key to reconnect".localized
                         expect_user -re . {}
                         sshlog "reconnect key pressed"
                     }

@@ -16,8 +16,8 @@ final class SSHConfigWindowController: ModalWindowController {
     ) {
         let title: String
         switch mode {
-        case .add: title = "创建主机"
-        case .edit: title = "编辑主机"
+        case .add: title = "Create Host".localized
+        case .edit: title = "Edit Host".localized
         }
 
         let window = GhosttyPanelWindow(
@@ -80,8 +80,8 @@ final class GroupNameWindowController: ModalWindowController {
         message: String? = nil,
         placeholder: String = "",
         defaultText: String = "",
-        confirmTitle: String = "确认",
-        cancelTitle: String = "取消",
+        confirmTitle: String = "Confirm".localized,
+        cancelTitle: String = "Cancel".localized,
         filter: ((String) -> String)? = nil,
         config: Ghostty.Config?,
         parentWindow: NSWindow? = nil,

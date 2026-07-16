@@ -416,17 +416,17 @@ struct SFTPPanelView: View {
 
     private var toolbar: some View {
         HStack(spacing: 4) {
-            toolbarButton(icon: "arrow.up", label: "上级") { viewModel.goUp() }
-            toolbarButton(icon: "arrow.clockwise", label: "刷新") { viewModel.refresh() }
+            toolbarButton(icon: "arrow.up", label: "Parent".localized) { viewModel.goUp() }
+            toolbarButton(icon: "arrow.clockwise", label: "Refresh".localized) { viewModel.refresh() }
             toolbarButton(
                 icon: viewModel.showHidden ? "eye" : "eye.slash",
-                label: viewModel.showHidden ? "隐藏隐藏内容" : "显示隐藏内容"
+                label: viewModel.showHidden ? "Hide Hidden Items".localized : "Show Hidden Items".localized
             ) { viewModel.toggleHidden() }
 
             Divider().frame(height: 20)
 
-            toolbarButton(icon: "arrow.up.doc", label: "上传文件") { uploadFiles() }
-            toolbarButton(icon: "arrow.up.folder", label: "上传文件夹") { uploadFolder() }
+            toolbarButton(icon: "arrow.up.doc", label: "Upload File".localized) { uploadFiles() }
+            toolbarButton(icon: "arrow.up.folder", label: "Upload Folder".localized) { uploadFolder() }
 
             Spacer()
         }
@@ -456,11 +456,11 @@ struct SFTPPanelView: View {
         let downloadCount = viewModel.activeDownloadCount
 
         return HStack {
-            Text("上传任务: \(uploadCount) 个，下载任务: \(downloadCount) 个")
+            Text(L("Upload tasks: %d, Download tasks: %d", uploadCount, downloadCount))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             Spacer()
-            Button("详情") { viewModel.openTaskListWindow() }
+            Button("Details".localized) { viewModel.openTaskListWindow() }
                 .font(.system(size: 11))
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
@@ -495,7 +495,7 @@ struct SFTPPanelView: View {
                             .contextMenu {
                                 downloadContextMenu(item: item)
                                 if viewModel.selectedItems.count <= 1 {
-                                    Button("重命名") {
+                                    Button("Rename".localized) {
                                         confirmRename(item: item)
                                     }
                                 }
@@ -503,14 +503,14 @@ struct SFTPPanelView: View {
                                     Button(role: .destructive) {
                                         confirmDeleteSelected()
                                     } label: {
-                                        Text("删除这些文件")
+                                        Text("Delete These Files".localized)
                                             .foregroundColor(.red)
                                     }
                                 } else {
                                     Button(role: .destructive) {
                                         confirmDelete(item: item)
                                     } label: {
-                                        Text("删除")
+                                        Text("Delete".localized)
                                             .foregroundColor(.red)
                                     }
                                 }
@@ -571,12 +571,12 @@ struct SFTPPanelView: View {
         let isSelected = viewModel.selectedItems.contains(item.id)
 
         if selectedCount > 1 && isSelected {
-            Button("下载这些文件") {
+            Button("Download These Files".localized) {
                 viewModel.downloadSelected()
                 viewModel.selectedItems.removeAll()
             }
         } else {
-            Button("下载这个\(item.isDirectory ? "目录" : "文件")") {
+            Button(item.isDirectory ? "Download This Directory".localized : "Download This File".localized) {
                 download(item: item)
                 viewModel.selectedItems.removeAll()
             }
@@ -616,11 +616,13 @@ struct SFTPPanelView: View {
 
     private func confirmDelete(item: SFTPFileItem) {
         let alert = NSAlert()
-        alert.messageText = "确认删除"
-        alert.informativeText = "确定要删除\(item.isDirectory ? "目录" : "文件") “\(item.name)” 吗？此操作不可撤销。"
+        alert.messageText = "Confirm Delete".localized
+        alert.informativeText = item.isDirectory
+            ? L("Are you sure you want to delete directory \"%@\"? This action cannot be undone.", item.name)
+            : L("Are you sure you want to delete file \"%@\"? This action cannot be undone.", item.name)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "删除")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: "Delete".localized)
+        alert.addButton(withTitle: "Cancel".localized)
         alert.beginSheetModal(for: NSApp.keyWindow ?? NSWindow()) { response in
             if response == .alertFirstButtonReturn {
                 Task {
@@ -641,14 +643,14 @@ struct SFTPPanelView: View {
 
         let names = selectedObjects.map { "• \($0.name)" }.joined(separator: "\n")
         let hasDirectory = selectedObjects.contains { $0.isDirectory }
-        let typeText = hasDirectory ? "项目" : "文件"
+        let typeText = hasDirectory ? "Items".localized : "File".localized
 
         let alert = NSAlert()
-        alert.messageText = "确认删除 \(selectedObjects.count) 个\(typeText)"
-        alert.informativeText = "确定要删除以下\(typeText)吗？此操作不可撤销。\n\n\(names)"
+        alert.messageText = L("Confirm deletion of %d %@", selectedObjects.count, typeText)
+        alert.informativeText = L("Are you sure you want to delete the following %@? This action cannot be undone.\n\n%@", typeText, names)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "删除")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: "Delete".localized)
+        alert.addButton(withTitle: "Cancel".localized)
         alert.beginSheetModal(for: NSApp.keyWindow ?? NSWindow()) { response in
             if response == .alertFirstButtonReturn {
                 Task {
@@ -660,11 +662,11 @@ struct SFTPPanelView: View {
 
     private func confirmRename(item: SFTPFileItem) {
         let alert = NSAlert()
-        alert.messageText = "重命名\(item.isDirectory ? "目录" : "文件")"
-        alert.informativeText = "请输入新的名称："
+        alert.messageText = item.isDirectory ? "Rename Directory".localized : "Rename File".localized
+        alert.informativeText = "Enter new name:".localized
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "确定")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 22))
         textField.stringValue = item.name

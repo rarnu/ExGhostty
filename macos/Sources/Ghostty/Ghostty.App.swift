@@ -69,6 +69,13 @@ extension Ghostty {
                 close_surface_cb: { userdata, processAlive in App.closeSurface(userdata, processAlive: processAlive) }
             )
 
+            // Initialize i18n so that bundled translations are loaded before
+            // any UI strings are resolved. The locale data is copied by the
+            // Xcode project into Contents/Resources/locale; passing a path
+            // inside Resources makes i18n.init derive that locale directory.
+            let resourcesPath = Bundle.main.bundlePath + "/Contents/Resources/ghostty"
+            resourcesPath.withCString { ghostty_i18n_init($0) }
+
             // Create the ghostty app.
             guard let app = ghostty_app_new(&runtime_cfg, config.config) else {
                 logger.critical("ghostty_app_new failed")

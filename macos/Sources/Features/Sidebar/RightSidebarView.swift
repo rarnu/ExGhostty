@@ -14,12 +14,12 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .portForward:    return "端口转发"
+        case .portForward:    return "Port Forward".localized
         case .sftp:           return "SFTP"
-        case .sessionReuse:   return "会话复用"
-        case .systemMonitor:  return "系统监控"
-        case .codeSnippet:    return "代码片段"
-        case .aiAssistant:    return "AI 助手"
+        case .sessionReuse:   return "Session Reuse".localized
+        case .systemMonitor:  return "System Monitor".localized
+        case .codeSnippet:    return "Code Snippets".localized
+        case .aiAssistant:    return "AI Assistant".localized
         }
     }
 

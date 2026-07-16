@@ -39,7 +39,7 @@ final class CodeSnippetEditorWindowController: ModalWindowController {
         self.onSave = onSave
         self.onDismiss = onDismiss
 
-        let title = snippet == nil ? "新增代码片段" : "修改代码片段"
+        let title = snippet == nil ? "New Snippet".localized : "Edit Snippet".localized
         let window = CodeSnippetEditorWindow(config: config)
         window.title = title
 
@@ -125,9 +125,9 @@ private struct CodeSnippetEditorView: View {
 
             HStack(spacing: 12) {
                 Spacer()
-                Button("取消") { onDismiss() }
+                Button("Cancel".localized) { onDismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("保存") {
+                Button("Save".localized) {
                     onSave(draft)
                     onDismiss()
                 }
@@ -146,9 +146,9 @@ private struct CodeSnippetEditorView: View {
 
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("名称")
+            Text("Name".localized)
                 .font(.system(size: 13, weight: .medium))
-            TextField("例如：清理日志", text: $draft.name)
+            TextField("e.g. Clear Logs".localized, text: $draft.name)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 13))
                 .focused($isNameFocused)
@@ -157,7 +157,7 @@ private struct CodeSnippetEditorView: View {
 
     private var typePicker: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("类型")
+            Text("Type".localized)
                 .font(.system(size: 13, weight: .medium))
             Picker("", selection: $draft.type) {
                 ForEach(CodeSnippetType.allCases) { type in
@@ -171,7 +171,7 @@ private struct CodeSnippetEditorView: View {
 
     private var categoryPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("分类")
+            Text("Category".localized)
                 .font(.system(size: 13, weight: .medium))
             Picker("", selection: $draft.categoryID) {
                 ForEach(store.categories) { category in
@@ -185,7 +185,7 @@ private struct CodeSnippetEditorView: View {
 
     private var codeEditor: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("代码内容")
+            Text("Code".localized)
                 .font(.system(size: 13, weight: .medium))
             CodeEditorView(text: $draft.content, language: draft.type)
                 .frame(minHeight: 240)

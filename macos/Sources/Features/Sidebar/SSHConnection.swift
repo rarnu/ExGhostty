@@ -205,7 +205,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 interact
                 sshlog "interact returned"
                 puts ""
-                puts "按任意键进行重连"
+                puts "Press any key to reconnect".localized
                 expect_user -re . {}
                 sshlog "reconnect key pressed"
             }
@@ -244,7 +244,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 interact
                 sshlog "interact returned"
                 puts ""
-                puts "按任意键进行重连"
+                puts "Press any key to reconnect".localized
                 expect_user -re . {}
                 sshlog "reconnect key pressed"
             }
@@ -352,20 +352,20 @@ enum PortForwardType: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .local: return "本地转发 (-L)"
-        case .remote: return "远程转发 (-R)"
-        case .dynamic: return "动态转发 (-D)"
+        case .local: return "Local Forward (-L)".localized
+        case .remote: return "Remote Forward (-R)".localized
+        case .dynamic: return "Dynamic Forward (-D)".localized
         }
     }
 
     var description: String {
         switch self {
         case .local:
-            return "将 SSH 主机可达的远端服务映射到本机端口"
+            return "Map a remote service reachable by the SSH host to a local port".localized
         case .remote:
-            return "将本机服务暴露给 SSH 主机，使其可通过远端端口访问"
+            return "Expose a local service to the SSH host via a remote port".localized
         case .dynamic:
-            return "在本机监听 HTTP/SOCKS 代理端口，并通过 SSH 主机访问目标地址"
+            return "Listen on a local HTTP/SOCKS proxy port and reach targets through the SSH host".localized
         }
     }
 }
@@ -437,7 +437,7 @@ struct PortForwardRule: Identifiable, Codable {
 
     /// 格式化摘要，显示在列表中
     func summaryText(using connection: SSHConnection?) -> String {
-        let connHost = connection?.name ?? connection?.host ?? "未知主机"
+        let connHost = connection?.name ?? connection?.host ?? "Unknown Host".localized
         switch type {
         case .local:
             return "\(localListenHost):\(localListenPort) → \(connHost) → \(remoteHost):\(remotePort)"

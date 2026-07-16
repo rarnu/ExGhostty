@@ -44,12 +44,12 @@ struct SystemMonitorPanelView: View {
             Image(systemName: "cpu")
                 .font(.system(size: 36))
                 .foregroundColor(.secondary)
-            Text("未检测到 xtop")
+            Text("xtop not detected".localized)
                 .font(.system(size: 14, weight: .medium))
-            Text("系统监控需要安装 xtop 才能使用")
+            Text("System Monitor requires xtop to be installed".localized)
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
-            Button("前往安装") {
+            Button("Go to Install".localized) {
                 openXTopHomepage()
             }
             .buttonStyle(.borderedProminent)
@@ -207,7 +207,7 @@ struct SystemMonitorPanelView: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack {
-                                        Text("显卡负载")
+                                        Text("GPU Load".localized)
                                             .font(.system(size: 10))
                                             .foregroundColor(.secondary)
                                         Spacer()
@@ -221,7 +221,7 @@ struct SystemMonitorPanelView: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack {
-                                        Text("显存占用")
+                                        Text("VRAM Usage".localized)
                                             .font(.system(size: 10))
                                             .foregroundColor(.secondary)
                                         Spacer()
@@ -254,7 +254,7 @@ struct SystemMonitorPanelView: View {
                         }
                     }
                 } else {
-                    Text(gpu.Message ?? "GPU 不可用")
+                    Text(gpu.Message ?? "GPU unavailable".localized)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
@@ -384,7 +384,7 @@ private struct MonitorCard<Content: View>: View {
 
 private struct EmptyDataHint: View {
     var body: some View {
-        Text("等待数据…")
+        Text("Waiting for data…".localized)
             .font(.system(size: 11))
             .foregroundColor(.secondary)
             .frame(maxWidth: .infinity, alignment: .center)

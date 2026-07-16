@@ -97,13 +97,22 @@ pub const compatibility = std.StaticStringMap(
     .{ "macos-dock-drop-behavior", compatMacOSDockDropBehavior },
 });
 
-/// Set Ghostty's graphical user interface language to a language other than the
-/// system default language. For example:
+/// Set Ghostty's graphical user interface language. If unset, the system
+/// default language is used. Ghostty ships with translations for the
+/// following locales:
 ///
-///     language = de
+///   * English (built-in fallback, no locale code needed)
+///   * Simplified Chinese: `zh_CN`
+///   * Traditional Chinese: `zh_TW`
+///   * Japanese: `ja`
 ///
-/// will force the strings in Ghostty's graphical user interface to be in German
-/// rather than the system default.
+/// For example:
+///
+///     language = zh_CN
+///
+/// will force the strings in Ghostty's graphical user interface to be in
+/// Simplified Chinese rather than the system default. Requesting any other
+/// locale will fall back to English.
 ///
 /// This will not affect the language used by programs run _within_ Ghostty.
 /// Those will continue to use the default system language. There are also many

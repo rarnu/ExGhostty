@@ -151,6 +151,22 @@ pub export fn ghostty_translate(msgid: [*:0]const u8) [*:0]const u8 {
     return internal_os.i18n._(msgid);
 }
 
+/// Initialize i18n support for the application. This must be called once
+/// before using `ghostty_translate` if the apprt wants translations from
+/// the bundled .mo files. The provided `resources_dir` should be the path
+/// to the application's resources directory; the locale data is expected
+/// at `<parent-of-resources_dir>/locale`.
+pub export fn ghostty_i18n_init(resources_dir: [*:0]const u8) void {
+    const dir = std.mem.span(resources_dir);
+    internal_os.i18n.init(dir) catch |err| {
+        std.log.warn("failed to initialize i18n: {}", .{err});
+        return;
+    };
+    internal_os.i18n.initGlobalDomain() catch |err| {
+        std.log.warn("failed to initialize i18n global domain: {}", .{err});
+    };
+}
+
 /// Free a string allocated by Ghostty.
 pub export fn ghostty_string_free(str: String) void {
     str.deinit();

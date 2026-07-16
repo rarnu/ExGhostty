@@ -18,341 +18,915 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: dist/linux/ghostty_nautilus.py:53
-msgid "Open in Ghostty"
-msgstr "Ghosttyで開く"
+msgid "AI Assistant"
+msgstr "AI アシスタント"
 
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:12
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:12
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:197
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:201
-msgid "Authorize Clipboard Access"
-msgstr "クリップボードへのアクセスを承認"
-
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:17
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:17
-msgid "Deny"
-msgstr "拒否"
-
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:18
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:18
-msgid "Allow"
-msgstr "許可"
-
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:92
-msgid "Remember choice for this split"
-msgstr "この分割ウィンドウに対して設定を記憶する"
-
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:93
-msgid "Reload configuration to show this prompt again"
-msgstr "このプロンプトを再び表示するには設定を再読み込みしてください"
-
-#: src/apprt/gtk/ui/1.2/close-confirmation-dialog.blp:7
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:8
-msgid "Cancel"
-msgstr "キャンセル"
-
-#: src/apprt/gtk/ui/1.2/close-confirmation-dialog.blp:8
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:85
-#: src/apprt/gtk/ui/1.3/surface-child-exited.blp:17
-msgid "Close"
-msgstr "閉じる"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:6
-msgid "Configuration Errors"
-msgstr "設定ファイルにエラーがあります"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:7
-msgid ""
-"One or more configuration errors were found. Please review the errors below, "
-"and either reload your configuration or ignore these errors."
-msgstr ""
-"設定ファイルにエラーがあります。以下のエラーを確認し、設定ファイルの再読み込"
-"みをするか、無視してください。"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:10
-msgid "Ignore"
-msgstr "無視"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:11
-#: src/apprt/gtk/ui/1.2/surface.blp:371 src/apprt/gtk/ui/1.5/window.blp:300
-msgid "Reload Configuration"
-msgstr "設定ファイルの再読み込み"
-
-#: src/apprt/gtk/ui/1.2/debug-warning.blp:7
-#: src/apprt/gtk/ui/1.3/debug-warning.blp:6
-msgid ""
-"⚠️ You're running a debug build of Ghostty! Performance will be degraded."
-msgstr ""
-"⚠️ Ghostty のデバッグビルドを実行しています! パフォーマンスが低下しています。"
-
-#: src/apprt/gtk/ui/1.5/inspector-window.blp:5
-msgid "Ghostty: Terminal Inspector"
-msgstr "Ghostty: 端末インスペクター"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:29
-msgid "Find…"
-msgstr "検索…"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:64
-msgid "Previous Match"
-msgstr "前の一致"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:74
-msgid "Next Match"
-msgstr "次の一致"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:6
-msgid "Oh, no."
-msgstr "おっと。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:7
-msgid "Unable to acquire an OpenGL context for rendering."
-msgstr "レンダリング用のOpenGLコンテキストを取得できませんでした。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:97
-msgid ""
-"This terminal is in read-only mode. You can still view, select, and scroll "
-"through the content, but no input events will be sent to the running "
-"application."
-msgstr ""
-"このターミナルは読み取り専用モードです。コンテンツの表示、選択、スクロールは"
-"可能ですが、入力イベントは実行中のアプリケーションに送信されません。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:107
-msgid "Read-only"
-msgstr "読み取り専用"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:260 src/apprt/gtk/ui/1.5/window.blp:200
-msgid "Copy"
-msgstr "コピー"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:265 src/apprt/gtk/ui/1.5/window.blp:205
-msgid "Paste"
-msgstr "貼り付け"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:270
-msgid "Notify on Next Command Finish"
-msgstr "次のコマンド実行終了時に通知する"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:277 src/apprt/gtk/ui/1.5/window.blp:273
-msgid "Clear"
-msgstr "クリア"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:282 src/apprt/gtk/ui/1.5/window.blp:278
-msgid "Reset"
-msgstr "リセット"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:289 src/apprt/gtk/ui/1.5/window.blp:242
-msgid "Split"
-msgstr "分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:292 src/apprt/gtk/ui/1.5/window.blp:245
-msgid "Change Title…"
-msgstr "タイトルを変更…"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:297 src/apprt/gtk/ui/1.5/window.blp:177
-#: src/apprt/gtk/ui/1.5/window.blp:250
-msgid "Split Up"
-msgstr "上に分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:303 src/apprt/gtk/ui/1.5/window.blp:182
-#: src/apprt/gtk/ui/1.5/window.blp:255
-msgid "Split Down"
-msgstr "下に分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:309 src/apprt/gtk/ui/1.5/window.blp:187
-#: src/apprt/gtk/ui/1.5/window.blp:260
-msgid "Split Left"
-msgstr "左に分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:315 src/apprt/gtk/ui/1.5/window.blp:192
-#: src/apprt/gtk/ui/1.5/window.blp:265
-msgid "Split Right"
-msgstr "右に分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:321
-msgid "Close Split"
-msgstr ""
-
-#: src/apprt/gtk/ui/1.2/surface.blp:327
-msgid "Tab"
-msgstr "タブ"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:330 src/apprt/gtk/ui/1.5/window.blp:224
-#: src/apprt/gtk/ui/1.5/window.blp:320
-msgid "Change Tab Title…"
-msgstr "タブのタイトルを変更…"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:335 src/apprt/gtk/ui/1.5/window.blp:57
-#: src/apprt/gtk/ui/1.5/window.blp:107 src/apprt/gtk/ui/1.5/window.blp:229
-msgid "New Tab"
-msgstr "新しいタブ"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:340 src/apprt/gtk/ui/1.5/window.blp:234
-msgid "Close Tab"
-msgstr "タブを閉じる"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:347
-msgid "Window"
-msgstr "ウィンドウ"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:350 src/apprt/gtk/ui/1.5/window.blp:212
-msgid "New Window"
-msgstr "新しいウィンドウ"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:355 src/apprt/gtk/ui/1.5/window.blp:217
-msgid "Close Window"
-msgstr "ウィンドウを閉じる"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:363
-msgid "Config"
-msgstr "設定"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:366 src/apprt/gtk/ui/1.5/window.blp:295
-msgid "Open Configuration"
-msgstr "設定ファイルを開く"
-
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:5
-msgid "Leave blank to restore the default title."
-msgstr "空白にした場合、デフォルトのタイトルを使用します。"
-
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:9
-msgid "OK"
-msgstr "OK"
-
-#: src/apprt/gtk/ui/1.5/window.blp:58 src/apprt/gtk/ui/1.5/window.blp:108
-msgid "New Split"
-msgstr "新しい分割"
-
-#: src/apprt/gtk/ui/1.5/window.blp:68 src/apprt/gtk/ui/1.5/window.blp:126
-msgid "View Open Tabs"
-msgstr "開いているすべてのタブを表示"
-
-#: src/apprt/gtk/ui/1.5/window.blp:78 src/apprt/gtk/ui/1.5/window.blp:140
-msgid "Main Menu"
-msgstr "メインメニュー"
-
-#: src/apprt/gtk/ui/1.5/window.blp:285
-msgid "Command Palette"
-msgstr "コマンドパレット"
-
-#: src/apprt/gtk/ui/1.5/window.blp:290
-msgid "Terminal Inspector"
-msgstr "端末インスペクター"
-
-#: src/apprt/gtk/ui/1.5/window.blp:307 src/apprt/gtk/class/window.zig:1772
 msgid "About Ghostty"
 msgstr "Ghostty について"
 
-#: src/apprt/gtk/ui/1.5/window.blp:312
-msgid "Quit"
-msgstr "終了"
+msgid "Advanced"
+msgstr "詳細設定"
 
-#: src/apprt/gtk/ui/1.5/command-palette.blp:17
-msgid "Execute a command…"
-msgstr "コマンドを実行…"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:198
-msgid ""
-"An application is attempting to write to the clipboard. The current "
-"clipboard contents are shown below."
-msgstr ""
-"アプリケーションがクリップボードに書き込もうとしています。現在のクリップボー"
-"ドの内容は以下の通りです。"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:202
-msgid ""
-"An application is attempting to read from the clipboard. The current "
-"clipboard contents are shown below."
-msgstr ""
-"アプリケーションがクリップボードを読み取ろうとしています。現在のクリップボー"
-"ドの内容は以下の通りです。"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:205
-msgid "Warning: Potentially Unsafe Paste"
-msgstr "警告: 危険な可能性のある貼り付け"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:206
-msgid ""
-"Pasting this text into the terminal may be dangerous as it looks like some "
-"commands may be executed."
-msgstr ""
-"このテキストには実行可能なコマンドが含まれており、ターミナルに貼り付けるのは"
-"危険な可能性があります。"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:184
-msgid "Quit Ghostty?"
-msgstr "Ghostty を終了しますか?"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:185
-msgid "Close Tab?"
-msgstr "タブを閉じますか?"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:186
-msgid "Close Window?"
-msgstr "ウィンドウを閉じますか?"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:187
-msgid "Close Split?"
-msgstr "分割ウィンドウを閉じますか?"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:193
-msgid "All terminal sessions will be terminated."
-msgstr "すべてのターミナルセッションが終了します。"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:194
 msgid "All terminal sessions in this tab will be terminated."
 msgstr "タブ内のすべてのターミナルセッションが終了します。"
 
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:195
 msgid "All terminal sessions in this window will be terminated."
 msgstr "ウィンドウ内のすべてのターミナルセッションが終了します。"
 
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:196
-msgid "The currently running process in this split will be terminated."
-msgstr "分割ウィンドウ内のすべてのプロセスが終了します。"
+msgid "All terminal sessions will be terminated."
+msgstr "すべてのターミナルセッションが終了します。"
 
-#: src/apprt/gtk/class/surface.zig:1141
-msgid "Command Finished"
-msgstr "コマンド実行終了"
+msgid "Allow"
+msgstr "許可"
 
-#: src/apprt/gtk/class/surface.zig:1142
-msgid "Command Succeeded"
-msgstr "コマンド実行成功"
+msgid "Are you sure you want to delete \"%@\"? This action cannot be undone."
+msgstr "\"%@\" を削除してもよろしいですか？この操作は元に戻せません。"
 
-#: src/apprt/gtk/class/surface.zig:1143
-msgid "Command Failed"
-msgstr "コマンド実行失敗"
+msgid "Are you sure you want to delete category \"%@\"? Snippets in this category will be moved to Default."
+msgstr "カテゴリ \"%@\" を削除してもよろしいですか？このカテゴリのスニペットはデフォルトに移動されます。"
 
-#: src/apprt/gtk/class/surface_child_exited.zig:109
-msgid "Command succeeded"
-msgstr "コマンド実行成功"
+msgid "Are you sure you want to delete directory \"%@\"? This action cannot be undone."
+msgstr "ディレクトリ \"%@\" を削除してもよろしいですか？この操作は元に戻せません。"
 
-#: src/apprt/gtk/class/surface_child_exited.zig:113
-msgid "Command failed"
-msgstr "コマンド実行失敗"
+msgid "Are you sure you want to delete file \"%@\"? This action cannot be undone."
+msgstr "ファイル \"%@\" を削除してもよろしいですか？この操作は元に戻せません。"
 
-#: src/apprt/gtk/class/title_dialog.zig:225
-msgid "Change Terminal Title"
-msgstr "ターミナルのタイトルを変更する"
+msgid "Are you sure you want to delete group \"%@\"? Connections in this group will be moved to Ungrouped."
+msgstr "グループ \"%@\" を削除してもよろしいですか？このグループの接続は未分類に移動されます。"
 
-#: src/apprt/gtk/class/title_dialog.zig:226
+msgid "Are you sure you want to delete port forward rule \"%@\"? This action cannot be undone."
+msgstr "ポート転送ルール \"%@\" を削除してもよろしいですか？この操作は元に戻せません。"
+
+msgid "Are you sure you want to delete session \"%@\"? This action cannot be undone."
+msgstr "セッション \"%@\" を削除してもよろしいですか？この操作は元に戻せません。"
+
+msgid "Are you sure you want to delete snippet \"%@\"? This action cannot be undone."
+msgstr "スニペット \"%@\" を削除してもよろしいですか？この操作は元に戻せません。"
+
+msgid "Are you sure you want to delete the following %@? This action cannot be undone."
+msgstr "以下の %@ を削除してもよろしいですか？この操作は元に戻せません。"
+
+msgid ""
+"Are you sure you want to delete the following %@? This action cannot be undone."
+""
+"%@"
+msgstr ""
+"以下の %@ を削除してもよろしいですか？この操作は元に戻せません。"
+""
+"%@"
+
+msgid "Authentication"
+msgstr "認証方式"
+
+msgid "Authorize Clipboard Access"
+msgstr "クリップボードへのアクセスを承認"
+
+msgid "Building SSH command"
+msgstr "SSH コマンドを構築"
+
+msgid "Cancel"
+msgstr "キャンセル"
+
+msgid "Cancelled"
+msgstr "キャンセル済み"
+
+msgid "Category"
+msgstr "カテゴリ"
+
+msgid "Category name"
+msgstr "カテゴリ名"
+
 msgid "Change Tab Title"
 msgstr "タブのタイトルを変更する"
 
-#: src/apprt/gtk/class/window.zig:1067
-msgid "Reloaded the configuration"
-msgstr "設定を再読み込みしました"
+msgid "Change Tab Title…"
+msgstr "タブのタイトルを変更…"
 
-#: src/apprt/gtk/class/window.zig:1611
-msgid "Copied to clipboard"
-msgstr "クリップボードにコピーしました"
+msgid "Change Terminal Title"
+msgstr "ターミナルのタイトルを変更する"
 
-#: src/apprt/gtk/class/window.zig:1613
+msgid "Change Title…"
+msgstr "タイトルを変更…"
+
+msgid "Checking system SSH command"
+msgstr "システム SSH コマンドを確認"
+
+msgid "Checking system expect command"
+msgstr "システム expect コマンドを確認"
+
+msgid "Choose File"
+msgstr "ファイルを選択"
+
+msgid "Choose a feature"
+msgstr "機能を選択"
+
+msgid "Clear"
+msgstr "クリア"
+
+msgid "Clear All"
+msgstr "すべてクリア"
+
+msgid "Clear Log"
+msgstr "ログをクリア"
+
+msgid "Clear Search"
+msgstr "検索をクリア"
+
 msgid "Cleared clipboard"
 msgstr "クリップボードを空にしました"
 
-#: src/apprt/gtk/class/window.zig:1753
+msgid "Close"
+msgstr "閉じる"
+
+msgid "Close Split"
+msgstr ""
+
+msgid "Close Split?"
+msgstr "分割ウィンドウを閉じますか?"
+
+msgid "Close Tab"
+msgstr "タブを閉じる"
+
+msgid "Close Tab?"
+msgstr "タブを閉じますか?"
+
+msgid "Close Window"
+msgstr "ウィンドウを閉じる"
+
+msgid "Close Window?"
+msgstr "ウィンドウを閉じますか?"
+
+msgid "Code"
+msgstr "コード"
+
+msgid "Code Snippets"
+msgstr "コードスニペット"
+
+msgid "Collapse Sidebar"
+msgstr "サイドバーを折りたたむ"
+
+msgid "Command Failed"
+msgstr "コマンド実行失敗"
+
+msgid "Command Finished"
+msgstr "コマンド実行終了"
+
+msgid "Command Palette"
+msgstr "コマンドパレット"
+
+msgid "Command Succeeded"
+msgstr "コマンド実行成功"
+
+msgid "Command failed"
+msgstr "コマンド実行失敗"
+
+msgid "Command not found: "
+msgstr "コマンドが見つかりません: "
+
+msgid "Command not found: %@"
+msgstr "コマンドが見つかりません: %@"
+
+msgid "Command succeeded"
+msgstr "コマンド実行成功"
+
+msgid "Completed"
+msgstr "完了"
+
+msgid "Config"
+msgstr "設定"
+
+msgid "Configuration Errors"
+msgstr "設定ファイルにエラーがあります"
+
+msgid "Confirm"
+msgstr "確認"
+
+msgid "Confirm Delete"
+msgstr "削除を確認"
+
+msgid "Confirm deletion of %d %@"
+msgstr "%d 個の%@を削除することを確認"
+
+msgid "Connect"
+msgstr "接続"
+
+msgid "Connect via SSH first"
+msgstr "先に SSH 接続してください"
+
+msgid "Connecting directly to target host"
+msgstr "ターゲットホストに直接接続"
+
+msgid "Connection Method"
+msgstr "接続方式"
+
+msgid "Connection Test Details"
+msgstr "接続テストの詳細"
+
+msgid "Connection test failed"
+msgstr "接続テスト失敗"
+
+msgid "Connection test passed"
+msgstr "接続テスト合格"
+
+msgid "Connection test passed ("
+msgstr "接続テスト合格 ("
+
+msgid "Connection test passed (%@)"
+msgstr "接続テスト合格 (%@)"
+
+msgid "Connection test passed (password authentication)"
+msgstr "接続テスト合格（パスワード認証）"
+
+msgid "Connection timed out"
+msgstr "接続タイムアウト"
+
+msgid "Connection timed out. Check address, port, and jump host reachability."
+msgstr "接続がタイムアウトしました。アドレス、ポート、ジャンプホストの到達可能性を確認してください。"
+
+msgid "Copied to clipboard"
+msgstr "クリップボードにコピーしました"
+
+msgid "Copy"
+msgstr "コピー"
+
+msgid "Copy Error"
+msgstr "エラーをコピー"
+
+msgid "Create Host"
+msgstr "ホストを作成"
+
+msgid "Default"
+msgstr "デフォルト"
+
+msgid "Default (%d)"
+msgstr "デフォルト (%d)"
+
+msgid "Delete"
+msgstr "削除"
+
+msgid "Delete %@ Session"
+msgstr "%@ セッションを削除"
+
+msgid "Delete Category"
+msgstr "カテゴリを削除"
+
+msgid "Delete Connection"
+msgstr "接続を削除"
+
+msgid "Delete Group"
+msgstr "グループを削除"
+
+msgid "Delete Port Forward"
+msgstr "ポート転送を削除"
+
+msgid "Delete Snippet"
+msgstr "スニペットを削除"
+
+msgid "Delete These Files"
+msgstr "これらのファイルを削除"
+
+msgid "Deny"
+msgstr "拒否"
+
+msgid "Detach from Current Session"
+msgstr "現在のセッションからデタッチ"
+
+msgid "Details"
+msgstr "詳細"
+
+msgid "Direct"
+msgstr "直接接続"
+
+msgid "Download These Files"
+msgstr "これらのファイルをダウンロード"
+
+msgid "Download This %@"
+msgstr "この%@をダウンロード"
+
+msgid "Download This Directory"
+msgstr "このディレクトリをダウンロード"
+
+msgid "Download This File"
+msgstr "このファイルをダウンロード"
+
+msgid "Dynamic Forward (-D)"
+msgstr "ダイナミック転送 (-D)"
+
+msgid "Edit"
+msgstr "編集"
+
+msgid "Edit Category"
+msgstr "カテゴリを編集"
+
+msgid "Edit Host"
+msgstr "ホストを編集"
+
+msgid "Edit Snippet"
+msgstr "スニペットを編集"
+
+msgid "Enable X11 Forwarding"
+msgstr "X11 転送を有効化"
+
+msgid "Enter %@ session name"
+msgstr "%@ セッション名を入力"
+
+msgid "Enter category name"
+msgstr "カテゴリ名を入力"
+
+msgid "Enter new name:"
+msgstr "新しい名前を入力:"
+
+msgid "Execute a command…"
+msgstr "コマンドを実行…"
+
+msgid "Executing SSH test connection"
+msgstr "SSH テスト接続を実行"
+
+msgid "Executing expect password auto-entry test"
+msgstr "expect によるパスワード自動入力テストを実行"
+
+msgid "Expand Sidebar"
+msgstr "サイドバーを展開"
+
+msgid "Expose a local service to the SSH host via a remote port"
+msgstr "ローカルサービスを SSH ホストに公開し、リモートポートからアクセス可能にする"
+
+msgid "Failed"
+msgstr "失敗"
+
+msgid "Failed to create password helper script"
+msgstr "パスワードヘルパースクリプトの作成に失敗"
+
+msgid "Failed to establish SSH control channel: "
+msgstr "SSH 制御チャネルの確立に失敗: "
+
+msgid "Failed to establish SSH control channel: %@"
+msgstr "SSH 制御チャネルの確立に失敗: %@"
+
+msgid "Failed to list directory: "
+msgstr "ディレクトリ一覧に失敗: "
+
+msgid "Failed to list directory: %@"
+msgstr "ディレクトリ一覧に失敗: %@"
+
+msgid "Failed to terminate %@ (PID %d). Port forwarding could not start."
+msgstr "%@ (PID %d) の終了に失敗しました。ポート転送を開始できません。"
+
+msgid "Failed to write expect script: "
+msgstr "expect スクリプトの書き込みに失敗: "
+
+msgid "Failed to write expect script: %@"
+msgstr "expect スクリプトの書き込みに失敗: %@"
+
+msgid "File"
+msgstr "ファイル"
+
+msgid "Find…"
+msgstr "検索…"
+
+msgid "Forward Type"
+msgstr "転送タイプ"
+
+msgid "GPU Load"
+msgstr "GPU 負荷"
+
+msgid "GPU unavailable"
+msgstr "GPU 利用不可"
+
 msgid "Ghostty Developers"
 msgstr "Ghostty 開発者"
+
+msgid "Ghostty: Terminal Inspector"
+msgstr "Ghostty: 端末インスペクター"
+
+msgid "Go to Install"
+msgstr "インストールへ"
+
+msgid "Group"
+msgstr "グループ"
+
+msgid "Heartbeat (ms)"
+msgstr "ハートビート (ms)"
+
+msgid "Heartbeat will use SSH ServerAliveInterval, sending a keepalive every %d seconds."
+msgstr "ハートビートは SSH ServerAliveInterval を使用し、%d 秒ごとにキープアライブを送信します"
+
+msgid "Hide Hidden Items"
+msgstr "隠しファイルを非表示"
+
+msgid "Hide Password"
+msgstr "パスワードを隠す"
+
+msgid "IP Address"
+msgstr "IP アドレス"
+
+msgid "Ignore"
+msgstr "無視"
+
+msgid "Invalid SSH connection"
+msgstr "無効な SSH 接続"
+
+msgid "Invalid port number"
+msgstr "無効なポート番号"
+
+msgid "Items"
+msgstr "項目"
+
+msgid "Jump Host"
+msgstr "ジャンプホスト"
+
+msgid "Key"
+msgstr "キー認証"
+
+msgid "Key Authentication"
+msgstr "キー認証"
+
+msgid "Key File"
+msgstr "キーファイル"
+
+msgid "Key file does not exist: "
+msgstr "キーファイルが存在しません: "
+
+msgid "Key file does not exist: %@"
+msgstr "キーファイルが存在しません: %@"
+
+msgid "Leave blank to restore the default title."
+msgstr "空白にした場合、デフォルトのタイトルを使用します。"
+
+msgid "Listen for SOCKS5 proxy on this port at 127.0.0.1"
+msgstr "127.0.0.1 でこのポートを SOCKS5 プロキシとしてリッスン"
+
+msgid "Listen on a local HTTP/SOCKS proxy port and reach targets through the SSH host"
+msgstr "ローカルの HTTP/SOCKS プロキシポートをリッスンし、SSH ホスト経由でターゲットにアクセス"
+
+msgid "Listen on this port at 127.0.0.1"
+msgstr "127.0.0.1 でこのポートをリッスン"
+
+msgid "Local Forward (-L)"
+msgstr "ローカル転送 (-L)"
+
+msgid "Local Listen Port"
+msgstr "ローカルリッスンポート"
+
+msgid "Local Proxy Port"
+msgstr "ローカルプロキシポート"
+
+msgid "Local Service Port"
+msgstr "ローカルサービスポート"
+
+msgid "Local process exit code "
+msgstr "ローカルプロセス終了コード "
+
+msgid "Local process exit code %d"
+msgstr "ローカルプロセス終了コード %d"
+
+msgid "Local service port; traffic from the SSH host will be forwarded here"
+msgstr "ローカルで実行中のサービスポート。SSH ホストからのトラフィックがここに転送されます"
+
+msgid "Main Menu"
+msgstr "メインメニュー"
+
+msgid "Map a remote service reachable by the SSH host to a local port"
+msgstr "SSH ホストから到達可能なリモートサービスをローカルポートにマッピング"
+
+msgid "Name"
+msgstr "名前"
+
+msgid "New %@ Session"
+msgstr "新規 %@ セッション"
+
+msgid "New Category"
+msgstr "新規カテゴリ"
+
+msgid "New Group"
+msgstr "新規グループ"
+
+msgid "New Local Terminal"
+msgstr "新規ローカルターミナル"
+
+msgid "New SSH Connection"
+msgstr "新規 SSH 接続"
+
+msgid "New Snippet"
+msgstr "新規スニペット"
+
+msgid "New Split"
+msgstr "新しい分割"
+
+msgid "New Tab"
+msgstr "新しいタブ"
+
+msgid "New Window"
+msgstr "新しいウィンドウ"
+
+msgid "New tmux Session"
+msgstr "新規 tmux セッション"
+
+msgid "New zellij Session"
+msgstr "新規 zellij セッション"
+
+msgid "Next Match"
+msgstr "次の一致"
+
+msgid "No Sessions"
+msgstr "セッションがありません"
+
+msgid "No Snippets"
+msgstr "スニペットがありません"
+
+msgid "No Transfer Tasks"
+msgstr "転送タスクがありません"
+
+msgid "No jump hosts available. Create another SSH connection first."
+msgstr "利用可能なジャンプホストがありません。先に別の SSH 接続を作成してください。"
+
+msgid "No key file selected"
+msgstr "キーファイルが選択されていません"
+
+msgid "No key specified; testing network connectivity only"
+msgstr "キーが空です。ネットワーク接続のみテスト"
+
+msgid "No key specified; using BatchMode for connectivity test"
+msgstr "キーが指定されていません。接続テストに BatchMode を使用"
+
+msgid "No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work."
+msgstr "ローカルの X サーバーが検出されませんでした。macOS では XQuartz をインストールして起動してください。そうでない場合、X11 転送は機能しません。"
+
+msgid "No port forwarding rules"
+msgstr "ポート転送ルールがありません"
+
+msgid "Notes"
+msgstr "メモ"
+
+msgid "Notify on Next Command Finish"
+msgstr "次のコマンド実行終了時に通知する"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Oh, no."
+msgstr "おっと。"
+
+msgid "Open Configuration"
+msgstr "設定ファイルを開く"
+
+msgid "Open in Ghostty"
+msgstr "Ghosttyで開く"
+
+msgid "Parent"
+msgstr "親ディレクトリ"
+
+msgid "Password"
+msgstr "パスワード認証"
+
+msgid "Password (optional)"
+msgstr "パスワード（任意）"
+
+msgid "Password empty; testing network connectivity only"
+msgstr "パスワードが空です。ネットワーク接続のみテスト"
+
+msgid "Password empty; using BatchMode for connectivity test"
+msgstr "パスワードが空です。接続テストに BatchMode を使用"
+
+msgid "Password is empty"
+msgstr "パスワードが空です"
+
+msgid "Paste"
+msgstr "貼り付け"
+
+msgid "Pause"
+msgstr "一時停止"
+
+msgid "Paused"
+msgstr "一時停止中"
+
+msgid "Pending"
+msgstr "待機中"
+
+msgid "Please install tmux or zellij"
+msgstr "tmux または zellij をインストールしてください"
+
+msgid "Please select a jump host"
+msgstr "ジャンプホストを選択してください"
+
+msgid "Please select a local SSH private key file (e.g. ~/.ssh/id_rsa)"
+msgstr "ローカルの SSH 秘密鍵ファイルを選択してください（例: ~/.ssh/id_rsa）"
+
+msgid "Port"
+msgstr "ポート"
+
+msgid "Port "
+msgstr "ポート "
+
+msgid "Port %d is already in use"
+msgstr "ポート %d は既に使用されています"
+
+msgid "Port Forward"
+msgstr "ポート転送"
+
+msgid "Port Forward Configuration"
+msgstr "ポート転送設定"
+
+msgid "Press any key to reconnect"
+msgstr "任意のキーを押して再接続"
+
+msgid "Previous Match"
+msgstr "前の一致"
+
+msgid "Process: "
+msgstr "プロセス: "
+
+msgid ""
+"Process: %@ (PID %d)"
+"Terminate this process and start port forwarding?"
+msgstr ""
+"プロセス: %@ (PID %d)"
+"このプロセスを終了してポート転送を開始しますか？"
+
+msgid "Proxy Protocol"
+msgstr "プロキシプロトコル"
+
+msgid "Python Script"
+msgstr "Python スクリプト"
+
+msgid "Quit"
+msgstr "終了"
+
+msgid "Quit Ghostty?"
+msgstr "Ghostty を終了しますか?"
+
+msgid "Read-only"
+msgstr "読み取り専用"
+
+msgid "Refresh"
+msgstr "更新"
+
+msgid "Reload Configuration"
+msgstr "設定ファイルの再読み込み"
+
+msgid "Reload configuration to show this prompt again"
+msgstr "このプロンプトを再び表示するには設定を再読み込みしてください"
+
+msgid "Reloaded the configuration"
+msgstr "設定を再読み込みしました"
+
+msgid "Remember choice for this split"
+msgstr "この分割ウィンドウに対して設定を記憶する"
+
+msgid "Remote Forward (-R)"
+msgstr "リモート転送 (-R)"
+
+msgid "Remote Host"
+msgstr "リモートホスト"
+
+msgid "Remote Port"
+msgstr "リモートポート"
+
+msgid "Remote host reachable from the SSH host (use localhost for the SSH host itself)"
+msgstr "SSH ホストから到達可能なリモートホスト（SSH ホスト自体の場合は localhost）"
+
+msgid "Rename"
+msgstr "名前を変更"
+
+msgid "Rename %@"
+msgstr "%@の名前を変更"
+
+msgid "Rename Category"
+msgstr "カテゴリ名を変更"
+
+msgid "Rename Directory"
+msgstr "ディレクトリの名前を変更"
+
+msgid "Rename File"
+msgstr "ファイルの名前を変更"
+
+msgid "Reset"
+msgstr "リセット"
+
+msgid "Resume"
+msgstr "再開"
+
+msgid "Rule"
+msgstr "ルール"
+
+msgid "Running"
+msgstr "実行中"
+
+msgid "SSH Host (Jump)"
+msgstr "SSH ホスト（ジャンプ）"
+
+msgid "SSH Host Listen Port"
+msgstr "SSH ホストリッスンポート"
+
+msgid "SSH Jump Host"
+msgstr "SSH ジャンプホスト"
+
+msgid "SSH control channel not created"
+msgstr "SSH 制御チャネルが作成されていません"
+
+msgid "SSH host will listen on 0.0.0.0 and forward to this machine"
+msgstr "SSH ホストは 0.0.0.0 でリッスンし、このマシンに転送します"
+
+msgid "SSH process exit code "
+msgstr "SSH プロセス終了コード "
+
+msgid "SSH process exit code %d"
+msgstr "SSH プロセス終了コード %d"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Search by keyword"
+msgstr "キーワードで検索"
+
+msgid "Select Host"
+msgstr "ホストを選択"
+
+msgid "Select SSH Private Key"
+msgstr "SSH 秘密鍵を選択"
+
+msgid "Session Reuse"
+msgstr "セッション再利用"
+
+msgid "Session name"
+msgstr "セッション名"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Shell Script"
+msgstr "Shell スクリプト"
+
+msgid "Show Hidden Items"
+msgstr "隠しファイルを表示"
+
+msgid "Show Password"
+msgstr "パスワードを表示"
+
+msgid "Split"
+msgstr "分割"
+
+msgid "Split Down"
+msgstr "下に分割"
+
+msgid "Split Left"
+msgstr "左に分割"
+
+msgid "Split Right"
+msgstr "右に分割"
+
+msgid "Split Up"
+msgstr "上に分割"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "Stopped"
+msgstr "停止済み"
+
+msgid "Subclass must implement sshInvocation"
+msgstr "サブクラスは sshInvocation を実装する必要があります"
+
+msgid "System Monitor"
+msgstr "システムモニタ"
+
+msgid "System Monitor requires xtop to be installed"
+msgstr "システムモニタを使用するには xtop のインストールが必要です"
+
+msgid "System ssh command not found"
+msgstr "システム ssh コマンドが見つかりません"
+
+msgid "Tab"
+msgstr "タブ"
+
+msgid "Terminal Encoding"
+msgstr "ターミナルエンコーディング"
+
+msgid "Terminal Inspector"
+msgstr "端末インスペクター"
+
+msgid "Terminate "
+msgstr "終了 "
+
+msgid "Terminate this process and start port forwarding?"
+msgstr "このプロセスを終了してポート転送を開始しますか？"
+
+msgid "Test Connection"
+msgstr "接続をテスト"
+
+msgid "Testing, please wait..."
+msgstr "テスト中、しばらくお待ちください..."
+
+msgid "Testing..."
+msgstr "テスト中..."
+
+msgid "The currently running process in this split will be terminated."
+msgstr "分割ウィンドウ内のすべてのプロセスが終了します。"
+
+msgid "Timeout (ms)"
+msgstr "タイムアウト (ms)"
+
+msgid "Transfer Tasks"
+msgstr "転送タスク"
+
+msgid "Transfer failed: "
+msgstr "転送に失敗: "
+
+msgid "Transfer failed: %@"
+msgstr "転送に失敗: %@"
+
+msgid "Type"
+msgstr "タイプ"
+
+msgid "Unable to acquire an OpenGL context for rendering."
+msgstr "レンダリング用のOpenGLコンテキストを取得できませんでした。"
+
+msgid "Unable to terminate process"
+msgstr "プロセスを終了できません"
+
+msgid "Ungrouped"
+msgstr "未分類"
+
+msgid "Unknown Host"
+msgstr "不明なホスト"
+
+msgid "Unknown Process"
+msgstr "不明なプロセス"
+
+msgid "Unsupported authentication method"
+msgstr "サポートされていない認証方式"
+
+msgid "Upload File"
+msgstr "ファイルをアップロード"
+
+msgid "Upload Folder"
+msgstr "フォルダをアップロード"
+
+msgid "Upload tasks: %d, Download tasks: %d"
+msgstr "アップロードタスク: %d 個、ダウンロードタスク: %d 個"
+
+msgid "Use this password to log in automatically"
+msgstr "このパスワードを使用して自動ログイン"
+
+msgid "Username (optional)"
+msgstr "ユーザー名（任意）"
+
+msgid "Using expect to auto-enter password for authentication test"
+msgstr "expect を使用してパスワードを自動入力し認証テスト"
+
+msgid "Using jump host: "
+msgstr "ジャンプホストを使用: "
+
+msgid "Using jump host: %@ (%@)"
+msgstr "ジャンプホストを使用: %@ (%@)"
+
+msgid "Using key authentication: "
+msgstr "キー認証を使用: "
+
+msgid "Using key authentication: %@"
+msgstr "キー認証を使用: %@"
+
+msgid "VRAM Usage"
+msgstr "VRAM 使用率"
+
+msgid "View Log"
+msgstr "ログを表示"
+
+msgid "View Open Tabs"
+msgstr "開いているすべてのタブを表示"
+
+msgid "Waiting for data…"
+msgstr "データ待機中…"
+
+msgid "Warning: Potentially Unsafe Paste"
+msgstr "警告: 危険な可能性のある貼り付け"
+
+msgid "Window"
+msgstr "ウィンドウ"
+
+msgid "e.g. 192.168.1.10 or server.com"
+msgstr "例: 192.168.1.10 または server.com"
+
+msgid "e.g. Access remote MySQL"
+msgstr "例: リモート MySQL にアクセス"
+
+msgid "e.g. Clear Logs"
+msgstr "例: ログのクリア"
+
+msgid "e.g. Production Web 01"
+msgstr "例: Production Web 01"
+
+msgid "e.g. root"
+msgstr "例: root"
+
+msgid "expect not found; cannot test password login"
+msgstr "expect が見つかりません。パスワードログインをテストできません"
+
+msgid "rsync exit code "
+msgstr "rsync 終了コード "
+
+msgid "rsync exit code %d"
+msgstr "rsync 終了コード %d"
+
+msgid "xtop not detected"
+msgstr "xtop が検出されません"

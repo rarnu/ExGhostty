@@ -7,7 +7,7 @@ enum ProcessRunnerError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .executionFailed(let command, let status, let stderr):
-            let msg = stderr.isEmpty ? "本地进程退出码 \(status)" : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let msg = stderr.isEmpty ? L("Local process exit code %d", status) : stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             return "[\(command)] \(msg)"
         }
     }

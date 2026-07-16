@@ -41,7 +41,7 @@ struct SidebarView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .sidebarTooltip("展开侧边栏")
+            .sidebarTooltip("Expand Sidebar".localized)
 
             Button(action: { onNewLocalTerminal?() }) {
                 Image(systemName: "terminal")
@@ -50,7 +50,7 @@ struct SidebarView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .sidebarTooltip("新建本地终端")
+            .sidebarTooltip("New Local Terminal".localized)
 
             Spacer()
             Button(action: {}) {
@@ -61,7 +61,7 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
             .frame(height: 32)
-            .sidebarTooltip("设置")
+            .sidebarTooltip("Settings".localized)
             .padding(.bottom, 8)
         }
         .frame(width: 32)
@@ -94,7 +94,7 @@ struct SidebarView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .sidebarTooltip(collapsed ? "展开侧边栏" : "收起侧边栏")
+            .sidebarTooltip(collapsed ? "Expand Sidebar".localized : "Collapse Sidebar".localized)
             .padding(.leading, 4)
 
             if !collapsed {
@@ -102,15 +102,15 @@ struct SidebarView: View {
                 HStack(spacing: 2) {
                     Button(action: { showAddSSHDialog() }) {
                         Image(systemName: "plus.square").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).sidebarTooltip("新建 SSH 连接")
+                    }.buttonStyle(.plain).sidebarTooltip("New SSH Connection".localized)
 
                     Button(action: { showAddGroupDialog() }) {
                         Image(systemName: "folder.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).sidebarTooltip("新建分组")
+                    }.buttonStyle(.plain).sidebarTooltip("New Group".localized)
 
                     Button(action: { onNewLocalTerminal?() }) {
                         Image(systemName: "terminal").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
-                    }.buttonStyle(.plain).sidebarTooltip("新建本地终端")
+                    }.buttonStyle(.plain).sidebarTooltip("New Local Terminal".localized)
                 }
                 .padding(.trailing, 4)
             }
@@ -127,7 +127,7 @@ struct SidebarView: View {
             if !store.searchText.isEmpty {
                 Button(action: { store.searchText = "" }) {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 11)).foregroundColor(.secondary)
-                }.buttonStyle(.plain).sidebarTooltip("清除搜索")
+                }.buttonStyle(.plain).sidebarTooltip("Clear Search".localized)
             }
         }
         .padding(.horizontal, 6).padding(.vertical, 4)
@@ -150,7 +150,7 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .frame(height: 32)
         .fixedSize(horizontal: false, vertical: true)
-        .sidebarTooltip("设置")
+        .sidebarTooltip("Settings".localized)
         .padding(.bottom, 8)
     }
 
@@ -168,7 +168,7 @@ struct SidebarView: View {
                     connectionRow(conn)
                 }
             } header: {
-                Text("默认 (\(defaultCount))")
+                Text(L("Default (%d)", defaultCount))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.secondary)
             }
@@ -246,10 +246,10 @@ struct SidebarView: View {
     private func showDeleteGroupConfirmation(_ group: SSHGroup) {
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = "删除分组"
-            alert.informativeText = "确定要删除分组 \"\(group.name)\" 吗？该分组下的连接将移动到未分组。"
-            alert.addButton(withTitle: "删除")
-            alert.addButton(withTitle: "取消")
+            alert.messageText = "Delete Group".localized
+            alert.informativeText = L("Are you sure you want to delete group \"%@\"? Connections in this group will be moved to Ungrouped.", group.name)
+            alert.addButton(withTitle: "Delete".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.buttons.first?.hasDestructiveAction = true
 
             if let win = NSApp.keyWindow {
@@ -270,10 +270,10 @@ struct SidebarView: View {
     private func showDeleteConnectionConfirmation(_ conn: SSHConnection) {
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = "删除连接"
-            alert.informativeText = "确定要删除 \"\(conn.name)\" 吗？此操作无法撤销。"
-            alert.addButton(withTitle: "删除")
-            alert.addButton(withTitle: "取消")
+            alert.messageText = "Delete Connection".localized
+            alert.informativeText = L("Are you sure you want to delete \"%@\"? This action cannot be undone.", conn.name)
+            alert.addButton(withTitle: "Delete".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.buttons.first?.hasDestructiveAction = true
 
             if let win = NSApp.keyWindow {
@@ -459,14 +459,14 @@ struct PortForwardListView: View {
 
     private var topBar: some View {
         HStack(spacing: 12) {
-            Text("端口转发")
+            Text("Port Forward".localized)
                 .font(.system(size: 14, weight: .semibold))
 
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                TextField("按关键字搜索", text: $searchText)
+                TextField("Search by keyword".localized, text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                 if !searchText.isEmpty {
@@ -509,7 +509,7 @@ struct PortForwardListView: View {
     private var emptyView: some View {
         VStack {
             Spacer()
-            Text("暂无端口转发规则")
+            Text("No port forwarding rules".localized)
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
             Spacer()
@@ -547,23 +547,23 @@ struct PortForwardListView: View {
         .contentShape(Rectangle())
         .contextMenu {
             if rule.isRunning {
-                Button("停止") {
+                Button("Stop".localized) {
                     handleToggle(rule: rule)
                 }
             }
-            Button("编辑") {
+            Button("Edit".localized) {
                 showEditSheet(rule: rule)
             }
-            Button("查看日志") {
+            Button("View Log".localized) {
                 openPortForwardLog(rule: rule)
             }
-            Button("清空日志") {
+            Button("Clear Log".localized) {
                 store.clearLog(for: rule.id)
             }
             Button {
                 showDeleteRuleConfirmation(rule)
             } label: {
-                Text("删除")
+                Text("Delete".localized)
                     .foregroundColor(.red)
             }
         }
@@ -572,10 +572,10 @@ struct PortForwardListView: View {
     private func showDeleteRuleConfirmation(_ rule: PortForwardRule) {
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = "删除端口转发"
-            alert.informativeText = "确定要删除端口转发规则 \"\(rule.name)\" 吗？此操作无法撤销。"
-            alert.addButton(withTitle: "删除")
-            alert.addButton(withTitle: "取消")
+            alert.messageText = "Delete Port Forward".localized
+            alert.informativeText = L("Are you sure you want to delete port forward rule \"%@\"? This action cannot be undone.", rule.name)
+            alert.addButton(withTitle: "Delete".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.buttons.first?.hasDestructiveAction = true
 
             if let win = NSApp.keyWindow {
@@ -610,12 +610,12 @@ struct PortForwardListView: View {
             return
         }
 
-        let process = ProcessInspector.processName(for: pid) ?? "未知进程"
+        let process = ProcessInspector.processName(for: pid) ?? "Unknown Process".localized
         let alert = NSAlert()
-        alert.messageText = "端口 \(rule.localListenPort) 已被占用"
-        alert.informativeText = "进程: \(process) (PID \(pid))\n是否结束该进程并启动端口转发？"
-        alert.addButton(withTitle: "确定")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = L("Port %d is already in use", rule.localListenPort)
+        alert.informativeText = L("Process: %@ (PID %d)\nTerminate this process and start port forwarding?", process, pid)
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let proceed = {
             if ProcessInspector.killProcess(pid: pid) {
@@ -636,9 +636,9 @@ struct PortForwardListView: View {
 
     private func showKillFailedAlert(process: String, pid: Int32) {
         let alert = NSAlert()
-        alert.messageText = "无法结束进程"
-        alert.informativeText = "结束 \(process) (PID \(pid)) 失败，端口转发未能启动。"
-        alert.addButton(withTitle: "确定")
+        alert.messageText = "Unable to terminate process".localized
+        alert.informativeText = L("Failed to terminate %@ (PID %d). Port forwarding could not start.", process, pid)
+        alert.addButton(withTitle: "OK".localized)
         if let win = NSApp.keyWindow {
             alert.beginSheetModal(for: win) { _ in }
         } else {
@@ -659,7 +659,7 @@ struct PortForwardListView: View {
             Circle()
                 .fill(running ? Color.green : Color.gray)
                 .frame(width: 6, height: 6)
-            Text(running ? "运行中" : "已停止")
+            Text(running ? "Running".localized : "Stopped".localized)
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
@@ -737,10 +737,10 @@ struct PortForwardEditView: View {
 
             HStack {
                 Spacer()
-                Button("取消") { onDismiss() }
+                Button("Cancel".localized) { onDismiss() }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 8)
-                Button("确定") {
+                Button("OK".localized) {
                     onSave(rule)
                     onDismiss()
                 }
@@ -754,7 +754,7 @@ struct PortForwardEditView: View {
 
     private var typePicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("转发类型")
+            Text("Forward Type".localized)
                 .font(.system(size: 13, weight: .medium))
             Picker("", selection: $rule.type) {
                 ForEach(PortForwardType.allCases) { type in
@@ -774,12 +774,12 @@ struct PortForwardEditView: View {
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
-                Text("规则")
+                Text("Rule".localized)
                 Text("*")
                     .foregroundColor(.red)
             }
             .font(.system(size: 13, weight: .medium))
-            TextField("例如：访问远程 MySQL", text: $rule.name)
+            TextField("e.g. Access remote MySQL".localized, text: $rule.name)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 13))
         }
@@ -788,14 +788,14 @@ struct PortForwardEditView: View {
     private var sshHostPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
-                Text("SSH 主机（跳板机）")
+                Text("SSH Host (Jump)".localized)
                 Text("*")
                     .foregroundColor(.red)
             }
             .font(.system(size: 13, weight: .medium))
 
             Picker("", selection: $rule.sshConnectionID) {
-                Text("选择主机")
+                Text("Select Host".localized)
                     .tag(UUID?.none)
                 ForEach(sshStore.connections) { conn in
                     Text("\(conn.name) (\(conn.host):\(conn.port))")
@@ -821,12 +821,12 @@ struct PortForwardEditView: View {
 
     private var localFields: some View {
         VStack(alignment: .leading, spacing: 16) {
-            portField(title: "本地监听端口", hint: "在本机 127.0.0.1 上监听此端口", value: Binding(
+            portField(title: "Local Listen Port".localized, hint: "Listen on this port at 127.0.0.1".localized, value: Binding(
                 get: { String(rule.localListenPort) },
                 set: { rule.localListenPort = UInt16($0) ?? 0 }
             ))
-            textField(title: "远端主机", value: $rule.remoteHost, hint: "远端主机相对于 SSH 主机可达（填 localhost 表示 SSH 主机自身）")
-            portField(title: "远端端口", hint: "", value: Binding(
+            textField(title: "Remote Host".localized, value: $rule.remoteHost, hint: "Remote host reachable from the SSH host (use localhost for the SSH host itself)".localized)
+            portField(title: "Remote Port".localized, hint: "", value: Binding(
                 get: { String(rule.remotePort) },
                 set: { rule.remotePort = UInt16($0) ?? 0 }
             ))
@@ -835,11 +835,11 @@ struct PortForwardEditView: View {
 
     private var remoteFields: some View {
         VStack(alignment: .leading, spacing: 16) {
-            portField(title: "本机服务端口", hint: "本机上运行的服务端口，流量将从 SSH 主机转发到此端口", value: Binding(
+            portField(title: "Local Service Port".localized, hint: "Local service port; traffic from the SSH host will be forwarded here".localized, value: Binding(
                 get: { String(rule.localServicePort) },
                 set: { rule.localServicePort = UInt16($0) ?? 0 }
             ))
-            portField(title: "SSH 主机监听端口", hint: "SSH 主机将在 0.0.0.0 上监听并转发到本机", value: Binding(
+            portField(title: "SSH Host Listen Port".localized, hint: "SSH host will listen on 0.0.0.0 and forward to this machine".localized, value: Binding(
                 get: { String(rule.remotePort) },
                 set: { rule.remotePort = UInt16($0) ?? 0 }
             ))
@@ -849,7 +849,7 @@ struct PortForwardEditView: View {
     private var dynamicFields: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("代理协议")
+                Text("Proxy Protocol".localized)
                     .font(.system(size: 13, weight: .medium))
                 Picker("", selection: $rule.dynamicProtocol) {
                     ForEach(PortForwardDynamicProtocol.allCases) { proto in
@@ -859,7 +859,7 @@ struct PortForwardEditView: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
             }
-            portField(title: "本地代理端口", hint: "在本机 127.0.0.1 上监听 SOCKS5 代理端口", value: Binding(
+            portField(title: "Local Proxy Port".localized, hint: "Listen for SOCKS5 proxy on this port at 127.0.0.1".localized, value: Binding(
                 get: { String(rule.localListenPort) },
                 set: { rule.localListenPort = UInt16($0) ?? 0 }
             ))

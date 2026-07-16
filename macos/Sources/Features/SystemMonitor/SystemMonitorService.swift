@@ -51,7 +51,7 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
             let available = await Self.checkXTopAvailable(connection: connection)
             guard available else {
                 DispatchQueue.main.async { [weak self] in
-                    self?.errorMessage = "未检测到 xtop"
+                    self?.errorMessage = "xtop not detected".localized
                     self?.isRunning = false
                 }
                 return

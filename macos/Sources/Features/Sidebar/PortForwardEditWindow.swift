@@ -62,7 +62,7 @@ final class PortForwardEditWindowController: ModalWindowController {
         ])
 
         window.contentView = container
-        window.title = "端口转发配置"
+        window.title = "Port Forward Configuration".localized
         window.configureBackgroundBlur(config: config, container: container)
     }
 

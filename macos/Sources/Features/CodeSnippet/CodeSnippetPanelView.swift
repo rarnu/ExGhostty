@@ -26,7 +26,7 @@ struct CodeSnippetPanelView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .help("新增代码片段")
+            .help("New Snippet".localized)
 
             Button(action: { showAddCategory() }) {
                 Image(systemName: "folder.badge.plus")
@@ -35,7 +35,7 @@ struct CodeSnippetPanelView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .help("新增分类")
+            .help("New Category".localized)
 
             Spacer()
         }
@@ -51,7 +51,7 @@ struct CodeSnippetPanelView: View {
                 Section {
                     let items = store.snippets(for: category.id)
                     if items.isEmpty {
-                        Text("暂无代码片段")
+                        Text("No Snippets".localized)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     } else {
@@ -85,14 +85,14 @@ struct CodeSnippetPanelView: View {
         .contentShape(Rectangle())
         .contextMenu {
             if category.id != store.defaultCategory.id {
-                Button("修改分类名称") {
+                Button("Rename Category".localized) {
                     showEditCategory(category)
                 }
                 Divider()
                 Button {
                     showDeleteCategoryConfirmation(category)
                 } label: {
-                    Text("删除分类")
+                    Text("Delete Category".localized)
                         .foregroundColor(.red)
                 }
             }
@@ -115,13 +115,13 @@ struct CodeSnippetPanelView: View {
         .padding(.vertical, 3)
         .contentShape(Rectangle())
         .contextMenu {
-            Button("修改代码片段") {
+            Button("Edit Snippet".localized) {
                 showEditSnippet(snippet)
             }
             Button {
                 showDeleteSnippetConfirmation(snippet)
             } label: {
-                Text("删除代码片段")
+                Text("Delete Snippet".localized)
                     .foregroundColor(.red)
             }
         }
@@ -159,10 +159,10 @@ struct CodeSnippetPanelView: View {
     private func showDeleteCategoryConfirmation(_ category: CodeSnippetCategory) {
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = "删除分类"
-            alert.informativeText = "确定要删除分类 \"\(category.name)\" 吗？该分类下的代码片段将移动到默认分类。"
-            alert.addButton(withTitle: "删除")
-            alert.addButton(withTitle: "取消")
+            alert.messageText = "Delete Category".localized
+            alert.informativeText = L("Are you sure you want to delete category \"%@\"? Snippets in this category will be moved to Default.", category.name)
+            alert.addButton(withTitle: "Delete".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.buttons.first?.hasDestructiveAction = true
 
             if let win = NSApp.keyWindow {
@@ -183,10 +183,10 @@ struct CodeSnippetPanelView: View {
     private func showDeleteSnippetConfirmation(_ snippet: CodeSnippet) {
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = "删除代码片段"
-            alert.informativeText = "确定要删除代码片段 \"\(snippet.name)\" 吗？此操作不可撤销。"
-            alert.addButton(withTitle: "删除")
-            alert.addButton(withTitle: "取消")
+            alert.messageText = "Delete Snippet".localized
+            alert.informativeText = L("Are you sure you want to delete snippet \"%@\"? This action cannot be undone.", snippet.name)
+            alert.addButton(withTitle: "Delete".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.buttons.first?.hasDestructiveAction = true
 
             if let win = NSApp.keyWindow {
@@ -226,14 +226,14 @@ struct CodeSnippetPanelView: View {
 
     private func presentCategoryWindow(category: CodeSnippetCategory?) {
         guard let parent = NSApp.keyWindow else { return }
-        let title = category == nil ? "新增分类" : "修改分类"
+        let title = category == nil ? "New Category".localized : "Edit Category".localized
         let controller = GroupNameWindowController(
             title: title,
-            message: "输入分类名称",
-            placeholder: "分类名称",
+            message: "Enter category name".localized,
+            placeholder: "Category name".localized,
             defaultText: category?.name ?? "",
-            confirmTitle: "确认",
-            cancelTitle: "取消",
+            confirmTitle: "Confirm".localized,
+            cancelTitle: "Cancel".localized,
             config: config(),
             parentWindow: parent,
             completion: { name in

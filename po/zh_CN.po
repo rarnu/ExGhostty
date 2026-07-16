@@ -18,333 +18,915 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: dist/linux/ghostty_nautilus.py:53
-msgid "Open in Ghostty"
-msgstr "在 Ghostty 中打开"
+msgid "AI Assistant"
+msgstr "AI 助手"
 
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:12
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:12
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:197
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:201
-msgid "Authorize Clipboard Access"
-msgstr "剪贴板访问授权"
-
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:17
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:17
-msgid "Deny"
-msgstr "拒绝"
-
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:18
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:18
-msgid "Allow"
-msgstr "允许"
-
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:92
-msgid "Remember choice for this split"
-msgstr "为本分屏记住当前选择"
-
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:93
-msgid "Reload configuration to show this prompt again"
-msgstr "本提示将在重载配置后再次出现"
-
-#: src/apprt/gtk/ui/1.2/close-confirmation-dialog.blp:7
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:8
-msgid "Cancel"
-msgstr "取消"
-
-#: src/apprt/gtk/ui/1.2/close-confirmation-dialog.blp:8
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:85
-#: src/apprt/gtk/ui/1.3/surface-child-exited.blp:17
-msgid "Close"
-msgstr "关闭"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:6
-msgid "Configuration Errors"
-msgstr "配置错误"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:7
-msgid ""
-"One or more configuration errors were found. Please review the errors below, "
-"and either reload your configuration or ignore these errors."
-msgstr ""
-"加载配置时发现了以下错误。请仔细阅读错误信息，并选择忽略或重新加载配置文件。"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:10
-msgid "Ignore"
-msgstr "忽略"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:11
-#: src/apprt/gtk/ui/1.2/surface.blp:371 src/apprt/gtk/ui/1.5/window.blp:300
-msgid "Reload Configuration"
-msgstr "重新加载配置"
-
-#: src/apprt/gtk/ui/1.2/debug-warning.blp:7
-#: src/apprt/gtk/ui/1.3/debug-warning.blp:6
-msgid ""
-"⚠️ You're running a debug build of Ghostty! Performance will be degraded."
-msgstr "⚠️ Ghostty 正在以调试模式运行！性能将大打折扣。"
-
-#: src/apprt/gtk/ui/1.5/inspector-window.blp:5
-msgid "Ghostty: Terminal Inspector"
-msgstr "Ghostty 终端调试器"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:29
-msgid "Find…"
-msgstr "查找…"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:64
-msgid "Previous Match"
-msgstr "上一个匹配项"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:74
-msgid "Next Match"
-msgstr "下一个匹配项"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:6
-msgid "Oh, no."
-msgstr "糟糕。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:7
-msgid "Unable to acquire an OpenGL context for rendering."
-msgstr "未能获取可用于渲染的 OpenGL 环境。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:97
-msgid ""
-"This terminal is in read-only mode. You can still view, select, and scroll "
-"through the content, but no input events will be sent to the running "
-"application."
-msgstr ""
-"本终端当前处于只读模式。你仍可浏览、选择、并滚动其中内容，但任何用户输入都不"
-"会传给运行中的程序。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:107
-msgid "Read-only"
-msgstr "只读"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:260 src/apprt/gtk/ui/1.5/window.blp:200
-msgid "Copy"
-msgstr "复制"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:265 src/apprt/gtk/ui/1.5/window.blp:205
-msgid "Paste"
-msgstr "粘贴"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:270
-msgid "Notify on Next Command Finish"
-msgstr "下条命令完成时发出提醒"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:277 src/apprt/gtk/ui/1.5/window.blp:273
-msgid "Clear"
-msgstr "清除屏幕"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:282 src/apprt/gtk/ui/1.5/window.blp:278
-msgid "Reset"
-msgstr "重置终端"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:289 src/apprt/gtk/ui/1.5/window.blp:242
-msgid "Split"
-msgstr "分屏"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:292 src/apprt/gtk/ui/1.5/window.blp:245
-msgid "Change Title…"
-msgstr "更改标题…"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:297 src/apprt/gtk/ui/1.5/window.blp:177
-#: src/apprt/gtk/ui/1.5/window.blp:250
-msgid "Split Up"
-msgstr "向上分屏"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:303 src/apprt/gtk/ui/1.5/window.blp:182
-#: src/apprt/gtk/ui/1.5/window.blp:255
-msgid "Split Down"
-msgstr "向下分屏"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:309 src/apprt/gtk/ui/1.5/window.blp:187
-#: src/apprt/gtk/ui/1.5/window.blp:260
-msgid "Split Left"
-msgstr "向左分屏"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:315 src/apprt/gtk/ui/1.5/window.blp:192
-#: src/apprt/gtk/ui/1.5/window.blp:265
-msgid "Split Right"
-msgstr "向右分屏"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:321
-msgid "Close Split"
-msgstr "关闭分屏"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:327
-msgid "Tab"
-msgstr "标签页"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:330 src/apprt/gtk/ui/1.5/window.blp:224
-#: src/apprt/gtk/ui/1.5/window.blp:320
-msgid "Change Tab Title…"
-msgstr "更改标签页标题…"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:335 src/apprt/gtk/ui/1.5/window.blp:57
-#: src/apprt/gtk/ui/1.5/window.blp:107 src/apprt/gtk/ui/1.5/window.blp:229
-msgid "New Tab"
-msgstr "新建标签页"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:340 src/apprt/gtk/ui/1.5/window.blp:234
-msgid "Close Tab"
-msgstr "关闭标签页"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:347
-msgid "Window"
-msgstr "窗口"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:350 src/apprt/gtk/ui/1.5/window.blp:212
-msgid "New Window"
-msgstr "新建窗口"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:355 src/apprt/gtk/ui/1.5/window.blp:217
-msgid "Close Window"
-msgstr "关闭窗口"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:363
-msgid "Config"
-msgstr "配置"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:366 src/apprt/gtk/ui/1.5/window.blp:295
-msgid "Open Configuration"
-msgstr "打开配置文件"
-
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:5
-msgid "Leave blank to restore the default title."
-msgstr "留空以重置至默认标题。"
-
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:9
-msgid "OK"
-msgstr "确认"
-
-#: src/apprt/gtk/ui/1.5/window.blp:58 src/apprt/gtk/ui/1.5/window.blp:108
-msgid "New Split"
-msgstr "新建分屏"
-
-#: src/apprt/gtk/ui/1.5/window.blp:68 src/apprt/gtk/ui/1.5/window.blp:126
-msgid "View Open Tabs"
-msgstr "浏览标签页"
-
-#: src/apprt/gtk/ui/1.5/window.blp:78 src/apprt/gtk/ui/1.5/window.blp:140
-msgid "Main Menu"
-msgstr "主菜单"
-
-#: src/apprt/gtk/ui/1.5/window.blp:285
-msgid "Command Palette"
-msgstr "命令面板"
-
-#: src/apprt/gtk/ui/1.5/window.blp:290
-msgid "Terminal Inspector"
-msgstr "终端调试器"
-
-#: src/apprt/gtk/ui/1.5/window.blp:307 src/apprt/gtk/class/window.zig:1772
 msgid "About Ghostty"
 msgstr "关于 Ghostty"
 
-#: src/apprt/gtk/ui/1.5/window.blp:312
-msgid "Quit"
-msgstr "退出"
+msgid "Advanced"
+msgstr "高级设置"
 
-#: src/apprt/gtk/ui/1.5/command-palette.blp:17
-msgid "Execute a command…"
-msgstr "选择要执行的命令…"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:198
-msgid ""
-"An application is attempting to write to the clipboard. The current "
-"clipboard contents are shown below."
-msgstr "一个应用正在试图向剪贴板写入内容。剪贴板目前的内容如下："
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:202
-msgid ""
-"An application is attempting to read from the clipboard. The current "
-"clipboard contents are shown below."
-msgstr "一个应用正在试图从剪贴板读取内容。剪贴板目前的内容如下："
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:205
-msgid "Warning: Potentially Unsafe Paste"
-msgstr "警告：粘贴内容可能不安全"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:206
-msgid ""
-"Pasting this text into the terminal may be dangerous as it looks like some "
-"commands may be executed."
-msgstr "将以下内容粘贴至终端内将可能执行有害命令。"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:184
-msgid "Quit Ghostty?"
-msgstr "退出 Ghostty 吗？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:185
-msgid "Close Tab?"
-msgstr "关闭标签页吗？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:186
-msgid "Close Window?"
-msgstr "关闭窗口吗？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:187
-msgid "Close Split?"
-msgstr "关闭分屏吗？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:193
-msgid "All terminal sessions will be terminated."
-msgstr "终端内所有运行中的进程将被终止。"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:194
 msgid "All terminal sessions in this tab will be terminated."
 msgstr "标签页内所有运行中的进程将被终止。"
 
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:195
 msgid "All terminal sessions in this window will be terminated."
 msgstr "窗口内所有运行中的进程将被终止。"
 
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:196
-msgid "The currently running process in this split will be terminated."
-msgstr "分屏内正在运行中的进程将被终止。"
+msgid "All terminal sessions will be terminated."
+msgstr "终端内所有运行中的进程将被终止。"
 
-#: src/apprt/gtk/class/surface.zig:1141
-msgid "Command Finished"
-msgstr "命令已完成"
+msgid "Allow"
+msgstr "允许"
 
-#: src/apprt/gtk/class/surface.zig:1142
-msgid "Command Succeeded"
-msgstr "命令执行成功"
+msgid "Are you sure you want to delete \"%@\"? This action cannot be undone."
+msgstr "确定要删除 \"%@\" 吗？此操作无法撤销。"
 
-#: src/apprt/gtk/class/surface.zig:1143
-msgid "Command Failed"
-msgstr "命令执行失败"
+msgid "Are you sure you want to delete category \"%@\"? Snippets in this category will be moved to Default."
+msgstr "确定要删除分类 \"%@\" 吗？该分类下的代码片段将移动到默认分类。"
 
-#: src/apprt/gtk/class/surface_child_exited.zig:109
-msgid "Command succeeded"
-msgstr "命令执行成功"
+msgid "Are you sure you want to delete directory \"%@\"? This action cannot be undone."
+msgstr "确定要删除目录 \"%@\" 吗？此操作不可撤销。"
 
-#: src/apprt/gtk/class/surface_child_exited.zig:113
-msgid "Command failed"
-msgstr "命令执行失败"
+msgid "Are you sure you want to delete file \"%@\"? This action cannot be undone."
+msgstr "确定要删除文件 \"%@\" 吗？此操作不可撤销。"
 
-#: src/apprt/gtk/class/title_dialog.zig:225
-msgid "Change Terminal Title"
-msgstr "更改终端标题"
+msgid "Are you sure you want to delete group \"%@\"? Connections in this group will be moved to Ungrouped."
+msgstr "确定要删除分组 \"%@\" 吗？该分组下的连接将移动到未分组。"
 
-#: src/apprt/gtk/class/title_dialog.zig:226
+msgid "Are you sure you want to delete port forward rule \"%@\"? This action cannot be undone."
+msgstr "确定要删除端口转发规则 \"%@\" 吗？此操作无法撤销。"
+
+msgid "Are you sure you want to delete session \"%@\"? This action cannot be undone."
+msgstr "确定要删除会话 \"%@\" 吗？此操作不可撤销。"
+
+msgid "Are you sure you want to delete snippet \"%@\"? This action cannot be undone."
+msgstr "确定要删除代码片段 \"%@\" 吗？此操作不可撤销。"
+
+msgid "Are you sure you want to delete the following %@? This action cannot be undone."
+msgstr "确定要删除以下 吗？此操作不可撤销。"
+
+msgid ""
+"Are you sure you want to delete the following %@? This action cannot be undone."
+""
+"%@"
+msgstr ""
+"确定要删除以下%@吗？此操作不可撤销。"
+""
+"%@"
+
+msgid "Authentication"
+msgstr "认证方式"
+
+msgid "Authorize Clipboard Access"
+msgstr "剪贴板访问授权"
+
+msgid "Building SSH command"
+msgstr "构建 SSH 命令"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Cancelled"
+msgstr "已取消"
+
+msgid "Category"
+msgstr "分类"
+
+msgid "Category name"
+msgstr "分类名称"
+
 msgid "Change Tab Title"
 msgstr "更改标签页标题"
 
-#: src/apprt/gtk/class/window.zig:1067
-msgid "Reloaded the configuration"
-msgstr "已重新加载配置"
+msgid "Change Tab Title…"
+msgstr "更改标签页标题…"
 
-#: src/apprt/gtk/class/window.zig:1611
-msgid "Copied to clipboard"
-msgstr "已复制至剪贴板"
+msgid "Change Terminal Title"
+msgstr "更改终端标题"
 
-#: src/apprt/gtk/class/window.zig:1613
+msgid "Change Title…"
+msgstr "更改标题…"
+
+msgid "Checking system SSH command"
+msgstr "检查系统 SSH 命令"
+
+msgid "Checking system expect command"
+msgstr "检查系统 expect 命令"
+
+msgid "Choose File"
+msgstr "选择文件"
+
+msgid "Choose a feature"
+msgstr "选择右侧功能"
+
+msgid "Clear"
+msgstr "清除屏幕"
+
+msgid "Clear All"
+msgstr "清空全部"
+
+msgid "Clear Log"
+msgstr "清空日志"
+
+msgid "Clear Search"
+msgstr "清除搜索"
+
 msgid "Cleared clipboard"
 msgstr "已清空剪贴板"
 
-#: src/apprt/gtk/class/window.zig:1753
+msgid "Close"
+msgstr "关闭"
+
+msgid "Close Split"
+msgstr "关闭分屏"
+
+msgid "Close Split?"
+msgstr "关闭分屏吗？"
+
+msgid "Close Tab"
+msgstr "关闭标签页"
+
+msgid "Close Tab?"
+msgstr "关闭标签页吗？"
+
+msgid "Close Window"
+msgstr "关闭窗口"
+
+msgid "Close Window?"
+msgstr "关闭窗口吗？"
+
+msgid "Code"
+msgstr "代码内容"
+
+msgid "Code Snippets"
+msgstr "代码片段"
+
+msgid "Collapse Sidebar"
+msgstr "收起侧边栏"
+
+msgid "Command Failed"
+msgstr "命令执行失败"
+
+msgid "Command Finished"
+msgstr "命令已完成"
+
+msgid "Command Palette"
+msgstr "命令面板"
+
+msgid "Command Succeeded"
+msgstr "命令执行成功"
+
+msgid "Command failed"
+msgstr "命令执行失败"
+
+msgid "Command not found: "
+msgstr "找不到命令: "
+
+msgid "Command not found: %@"
+msgstr "找不到命令: %@"
+
+msgid "Command succeeded"
+msgstr "命令执行成功"
+
+msgid "Completed"
+msgstr "已完成"
+
+msgid "Config"
+msgstr "配置"
+
+msgid "Configuration Errors"
+msgstr "配置错误"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Confirm Delete"
+msgstr "确认删除"
+
+msgid "Confirm deletion of %d %@"
+msgstr "确认删除 %d 个%@"
+
+msgid "Connect"
+msgstr "连接"
+
+msgid "Connect via SSH first"
+msgstr "请先通过 SSH 连接"
+
+msgid "Connecting directly to target host"
+msgstr "直接连接目标主机"
+
+msgid "Connection Method"
+msgstr "连接方式"
+
+msgid "Connection Test Details"
+msgstr "测试连接详情"
+
+msgid "Connection test failed"
+msgstr "连接测试失败"
+
+msgid "Connection test passed"
+msgstr "连接测试通过"
+
+msgid "Connection test passed ("
+msgstr "连接测试通过（"
+
+msgid "Connection test passed (%@)"
+msgstr "连接测试通过（%@）"
+
+msgid "Connection test passed (password authentication)"
+msgstr "连接测试通过（密码认证）"
+
+msgid "Connection timed out"
+msgstr "连接超时"
+
+msgid "Connection timed out. Check address, port, and jump host reachability."
+msgstr "连接超时，请检查地址、端口及跳板机可达性"
+
+msgid "Copied to clipboard"
+msgstr "已复制至剪贴板"
+
+msgid "Copy"
+msgstr "复制"
+
+msgid "Copy Error"
+msgstr "复制错误信息"
+
+msgid "Create Host"
+msgstr "创建主机"
+
+msgid "Default"
+msgstr "默认"
+
+msgid "Default (%d)"
+msgstr "默认 (%d)"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Delete %@ Session"
+msgstr "删除%@会话"
+
+msgid "Delete Category"
+msgstr "删除分类"
+
+msgid "Delete Connection"
+msgstr "删除连接"
+
+msgid "Delete Group"
+msgstr "删除分组"
+
+msgid "Delete Port Forward"
+msgstr "删除端口转发"
+
+msgid "Delete Snippet"
+msgstr "删除代码片段"
+
+msgid "Delete These Files"
+msgstr "删除这些文件"
+
+msgid "Deny"
+msgstr "拒绝"
+
+msgid "Detach from Current Session"
+msgstr "从当前会话分离"
+
+msgid "Details"
+msgstr "详情"
+
+msgid "Direct"
+msgstr "直接连接"
+
+msgid "Download These Files"
+msgstr "下载这些文件"
+
+msgid "Download This %@"
+msgstr "下载这个"
+
+msgid "Download This Directory"
+msgstr "下载这个目录"
+
+msgid "Download This File"
+msgstr "下载这个文件"
+
+msgid "Dynamic Forward (-D)"
+msgstr "动态转发 (-D)"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Edit Category"
+msgstr "修改分类"
+
+msgid "Edit Host"
+msgstr "编辑主机"
+
+msgid "Edit Snippet"
+msgstr "修改代码片段"
+
+msgid "Enable X11 Forwarding"
+msgstr "启用 X11 转发"
+
+msgid "Enter %@ session name"
+msgstr "输入%@会话名称"
+
+msgid "Enter category name"
+msgstr "输入分类名称"
+
+msgid "Enter new name:"
+msgstr "请输入新的名称："
+
+msgid "Execute a command…"
+msgstr "选择要执行的命令…"
+
+msgid "Executing SSH test connection"
+msgstr "执行 SSH 测试连接"
+
+msgid "Executing expect password auto-entry test"
+msgstr "执行 expect 自动输入密码测试"
+
+msgid "Expand Sidebar"
+msgstr "展开侧边栏"
+
+msgid "Expose a local service to the SSH host via a remote port"
+msgstr "将本机服务暴露给 SSH 主机，使其可通过远端端口访问"
+
+msgid "Failed"
+msgstr "失败"
+
+msgid "Failed to create password helper script"
+msgstr "密码助手脚本创建失败"
+
+msgid "Failed to establish SSH control channel: "
+msgstr "建立 SSH 控制通道失败: "
+
+msgid "Failed to establish SSH control channel: %@"
+msgstr "建立 SSH 控制通道失败: %@"
+
+msgid "Failed to list directory: "
+msgstr "目录列表失败: "
+
+msgid "Failed to list directory: %@"
+msgstr "目录列表失败: %@"
+
+msgid "Failed to terminate %@ (PID %d). Port forwarding could not start."
+msgstr "结束 %@ (PID %d) 失败，端口转发未能启动。"
+
+msgid "Failed to write expect script: "
+msgstr "写入 expect 脚本失败："
+
+msgid "Failed to write expect script: %@"
+msgstr "写入 expect 脚本失败：%@"
+
+msgid "File"
+msgstr "文件"
+
+msgid "Find…"
+msgstr "查找…"
+
+msgid "Forward Type"
+msgstr "转发类型"
+
+msgid "GPU Load"
+msgstr "显卡负载"
+
+msgid "GPU unavailable"
+msgstr "GPU 不可用"
+
 msgid "Ghostty Developers"
 msgstr "Ghostty 开发团队"
+
+msgid "Ghostty: Terminal Inspector"
+msgstr "Ghostty 终端调试器"
+
+msgid "Go to Install"
+msgstr "前往安装"
+
+msgid "Group"
+msgstr "分组"
+
+msgid "Heartbeat (ms)"
+msgstr "心跳时间 (ms)"
+
+msgid "Heartbeat will use SSH ServerAliveInterval, sending a keepalive every %d seconds."
+msgstr "心跳将使用 SSH 的 ServerAliveInterval 选项，每 %d 秒发送一次保活包"
+
+msgid "Hide Hidden Items"
+msgstr "隐藏隐藏内容"
+
+msgid "Hide Password"
+msgstr "隐藏密码"
+
+msgid "IP Address"
+msgstr "IP 地址"
+
+msgid "Ignore"
+msgstr "忽略"
+
+msgid "Invalid SSH connection"
+msgstr "无效的 SSH 连接"
+
+msgid "Invalid port number"
+msgstr "端口号无效"
+
+msgid "Items"
+msgstr "项目"
+
+msgid "Jump Host"
+msgstr "跳板主机"
+
+msgid "Key"
+msgstr "密钥登录"
+
+msgid "Key Authentication"
+msgstr "密钥认证"
+
+msgid "Key File"
+msgstr "密钥文件"
+
+msgid "Key file does not exist: "
+msgstr "密钥文件不存在："
+
+msgid "Key file does not exist: %@"
+msgstr "密钥文件不存在：%@"
+
+msgid "Leave blank to restore the default title."
+msgstr "留空以重置至默认标题。"
+
+msgid "Listen for SOCKS5 proxy on this port at 127.0.0.1"
+msgstr "在本机 127.0.0.1 上监听 SOCKS5 代理端口"
+
+msgid "Listen on a local HTTP/SOCKS proxy port and reach targets through the SSH host"
+msgstr "在本机监听 HTTP/SOCKS 代理端口，并通过 SSH 主机访问目标地址"
+
+msgid "Listen on this port at 127.0.0.1"
+msgstr "在本机 127.0.0.1 上监听此端口"
+
+msgid "Local Forward (-L)"
+msgstr "本地转发 (-L)"
+
+msgid "Local Listen Port"
+msgstr "本地监听端口"
+
+msgid "Local Proxy Port"
+msgstr "本地代理端口"
+
+msgid "Local Service Port"
+msgstr "本机服务端口"
+
+msgid "Local process exit code "
+msgstr "本地进程退出码 "
+
+msgid "Local process exit code %d"
+msgstr "本地进程退出码 %d"
+
+msgid "Local service port; traffic from the SSH host will be forwarded here"
+msgstr "本机上运行的服务端口，流量将从 SSH 主机转发到此端口"
+
+msgid "Main Menu"
+msgstr "主菜单"
+
+msgid "Map a remote service reachable by the SSH host to a local port"
+msgstr "将 SSH 主机可达的远端服务映射到本机端口"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "New %@ Session"
+msgstr "新建%@会话"
+
+msgid "New Category"
+msgstr "新增分类"
+
+msgid "New Group"
+msgstr "新建分组"
+
+msgid "New Local Terminal"
+msgstr "新建本地终端"
+
+msgid "New SSH Connection"
+msgstr "新建 SSH 连接"
+
+msgid "New Snippet"
+msgstr "新增代码片段"
+
+msgid "New Split"
+msgstr "新建分屏"
+
+msgid "New Tab"
+msgstr "新建标签页"
+
+msgid "New Window"
+msgstr "新建窗口"
+
+msgid "New tmux Session"
+msgstr "新建tmux会话"
+
+msgid "New zellij Session"
+msgstr "新建zellij会话"
+
+msgid "Next Match"
+msgstr "下一个匹配项"
+
+msgid "No Sessions"
+msgstr "暂无会话"
+
+msgid "No Snippets"
+msgstr "暂无代码片段"
+
+msgid "No Transfer Tasks"
+msgstr "暂无传输任务"
+
+msgid "No jump hosts available. Create another SSH connection first."
+msgstr "暂无可用跳板主机，请先创建其他 SSH 连接"
+
+msgid "No key file selected"
+msgstr "未选择密钥文件"
+
+msgid "No key specified; testing network connectivity only"
+msgstr "密钥为空，仅测试网络连通性"
+
+msgid "No key specified; using BatchMode for connectivity test"
+msgstr "未指定密钥，使用 BatchMode 进行连通性测试"
+
+msgid "No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work."
+msgstr "未检测到本地 X server。macOS 上请先安装并启动 XQuartz，否则 X11 转发不会生效。"
+
+msgid "No port forwarding rules"
+msgstr "暂无端口转发规则"
+
+msgid "Notes"
+msgstr "备注"
+
+msgid "Notify on Next Command Finish"
+msgstr "下条命令完成时发出提醒"
+
+msgid "OK"
+msgstr "确定"
+
+msgid "Oh, no."
+msgstr "糟糕。"
+
+msgid "Open Configuration"
+msgstr "打开配置文件"
+
+msgid "Open in Ghostty"
+msgstr "在 Ghostty 中打开"
+
+msgid "Parent"
+msgstr "上级"
+
+msgid "Password"
+msgstr "密码登录"
+
+msgid "Password (optional)"
+msgstr "密码（可选）"
+
+msgid "Password empty; testing network connectivity only"
+msgstr "密码为空，仅测试网络连通性"
+
+msgid "Password empty; using BatchMode for connectivity test"
+msgstr "密码为空，使用 BatchMode 进行连通性测试"
+
+msgid "Password is empty"
+msgstr "密码为空"
+
+msgid "Paste"
+msgstr "粘贴"
+
+msgid "Pause"
+msgstr "暂停"
+
+msgid "Paused"
+msgstr "已暂停"
+
+msgid "Pending"
+msgstr "等待中"
+
+msgid "Please install tmux or zellij"
+msgstr "请安装 tmux 或 zellij"
+
+msgid "Please select a jump host"
+msgstr "请选择跳板主机"
+
+msgid "Please select a local SSH private key file (e.g. ~/.ssh/id_rsa)"
+msgstr "请选择本地 SSH 私钥文件（如 ~/.ssh/id_rsa）"
+
+msgid "Port"
+msgstr "端口"
+
+msgid "Port "
+msgstr "端口 "
+
+msgid "Port %d is already in use"
+msgstr "端口 %d 已被占用"
+
+msgid "Port Forward"
+msgstr "端口转发"
+
+msgid "Port Forward Configuration"
+msgstr "端口转发配置"
+
+msgid "Press any key to reconnect"
+msgstr "按任意键进行重连"
+
+msgid "Previous Match"
+msgstr "上一个匹配项"
+
+msgid "Process: "
+msgstr "进程: "
+
+msgid ""
+"Process: %@ (PID %d)"
+"Terminate this process and start port forwarding?"
+msgstr ""
+"进程: %@ (PID %d)"
+"是否结束该进程并启动端口转发？"
+
+msgid "Proxy Protocol"
+msgstr "代理协议"
+
+msgid "Python Script"
+msgstr "Python 脚本"
+
+msgid "Quit"
+msgstr "退出"
+
+msgid "Quit Ghostty?"
+msgstr "退出 Ghostty 吗？"
+
+msgid "Read-only"
+msgstr "只读"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Reload Configuration"
+msgstr "重新加载配置"
+
+msgid "Reload configuration to show this prompt again"
+msgstr "本提示将在重载配置后再次出现"
+
+msgid "Reloaded the configuration"
+msgstr "已重新加载配置"
+
+msgid "Remember choice for this split"
+msgstr "为本分屏记住当前选择"
+
+msgid "Remote Forward (-R)"
+msgstr "远程转发 (-R)"
+
+msgid "Remote Host"
+msgstr "远端主机"
+
+msgid "Remote Port"
+msgstr "远端端口"
+
+msgid "Remote host reachable from the SSH host (use localhost for the SSH host itself)"
+msgstr "远端主机相对于 SSH 主机可达（填 localhost 表示 SSH 主机自身）"
+
+msgid "Rename"
+msgstr "重命名"
+
+msgid "Rename %@"
+msgstr "重命名"
+
+msgid "Rename Category"
+msgstr "修改分类名称"
+
+msgid "Rename Directory"
+msgstr "重命名目录"
+
+msgid "Rename File"
+msgstr "重命名文件"
+
+msgid "Reset"
+msgstr "重置终端"
+
+msgid "Resume"
+msgstr "恢复"
+
+msgid "Rule"
+msgstr "规则"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "SSH Host (Jump)"
+msgstr "SSH 主机（跳板机）"
+
+msgid "SSH Host Listen Port"
+msgstr "SSH 主机监听端口"
+
+msgid "SSH Jump Host"
+msgstr "SSH 跳板"
+
+msgid "SSH control channel not created"
+msgstr "SSH 控制通道未创建"
+
+msgid "SSH host will listen on 0.0.0.0 and forward to this machine"
+msgstr "SSH 主机将在 0.0.0.0 上监听并转发到本机"
+
+msgid "SSH process exit code "
+msgstr "SSH 进程退出码 "
+
+msgid "SSH process exit code %d"
+msgstr "SSH 进程退出码 %d"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Search by keyword"
+msgstr "按关键字搜索"
+
+msgid "Select Host"
+msgstr "选择主机"
+
+msgid "Select SSH Private Key"
+msgstr "选择 SSH 私钥文件"
+
+msgid "Session Reuse"
+msgstr "会话复用"
+
+msgid "Session name"
+msgstr "会话名称"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Shell Script"
+msgstr "Shell 脚本"
+
+msgid "Show Hidden Items"
+msgstr "显示隐藏内容"
+
+msgid "Show Password"
+msgstr "显示密码"
+
+msgid "Split"
+msgstr "分屏"
+
+msgid "Split Down"
+msgstr "向下分屏"
+
+msgid "Split Left"
+msgstr "向左分屏"
+
+msgid "Split Right"
+msgstr "向右分屏"
+
+msgid "Split Up"
+msgstr "向上分屏"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Subclass must implement sshInvocation"
+msgstr "子类必须实现 sshInvocation"
+
+msgid "System Monitor"
+msgstr "系统监控"
+
+msgid "System Monitor requires xtop to be installed"
+msgstr "系统监控需要安装 xtop 才能使用"
+
+msgid "System ssh command not found"
+msgstr "未找到系统 ssh 命令"
+
+msgid "Tab"
+msgstr "标签页"
+
+msgid "Terminal Encoding"
+msgstr "终端显示编码"
+
+msgid "Terminal Inspector"
+msgstr "终端调试器"
+
+msgid "Terminate "
+msgstr "结束 "
+
+msgid "Terminate this process and start port forwarding?"
+msgstr "是否结束该进程并启动端口转发？"
+
+msgid "Test Connection"
+msgstr "测试连接"
+
+msgid "Testing, please wait..."
+msgstr "正在测试，请稍候..."
+
+msgid "Testing..."
+msgstr "测试中..."
+
+msgid "The currently running process in this split will be terminated."
+msgstr "分屏内正在运行中的进程将被终止。"
+
+msgid "Timeout (ms)"
+msgstr "超时时间 (ms)"
+
+msgid "Transfer Tasks"
+msgstr "传输任务"
+
+msgid "Transfer failed: "
+msgstr "传输失败: "
+
+msgid "Transfer failed: %@"
+msgstr "传输失败: %@"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Unable to acquire an OpenGL context for rendering."
+msgstr "未能获取可用于渲染的 OpenGL 环境。"
+
+msgid "Unable to terminate process"
+msgstr "无法结束进程"
+
+msgid "Ungrouped"
+msgstr "未分组"
+
+msgid "Unknown Host"
+msgstr "未知主机"
+
+msgid "Unknown Process"
+msgstr "未知进程"
+
+msgid "Unsupported authentication method"
+msgstr "不支持的认证方式"
+
+msgid "Upload File"
+msgstr "上传文件"
+
+msgid "Upload Folder"
+msgstr "上传文件夹"
+
+msgid "Upload tasks: %d, Download tasks: %d"
+msgstr "上传任务: %d 个，下载任务: %d 个"
+
+msgid "Use this password to log in automatically"
+msgstr "使用此密码自动登录"
+
+msgid "Username (optional)"
+msgstr "用户名（可选）"
+
+msgid "Using expect to auto-enter password for authentication test"
+msgstr "使用 expect 自动输入密码进行认证测试"
+
+msgid "Using jump host: "
+msgstr "使用跳板机："
+
+msgid "Using jump host: %@ (%@)"
+msgstr "使用跳板机：%@ (%@)"
+
+msgid "Using key authentication: "
+msgstr "使用密钥认证："
+
+msgid "Using key authentication: %@"
+msgstr "使用密钥认证：%@"
+
+msgid "VRAM Usage"
+msgstr "显存占用"
+
+msgid "View Log"
+msgstr "查看日志"
+
+msgid "View Open Tabs"
+msgstr "浏览标签页"
+
+msgid "Waiting for data…"
+msgstr "等待数据…"
+
+msgid "Warning: Potentially Unsafe Paste"
+msgstr "警告：粘贴内容可能不安全"
+
+msgid "Window"
+msgstr "窗口"
+
+msgid "e.g. 192.168.1.10 or server.com"
+msgstr "例如: 192.168.1.10 或 server.com"
+
+msgid "e.g. Access remote MySQL"
+msgstr "例如：访问远程 MySQL"
+
+msgid "e.g. Clear Logs"
+msgstr "例如：清理日志"
+
+msgid "e.g. Production Web 01"
+msgstr "例如: Production Web 01"
+
+msgid "e.g. root"
+msgstr "例如: root"
+
+msgid "expect not found; cannot test password login"
+msgstr "未找到 expect，无法测试密码登录"
+
+msgid "rsync exit code "
+msgstr "rsync 退出码 "
+
+msgid "rsync exit code %d"
+msgstr "rsync 退出码 %d"
+
+msgid "xtop not detected"
+msgstr "未检测到 xtop"

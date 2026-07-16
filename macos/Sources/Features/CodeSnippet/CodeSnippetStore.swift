@@ -11,8 +11,8 @@ enum CodeSnippetType: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .shell: return "Shell 脚本"
-        case .python: return "Python 脚本"
+        case .shell: return "Shell Script".localized
+        case .python: return "Python Script".localized
         }
     }
 }
@@ -53,7 +53,7 @@ final class CodeSnippetStore: ObservableObject {
     }
 
     var defaultCategory: CodeSnippetCategory {
-        categories.first { $0.name == "默认" } ?? CodeSnippetCategory(name: "默认")
+        categories.first { $0.name == "Default".localized } ?? CodeSnippetCategory(name: "Default".localized)
     }
 
     // MARK: - 分类 CRUD
@@ -124,8 +124,8 @@ final class CodeSnippetStore: ObservableObject {
     }
 
     private func ensureDefaultCategory() {
-        if !categories.contains(where: { $0.name == "默认" }) {
-            categories.insert(CodeSnippetCategory(name: "默认"), at: 0)
+        if !categories.contains(where: { $0.name == "Default".localized }) {
+            categories.insert(CodeSnippetCategory(name: "Default".localized), at: 0)
             save()
         }
     }

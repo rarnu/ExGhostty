@@ -128,7 +128,7 @@ struct SSHConfigFormView: View {
 
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            requiredLabel("名称")
+            requiredLabel("Name".localized)
 
             HStack(spacing: 8) {
                 Image(systemName: "server.rack")
@@ -138,7 +138,7 @@ struct SSHConfigFormView: View {
                     .background(Color(.controlBackgroundColor))
                     .cornerRadius(6)
 
-                TextField("例如: Production Web 01", text: $name)
+                TextField("e.g. Production Web 01".localized, text: $name)
                     .textFieldStyle(.plain)
             }
             .padding(.horizontal, 8)
@@ -153,8 +153,8 @@ struct SSHConfigFormView: View {
     private var hostSection: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                requiredLabel("IP 地址")
-                TextField("例如: 192.168.1.10 或 server.com", text: $host)
+                requiredLabel("IP Address".localized)
+                TextField("e.g. 192.168.1.10 or server.com".localized, text: $host)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -163,7 +163,7 @@ struct SSHConfigFormView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                label("端口")
+                label("Port".localized)
                 TextField("22", text: $port)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
@@ -179,18 +179,18 @@ struct SSHConfigFormView: View {
 
     private var authSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            label("认证方式")
+            label("Authentication".localized)
 
             Picker("", selection: $authMode) {
-                Text("密码登录").tag(SSHAuthMode.password)
-                Text("密钥登录").tag(SSHAuthMode.key)
+                Text("Password".localized).tag(SSHAuthMode.password)
+                Text("Key".localized).tag(SSHAuthMode.key)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
 
             VStack(alignment: .leading, spacing: 6) {
-                label("用户名（可选）")
-                TextField("例如: root", text: $username)
+                label("Username (optional)".localized)
+                TextField("e.g. root".localized, text: $username)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -200,13 +200,13 @@ struct SSHConfigFormView: View {
 
             if authMode == .password {
                 VStack(alignment: .leading, spacing: 6) {
-                    label("密码（可选）")
+                    label("Password (optional)".localized)
                     HStack(spacing: 4) {
                         if isPasswordVisible {
-                            TextField("使用此密码自动登录", text: $password)
+                            TextField("Use this password to log in automatically".localized, text: $password)
                                 .textFieldStyle(.plain)
                         } else {
-                            SecureField("使用此密码自动登录", text: $password)
+                            SecureField("Use this password to log in automatically".localized, text: $password)
                                 .textFieldStyle(.plain)
                         }
 
@@ -216,7 +216,7 @@ struct SSHConfigFormView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
-                        .help(isPasswordVisible ? "隐藏密码" : "显示密码")
+                        .help(isPasswordVisible ? "Hide Password".localized : "Show Password".localized)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -225,16 +225,16 @@ struct SSHConfigFormView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    label("密钥文件")
+                    label("Key File".localized)
                     HStack(spacing: 8) {
-                        Text(keyPath.isEmpty ? "未选择密钥文件" : keyPath)
+                        Text(keyPath.isEmpty ? "No key file selected".localized : keyPath)
                             .font(.system(size: 12))
                             .foregroundColor(keyPath.isEmpty ? .secondary : .primary)
                             .lineLimit(1)
 
                         Spacer()
 
-                        Button("选择文件") {
+                        Button("Choose File".localized) {
                             selectKeyFile()
                         }
                         .buttonStyle(.plain)
@@ -246,7 +246,7 @@ struct SSHConfigFormView: View {
                     .cornerRadius(8)
 
                     if keyPath.isEmpty {
-                        Text("请选择本地 SSH 私钥文件（如 ~/.ssh/id_rsa）")
+                        Text("Please select a local SSH private key file (e.g. ~/.ssh/id_rsa)".localized)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
@@ -259,9 +259,9 @@ struct SSHConfigFormView: View {
 
     private var groupSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            label("分组")
+            label("Group".localized)
             Menu {
-                Button("未分组") { groupID = nil }
+                Button("Ungrouped".localized) { groupID = nil }
                 ForEach(sshStore.groups) { group in
                     Button(group.name) { groupID = group.id }
                 }
@@ -290,7 +290,7 @@ struct SSHConfigFormView: View {
 
     private var groupTitle: String {
         guard let id = groupID, let group = sshStore.groups.first(where: { $0.id == id }) else {
-            return "未分组"
+            return "Ungrouped".localized
         }
         return group.name
     }
@@ -299,10 +299,10 @@ struct SSHConfigFormView: View {
 
     private var connectionMethodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            label("连接方式")
+            label("Connection Method".localized)
             Picker("", selection: $connectionMethod) {
-                Text("直接连接").tag(SSHConnectionMethod.direct)
-                Text("SSH 跳板").tag(SSHConnectionMethod.jumpHost)
+                Text("Direct".localized).tag(SSHConnectionMethod.direct)
+                Text("SSH Jump Host".localized).tag(SSHConnectionMethod.jumpHost)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -315,9 +315,9 @@ struct SSHConfigFormView: View {
 
     private var jumpHostPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
-            label("跳板主机")
+            label("Jump Host".localized)
             Menu {
-                Button("请选择跳板主机") { jumpHostID = nil }
+                Button("Please select a jump host".localized) { jumpHostID = nil }
                 ForEach(availableJumpHosts) { conn in
                     Button("\(conn.name) (\(conn.host):\(conn.port))") { jumpHostID = conn.id }
                 }
@@ -346,7 +346,7 @@ struct SSHConfigFormView: View {
             .id(jumpHostMenuID)
 
             if availableJumpHosts.isEmpty {
-                Text("暂无可用跳板主机，请先创建其他 SSH 连接")
+                Text("No jump hosts available. Create another SSH connection first.".localized)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
@@ -355,7 +355,7 @@ struct SSHConfigFormView: View {
 
     private var jumpHostTitle: String {
         guard let id = jumpHostID, let conn = availableJumpHosts.first(where: { $0.id == id }) else {
-            return "请选择跳板主机"
+            return "Please select a jump host".localized
         }
         return "\(conn.name) (\(conn.host):\(conn.port))"
     }
@@ -391,7 +391,7 @@ struct SSHConfigFormView: View {
 
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            label("备注")
+            label("Notes".localized)
             TextEditor(text: $notes)
                 .font(.system(size: 12))
                 .scrollContentBackground(.hidden)
@@ -409,13 +409,13 @@ struct SSHConfigFormView: View {
             content: {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 12) {
-                        numberField("超时时间 (ms)", value: $timeoutMs)
-                        numberField("心跳时间 (ms)", value: $heartbeatMs)
+                        numberField("Timeout (ms)".localized, value: $timeoutMs)
+                        numberField("Heartbeat (ms)".localized, value: $heartbeatMs)
                     }
 
                     encodingPicker
 
-                    Toggle("启用 X11 转发", isOn: $x11Forwarding)
+                    Toggle("Enable X11 Forwarding".localized, isOn: $x11Forwarding)
                         .font(.system(size: 12))
 
                     if x11Forwarding && !SSHX11Environment.isAvailable {
@@ -423,7 +423,7 @@ struct SSHConfigFormView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
                                 .font(.system(size: 12))
-                            Text("未检测到本地 X server。macOS 上请先安装并启动 XQuartz，否则 X11 转发不会生效。")
+                            Text("No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work.".localized)
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -434,7 +434,7 @@ struct SSHConfigFormView: View {
                     }
 
                     if heartbeatMs != "0" && (Int(heartbeatMs) ?? 0) > 0 {
-                        Text("心跳将使用 SSH 的 ServerAliveInterval 选项，每 \(max(1, (Int(heartbeatMs) ?? 0) / 1000)) 秒发送一次保活包")
+                        Text(L("Heartbeat will use SSH ServerAliveInterval, sending a keepalive every %d seconds.", max(1, (Int(heartbeatMs) ?? 0) / 1000)))
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
@@ -443,7 +443,7 @@ struct SSHConfigFormView: View {
             },
             label: {
                 HStack {
-                    Text("高级设置")
+                    Text("Advanced".localized)
                         .font(.system(size: 13, weight: .medium))
                     Spacer()
                 }
@@ -459,7 +459,7 @@ struct SSHConfigFormView: View {
 
     private var encodingPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
-            label("终端显示编码")
+            label("Terminal Encoding".localized)
             Menu {
                 ForEach(SSHTerminalEncoding.allCases, id: \.self) { enc in
                     Button(enc.displayName) { encoding = enc.rawValue }
@@ -513,7 +513,7 @@ struct SSHConfigFormView: View {
 
     private var bottomBar: some View {
         HStack {
-            Button(isTesting ? "测试中..." : "测试连接") {
+            Button(isTesting ? "Testing...".localized : "Test Connection".localized) {
                 testConnection()
             }
             .buttonStyle(.bordered)
@@ -522,22 +522,22 @@ struct SSHConfigFormView: View {
             if case .success = testResult {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
-                    .help("连接测试通过")
+                    .help("Connection test passed".localized)
             } else if case .failure = testResult {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
-                    .help("连接测试失败")
+                    .help("Connection test failed".localized)
             }
 
             Spacer()
 
-            Button("取消") {
+            Button("Cancel".localized) {
                 onDismiss()
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
 
-            Button("确定") {
+            Button("OK".localized) {
                 save()
             }
             .buttonStyle(.borderedProminent)
@@ -583,7 +583,7 @@ struct SSHConfigFormView: View {
 
     private func selectKeyFile() {
         let panel = NSOpenPanel()
-        panel.title = "选择 SSH 私钥文件"
+        panel.title = "Select SSH Private Key".localized
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
@@ -624,7 +624,7 @@ struct SSHConfigFormView: View {
         vc.view = hostView
 
         let sheet = NSWindow(contentViewController: vc)
-        sheet.title = "测试连接详情"
+        sheet.title = "Connection Test Details".localized
         sheet.styleMask = [.titled, .closable]
         sheet.titlebarAppearsTransparent = true
         sheet.titleVisibility = .hidden

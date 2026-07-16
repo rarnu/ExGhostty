@@ -17,332 +17,915 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: dist/linux/ghostty_nautilus.py:53
-msgid "Open in Ghostty"
-msgstr "在 Ghostty 中開啟"
+msgid "AI Assistant"
+msgstr "AI 助手"
 
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:12
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:12
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:197
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:201
-msgid "Authorize Clipboard Access"
-msgstr "授權存取剪貼簿"
-
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:17
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:17
-msgid "Deny"
-msgstr "拒絕"
-
-#: src/apprt/gtk/ui/1.0/clipboard-confirmation-dialog.blp:18
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:18
-msgid "Allow"
-msgstr "允許"
-
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:92
-msgid "Remember choice for this split"
-msgstr "記住此窗格的選擇"
-
-#: src/apprt/gtk/ui/1.4/clipboard-confirmation-dialog.blp:93
-msgid "Reload configuration to show this prompt again"
-msgstr "重新載入設定以再次顯示此提示"
-
-#: src/apprt/gtk/ui/1.2/close-confirmation-dialog.blp:7
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:8
-msgid "Cancel"
-msgstr "取消"
-
-#: src/apprt/gtk/ui/1.2/close-confirmation-dialog.blp:8
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:85
-#: src/apprt/gtk/ui/1.3/surface-child-exited.blp:17
-msgid "Close"
-msgstr "關閉"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:6
-msgid "Configuration Errors"
-msgstr "設定錯誤"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:7
-msgid ""
-"One or more configuration errors were found. Please review the errors below, "
-"and either reload your configuration or ignore these errors."
-msgstr "發現有設定錯誤。請檢視以下錯誤，並重新載入設定或忽略這些錯誤。"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:10
-msgid "Ignore"
-msgstr "忽略"
-
-#: src/apprt/gtk/ui/1.2/config-errors-dialog.blp:11
-#: src/apprt/gtk/ui/1.2/surface.blp:371 src/apprt/gtk/ui/1.5/window.blp:300
-msgid "Reload Configuration"
-msgstr "重新載入設定"
-
-#: src/apprt/gtk/ui/1.2/debug-warning.blp:7
-#: src/apprt/gtk/ui/1.3/debug-warning.blp:6
-msgid ""
-"⚠️ You're running a debug build of Ghostty! Performance will be degraded."
-msgstr "⚠️ 您正在執行 Ghostty 的除錯版本！程式運作效能將會受到影響。"
-
-#: src/apprt/gtk/ui/1.5/inspector-window.blp:5
-msgid "Ghostty: Terminal Inspector"
-msgstr "Ghostty：終端機檢查工具"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:29
-msgid "Find…"
-msgstr "尋找…"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:64
-msgid "Previous Match"
-msgstr "上一筆符合"
-
-#: src/apprt/gtk/ui/1.2/search-overlay.blp:74
-msgid "Next Match"
-msgstr "下一筆符合"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:6
-msgid "Oh, no."
-msgstr "噢不。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:7
-msgid "Unable to acquire an OpenGL context for rendering."
-msgstr "無法取得用於算繪的 OpenGL 上下文。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:97
-msgid ""
-"This terminal is in read-only mode. You can still view, select, and scroll "
-"through the content, but no input events will be sent to the running "
-"application."
-msgstr ""
-"本終端機目前處於唯讀模式。您仍可查看、選取及捲動內容，但不會傳送任何輸入事件"
-"至執行中的應用程式。"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:107
-msgid "Read-only"
-msgstr "唯讀"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:260 src/apprt/gtk/ui/1.5/window.blp:200
-msgid "Copy"
-msgstr "複製"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:265 src/apprt/gtk/ui/1.5/window.blp:205
-msgid "Paste"
-msgstr "貼上"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:270
-msgid "Notify on Next Command Finish"
-msgstr "下個命令完成時通知"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:277 src/apprt/gtk/ui/1.5/window.blp:273
-msgid "Clear"
-msgstr "清除"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:282 src/apprt/gtk/ui/1.5/window.blp:278
-msgid "Reset"
-msgstr "重設"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:289 src/apprt/gtk/ui/1.5/window.blp:242
-msgid "Split"
-msgstr "分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:292 src/apprt/gtk/ui/1.5/window.blp:245
-msgid "Change Title…"
-msgstr "變更標題…"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:297 src/apprt/gtk/ui/1.5/window.blp:177
-#: src/apprt/gtk/ui/1.5/window.blp:250
-msgid "Split Up"
-msgstr "向上分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:303 src/apprt/gtk/ui/1.5/window.blp:182
-#: src/apprt/gtk/ui/1.5/window.blp:255
-msgid "Split Down"
-msgstr "向下分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:309 src/apprt/gtk/ui/1.5/window.blp:187
-#: src/apprt/gtk/ui/1.5/window.blp:260
-msgid "Split Left"
-msgstr "向左分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:315 src/apprt/gtk/ui/1.5/window.blp:192
-#: src/apprt/gtk/ui/1.5/window.blp:265
-msgid "Split Right"
-msgstr "向右分割"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:321
-msgid "Close Split"
-msgstr ""
-
-#: src/apprt/gtk/ui/1.2/surface.blp:327
-msgid "Tab"
-msgstr "分頁"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:330 src/apprt/gtk/ui/1.5/window.blp:224
-#: src/apprt/gtk/ui/1.5/window.blp:320
-msgid "Change Tab Title…"
-msgstr "變更分頁標題…"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:335 src/apprt/gtk/ui/1.5/window.blp:57
-#: src/apprt/gtk/ui/1.5/window.blp:107 src/apprt/gtk/ui/1.5/window.blp:229
-msgid "New Tab"
-msgstr "開新分頁"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:340 src/apprt/gtk/ui/1.5/window.blp:234
-msgid "Close Tab"
-msgstr "關閉分頁"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:347
-msgid "Window"
-msgstr "視窗"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:350 src/apprt/gtk/ui/1.5/window.blp:212
-msgid "New Window"
-msgstr "開新視窗"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:355 src/apprt/gtk/ui/1.5/window.blp:217
-msgid "Close Window"
-msgstr "關閉視窗"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:363
-msgid "Config"
-msgstr "設定"
-
-#: src/apprt/gtk/ui/1.2/surface.blp:366 src/apprt/gtk/ui/1.5/window.blp:295
-msgid "Open Configuration"
-msgstr "開啟設定"
-
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:5
-msgid "Leave blank to restore the default title."
-msgstr "留空即可還原為預設標題。"
-
-#: src/apprt/gtk/ui/1.5/title-dialog.blp:9
-msgid "OK"
-msgstr "確定"
-
-#: src/apprt/gtk/ui/1.5/window.blp:58 src/apprt/gtk/ui/1.5/window.blp:108
-msgid "New Split"
-msgstr "新增窗格"
-
-#: src/apprt/gtk/ui/1.5/window.blp:68 src/apprt/gtk/ui/1.5/window.blp:126
-msgid "View Open Tabs"
-msgstr "檢視已開啟的分頁"
-
-#: src/apprt/gtk/ui/1.5/window.blp:78 src/apprt/gtk/ui/1.5/window.blp:140
-msgid "Main Menu"
-msgstr "主選單"
-
-#: src/apprt/gtk/ui/1.5/window.blp:285
-msgid "Command Palette"
-msgstr "命令面板"
-
-#: src/apprt/gtk/ui/1.5/window.blp:290
-msgid "Terminal Inspector"
-msgstr "終端機檢查工具"
-
-#: src/apprt/gtk/ui/1.5/window.blp:307 src/apprt/gtk/class/window.zig:1772
 msgid "About Ghostty"
 msgstr "關於 Ghostty"
 
-#: src/apprt/gtk/ui/1.5/window.blp:312
-msgid "Quit"
-msgstr "結束"
+msgid "Advanced"
+msgstr "進階設定"
 
-#: src/apprt/gtk/ui/1.5/command-palette.blp:17
-msgid "Execute a command…"
-msgstr "執行命令…"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:198
-msgid ""
-"An application is attempting to write to the clipboard. The current "
-"clipboard contents are shown below."
-msgstr "有應用程式正嘗試寫入剪貼簿，目前的剪貼簿內容顯示如下。"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:202
-msgid ""
-"An application is attempting to read from the clipboard. The current "
-"clipboard contents are shown below."
-msgstr "有應用程式正嘗試讀取剪貼簿，目前的剪貼簿內容顯示如下。"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:205
-msgid "Warning: Potentially Unsafe Paste"
-msgstr "警告：可能有潛在安全風險的貼上操作"
-
-#: src/apprt/gtk/class/clipboard_confirmation_dialog.zig:206
-msgid ""
-"Pasting this text into the terminal may be dangerous as it looks like some "
-"commands may be executed."
-msgstr "將這段文字貼到終端機具有潛在風險，因為它看起來像是可能會被執行的命令。"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:184
-msgid "Quit Ghostty?"
-msgstr "要結束 Ghostty 嗎？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:185
-msgid "Close Tab?"
-msgstr "是否要關閉分頁？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:186
-msgid "Close Window?"
-msgstr "是否要關閉視窗？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:187
-msgid "Close Split?"
-msgstr "是否要關閉窗格？"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:193
-msgid "All terminal sessions will be terminated."
-msgstr "所有終端機工作階段都將被終止。"
-
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:194
 msgid "All terminal sessions in this tab will be terminated."
 msgstr "此分頁中的所有終端機工作階段都將被終止。"
 
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:195
 msgid "All terminal sessions in this window will be terminated."
 msgstr "此視窗中的所有終端機工作階段都將被終止。"
 
-#: src/apprt/gtk/class/close_confirmation_dialog.zig:196
-msgid "The currently running process in this split will be terminated."
-msgstr "此窗格中目前執行的處理程序將被終止。"
+msgid "All terminal sessions will be terminated."
+msgstr "所有終端機工作階段都將被終止。"
 
-#: src/apprt/gtk/class/surface.zig:1141
-msgid "Command Finished"
-msgstr "命令執行完成"
+msgid "Allow"
+msgstr "允許"
 
-#: src/apprt/gtk/class/surface.zig:1142
-msgid "Command Succeeded"
-msgstr "命令執行成功"
+msgid "Are you sure you want to delete \"%@\"? This action cannot be undone."
+msgstr "確定要刪除 \"%@\" 嗎？此操作無法撤銷。"
 
-#: src/apprt/gtk/class/surface.zig:1143
-msgid "Command Failed"
-msgstr "命令執行失敗"
+msgid "Are you sure you want to delete category \"%@\"? Snippets in this category will be moved to Default."
+msgstr "確定要刪除分類 \"%@\" 嗎？該分類下的程式碼片段將移動到預設分類。"
 
-#: src/apprt/gtk/class/surface_child_exited.zig:109
-msgid "Command succeeded"
-msgstr "命令執行成功"
+msgid "Are you sure you want to delete directory \"%@\"? This action cannot be undone."
+msgstr "確定要刪除目錄 \"%@\" 嗎？此操作不可撤銷。"
 
-#: src/apprt/gtk/class/surface_child_exited.zig:113
-msgid "Command failed"
-msgstr "命令執行失敗"
+msgid "Are you sure you want to delete file \"%@\"? This action cannot be undone."
+msgstr "確定要刪除檔案 \"%@\" 嗎？此操作不可撤銷。"
 
-#: src/apprt/gtk/class/title_dialog.zig:225
-msgid "Change Terminal Title"
-msgstr "變更終端機標題"
+msgid "Are you sure you want to delete group \"%@\"? Connections in this group will be moved to Ungrouped."
+msgstr "確定要刪除群組 \"%@\" 嗎？該群組下的連線將移動到未分組。"
 
-#: src/apprt/gtk/class/title_dialog.zig:226
+msgid "Are you sure you want to delete port forward rule \"%@\"? This action cannot be undone."
+msgstr "確定要刪除埠轉發規則 \"%@\" 嗎？此操作無法撤銷。"
+
+msgid "Are you sure you want to delete session \"%@\"? This action cannot be undone."
+msgstr "確定要刪除工作階段 \"%@\" 嗎？此操作不可撤銷。"
+
+msgid "Are you sure you want to delete snippet \"%@\"? This action cannot be undone."
+msgstr "確定要刪除程式碼片段 \"%@\" 嗎？此操作不可撤銷。"
+
+msgid "Are you sure you want to delete the following %@? This action cannot be undone."
+msgstr "確定要刪除以下 %@ 嗎？此操作不可撤銷。"
+
+msgid ""
+"Are you sure you want to delete the following %@? This action cannot be undone."
+""
+"%@"
+msgstr ""
+"確定要刪除以下%@嗎？此操作不可撤銷。"
+""
+"%@"
+
+msgid "Authentication"
+msgstr "認證方式"
+
+msgid "Authorize Clipboard Access"
+msgstr "授權存取剪貼簿"
+
+msgid "Building SSH command"
+msgstr "建立 SSH 命令"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Cancelled"
+msgstr "已取消"
+
+msgid "Category"
+msgstr "分類"
+
+msgid "Category name"
+msgstr "分類名稱"
+
 msgid "Change Tab Title"
 msgstr "變更分頁標題"
 
-#: src/apprt/gtk/class/window.zig:1067
-msgid "Reloaded the configuration"
-msgstr "已重新載入設定"
+msgid "Change Tab Title…"
+msgstr "變更分頁標題…"
 
-#: src/apprt/gtk/class/window.zig:1611
-msgid "Copied to clipboard"
-msgstr "已複製到剪貼簿"
+msgid "Change Terminal Title"
+msgstr "變更終端機標題"
 
-#: src/apprt/gtk/class/window.zig:1613
+msgid "Change Title…"
+msgstr "變更標題…"
+
+msgid "Checking system SSH command"
+msgstr "檢查系統 SSH 命令"
+
+msgid "Checking system expect command"
+msgstr "檢查系統 expect 命令"
+
+msgid "Choose File"
+msgstr "選擇檔案"
+
+msgid "Choose a feature"
+msgstr "選擇右側功能"
+
+msgid "Clear"
+msgstr "清除"
+
+msgid "Clear All"
+msgstr "清空全部"
+
+msgid "Clear Log"
+msgstr "清空日誌"
+
+msgid "Clear Search"
+msgstr "清除搜尋"
+
 msgid "Cleared clipboard"
 msgstr "已清除剪貼簿"
 
-#: src/apprt/gtk/class/window.zig:1753
+msgid "Close"
+msgstr "關閉"
+
+msgid "Close Split"
+msgstr ""
+
+msgid "Close Split?"
+msgstr "是否要關閉窗格？"
+
+msgid "Close Tab"
+msgstr "關閉分頁"
+
+msgid "Close Tab?"
+msgstr "是否要關閉分頁？"
+
+msgid "Close Window"
+msgstr "關閉視窗"
+
+msgid "Close Window?"
+msgstr "是否要關閉視窗？"
+
+msgid "Code"
+msgstr "程式碼內容"
+
+msgid "Code Snippets"
+msgstr "程式碼片段"
+
+msgid "Collapse Sidebar"
+msgstr "收起側邊欄"
+
+msgid "Command Failed"
+msgstr "命令執行失敗"
+
+msgid "Command Finished"
+msgstr "命令執行完成"
+
+msgid "Command Palette"
+msgstr "命令面板"
+
+msgid "Command Succeeded"
+msgstr "命令執行成功"
+
+msgid "Command failed"
+msgstr "命令執行失敗"
+
+msgid "Command not found: "
+msgstr "找不到命令："
+
+msgid "Command not found: %@"
+msgstr "找不到命令：%@"
+
+msgid "Command succeeded"
+msgstr "命令執行成功"
+
+msgid "Completed"
+msgstr "已完成"
+
+msgid "Config"
+msgstr "設定"
+
+msgid "Configuration Errors"
+msgstr "設定錯誤"
+
+msgid "Confirm"
+msgstr "確認"
+
+msgid "Confirm Delete"
+msgstr "確認刪除"
+
+msgid "Confirm deletion of %d %@"
+msgstr "確認刪除 %d 個%@"
+
+msgid "Connect"
+msgstr "連線"
+
+msgid "Connect via SSH first"
+msgstr "請先透過 SSH 連線"
+
+msgid "Connecting directly to target host"
+msgstr "直接連線目標主機"
+
+msgid "Connection Method"
+msgstr "連線方式"
+
+msgid "Connection Test Details"
+msgstr "測試連線詳情"
+
+msgid "Connection test failed"
+msgstr "連線測試失敗"
+
+msgid "Connection test passed"
+msgstr "連線測試通過"
+
+msgid "Connection test passed ("
+msgstr "連線測試通過（"
+
+msgid "Connection test passed (%@)"
+msgstr "連線測試通過（%@）"
+
+msgid "Connection test passed (password authentication)"
+msgstr "連線測試通過（密碼認證）"
+
+msgid "Connection timed out"
+msgstr "連線逾時"
+
+msgid "Connection timed out. Check address, port, and jump host reachability."
+msgstr "連線逾時，請檢查位址、埠及跳板機可達性"
+
+msgid "Copied to clipboard"
+msgstr "已複製到剪貼簿"
+
+msgid "Copy"
+msgstr "複製"
+
+msgid "Copy Error"
+msgstr "複製錯誤資訊"
+
+msgid "Create Host"
+msgstr "建立主機"
+
+msgid "Default"
+msgstr "預設"
+
+msgid "Default (%d)"
+msgstr "預設 (%d)"
+
+msgid "Delete"
+msgstr "刪除"
+
+msgid "Delete %@ Session"
+msgstr "刪除 %@ 工作階段"
+
+msgid "Delete Category"
+msgstr "刪除分類"
+
+msgid "Delete Connection"
+msgstr "刪除連線"
+
+msgid "Delete Group"
+msgstr "刪除群組"
+
+msgid "Delete Port Forward"
+msgstr "刪除埠轉發"
+
+msgid "Delete Snippet"
+msgstr "刪除程式碼片段"
+
+msgid "Delete These Files"
+msgstr "刪除這些檔案"
+
+msgid "Deny"
+msgstr "拒絕"
+
+msgid "Detach from Current Session"
+msgstr "從目前工作階段分離"
+
+msgid "Details"
+msgstr "詳情"
+
+msgid "Direct"
+msgstr "直接連線"
+
+msgid "Download These Files"
+msgstr "下載這些檔案"
+
+msgid "Download This %@"
+msgstr "下載這個%@"
+
+msgid "Download This Directory"
+msgstr "下載這個目錄"
+
+msgid "Download This File"
+msgstr "下載這個檔案"
+
+msgid "Dynamic Forward (-D)"
+msgstr "動態轉發 (-D)"
+
+msgid "Edit"
+msgstr "編輯"
+
+msgid "Edit Category"
+msgstr "修改分類"
+
+msgid "Edit Host"
+msgstr "編輯主機"
+
+msgid "Edit Snippet"
+msgstr "修改程式碼片段"
+
+msgid "Enable X11 Forwarding"
+msgstr "啟用 X11 轉發"
+
+msgid "Enter %@ session name"
+msgstr "輸入 %@ 工作階段名稱"
+
+msgid "Enter category name"
+msgstr "輸入分類名稱"
+
+msgid "Enter new name:"
+msgstr "請輸入新名稱："
+
+msgid "Execute a command…"
+msgstr "執行命令…"
+
+msgid "Executing SSH test connection"
+msgstr "執行 SSH 測試連線"
+
+msgid "Executing expect password auto-entry test"
+msgstr "執行 expect 自動輸入密碼測試"
+
+msgid "Expand Sidebar"
+msgstr "展開側邊欄"
+
+msgid "Expose a local service to the SSH host via a remote port"
+msgstr "將本機服務暴露給 SSH 主機，使其可透過遠端埠存取"
+
+msgid "Failed"
+msgstr "失敗"
+
+msgid "Failed to create password helper script"
+msgstr "密碼助手脚本建立失敗"
+
+msgid "Failed to establish SSH control channel: "
+msgstr "建立 SSH 控制通道失敗："
+
+msgid "Failed to establish SSH control channel: %@"
+msgstr "建立 SSH 控制通道失敗：%@"
+
+msgid "Failed to list directory: "
+msgstr "目錄列表失敗："
+
+msgid "Failed to list directory: %@"
+msgstr "目錄列表失敗：%@"
+
+msgid "Failed to terminate %@ (PID %d). Port forwarding could not start."
+msgstr "結束 %@（PID %d）失敗，埠轉發未能啟動。"
+
+msgid "Failed to write expect script: "
+msgstr "寫入 expect 腳本失敗："
+
+msgid "Failed to write expect script: %@"
+msgstr "寫入 expect 腳本失敗：%@"
+
+msgid "File"
+msgstr "檔案"
+
+msgid "Find…"
+msgstr "尋找…"
+
+msgid "Forward Type"
+msgstr "轉發類型"
+
+msgid "GPU Load"
+msgstr "顯卡負載"
+
+msgid "GPU unavailable"
+msgstr "GPU 不可用"
+
 msgid "Ghostty Developers"
 msgstr "Ghostty 開發者"
+
+msgid "Ghostty: Terminal Inspector"
+msgstr "Ghostty：終端機檢查工具"
+
+msgid "Go to Install"
+msgstr "前往安裝"
+
+msgid "Group"
+msgstr "分組"
+
+msgid "Heartbeat (ms)"
+msgstr "心跳時間 (ms)"
+
+msgid "Heartbeat will use SSH ServerAliveInterval, sending a keepalive every %d seconds."
+msgstr "心跳將使用 SSH 的 ServerAliveInterval 選項，每 %d 秒發送一次保活包"
+
+msgid "Hide Hidden Items"
+msgstr "隱藏隱藏項目"
+
+msgid "Hide Password"
+msgstr "隱藏密碼"
+
+msgid "IP Address"
+msgstr "IP 位址"
+
+msgid "Ignore"
+msgstr "忽略"
+
+msgid "Invalid SSH connection"
+msgstr "無效的 SSH 連線"
+
+msgid "Invalid port number"
+msgstr "埠號無效"
+
+msgid "Items"
+msgstr "項目"
+
+msgid "Jump Host"
+msgstr "跳板主機"
+
+msgid "Key"
+msgstr "金鑰登入"
+
+msgid "Key Authentication"
+msgstr "金鑰認證"
+
+msgid "Key File"
+msgstr "金鑰檔案"
+
+msgid "Key file does not exist: "
+msgstr "金鑰檔案不存在："
+
+msgid "Key file does not exist: %@"
+msgstr "金鑰檔案不存在：%@"
+
+msgid "Leave blank to restore the default title."
+msgstr "留空即可還原為預設標題。"
+
+msgid "Listen for SOCKS5 proxy on this port at 127.0.0.1"
+msgstr "在本機 127.0.0.1 上監聽 SOCKS5 代理埠"
+
+msgid "Listen on a local HTTP/SOCKS proxy port and reach targets through the SSH host"
+msgstr "在本機監聽 HTTP/SOCKS 代理埠，並透過 SSH 主機存取目標位址"
+
+msgid "Listen on this port at 127.0.0.1"
+msgstr "在本機 127.0.0.1 上監聽此埠"
+
+msgid "Local Forward (-L)"
+msgstr "本地轉發 (-L)"
+
+msgid "Local Listen Port"
+msgstr "本地監聽埠"
+
+msgid "Local Proxy Port"
+msgstr "本地代理埠"
+
+msgid "Local Service Port"
+msgstr "本機服務埠"
+
+msgid "Local process exit code "
+msgstr "本機處理程序結束碼 "
+
+msgid "Local process exit code %d"
+msgstr "本機處理程序結束碼 %d"
+
+msgid "Local service port; traffic from the SSH host will be forwarded here"
+msgstr "本機上執行的服務埠，流量將從 SSH 主機轉發到此埠"
+
+msgid "Main Menu"
+msgstr "主選單"
+
+msgid "Map a remote service reachable by the SSH host to a local port"
+msgstr "將 SSH 主機可達的遠端服務對應到本機埠"
+
+msgid "Name"
+msgstr "名稱"
+
+msgid "New %@ Session"
+msgstr "新建 %@ 工作階段"
+
+msgid "New Category"
+msgstr "新增分類"
+
+msgid "New Group"
+msgstr "新建群組"
+
+msgid "New Local Terminal"
+msgstr "新建本機終端機"
+
+msgid "New SSH Connection"
+msgstr "新建 SSH 連線"
+
+msgid "New Snippet"
+msgstr "新增程式碼片段"
+
+msgid "New Split"
+msgstr "新增窗格"
+
+msgid "New Tab"
+msgstr "開新分頁"
+
+msgid "New Window"
+msgstr "開新視窗"
+
+msgid "New tmux Session"
+msgstr "新建 tmux 工作階段"
+
+msgid "New zellij Session"
+msgstr "新建 zellij 工作階段"
+
+msgid "Next Match"
+msgstr "下一筆符合"
+
+msgid "No Sessions"
+msgstr "暫無工作階段"
+
+msgid "No Snippets"
+msgstr "暫無程式碼片段"
+
+msgid "No Transfer Tasks"
+msgstr "暫無傳輸任務"
+
+msgid "No jump hosts available. Create another SSH connection first."
+msgstr "暫無可用跳板主機，請先建立其他 SSH 連線"
+
+msgid "No key file selected"
+msgstr "未選擇金鑰檔案"
+
+msgid "No key specified; testing network connectivity only"
+msgstr "金鑰為空，僅測試網路連通性"
+
+msgid "No key specified; using BatchMode for connectivity test"
+msgstr "未指定金鑰，使用 BatchMode 進行連通性測試"
+
+msgid "No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work."
+msgstr "未偵測到本機 X server。macOS 上請先安裝並啟動 XQuartz，否則 X11 轉發不會生效。"
+
+msgid "No port forwarding rules"
+msgstr "暫無埠轉發規則"
+
+msgid "Notes"
+msgstr "備註"
+
+msgid "Notify on Next Command Finish"
+msgstr "下個命令完成時通知"
+
+msgid "OK"
+msgstr "確定"
+
+msgid "Oh, no."
+msgstr "噢不。"
+
+msgid "Open Configuration"
+msgstr "開啟設定"
+
+msgid "Open in Ghostty"
+msgstr "在 Ghostty 中開啟"
+
+msgid "Parent"
+msgstr "上層"
+
+msgid "Password"
+msgstr "密碼登入"
+
+msgid "Password (optional)"
+msgstr "密碼（可選）"
+
+msgid "Password empty; testing network connectivity only"
+msgstr "密碼為空，僅測試網路連通性"
+
+msgid "Password empty; using BatchMode for connectivity test"
+msgstr "密碼為空，使用 BatchMode 進行連通性測試"
+
+msgid "Password is empty"
+msgstr "密碼為空"
+
+msgid "Paste"
+msgstr "貼上"
+
+msgid "Pause"
+msgstr "暫停"
+
+msgid "Paused"
+msgstr "已暫停"
+
+msgid "Pending"
+msgstr "等待中"
+
+msgid "Please install tmux or zellij"
+msgstr "請安裝 tmux 或 zellij"
+
+msgid "Please select a jump host"
+msgstr "請選擇跳板主機"
+
+msgid "Please select a local SSH private key file (e.g. ~/.ssh/id_rsa)"
+msgstr "請選擇本機 SSH 私鑰檔案（如 ~/.ssh/id_rsa）"
+
+msgid "Port"
+msgstr "埠"
+
+msgid "Port "
+msgstr "埠 "
+
+msgid "Port %d is already in use"
+msgstr "埠 %d 已被佔用"
+
+msgid "Port Forward"
+msgstr "埠轉發"
+
+msgid "Port Forward Configuration"
+msgstr "埠轉發設定"
+
+msgid "Press any key to reconnect"
+msgstr "按任意鍵重新連線"
+
+msgid "Previous Match"
+msgstr "上一筆符合"
+
+msgid "Process: "
+msgstr "處理程序："
+
+msgid ""
+"Process: %@ (PID %d)"
+"Terminate this process and start port forwarding?"
+msgstr ""
+"處理程序：%@（PID %d）"
+"是否結束該處理程序並啟動埠轉發？"
+
+msgid "Proxy Protocol"
+msgstr "代理協定"
+
+msgid "Python Script"
+msgstr "Python 腳本"
+
+msgid "Quit"
+msgstr "結束"
+
+msgid "Quit Ghostty?"
+msgstr "要結束 Ghostty 嗎？"
+
+msgid "Read-only"
+msgstr "唯讀"
+
+msgid "Refresh"
+msgstr "重新整理"
+
+msgid "Reload Configuration"
+msgstr "重新載入設定"
+
+msgid "Reload configuration to show this prompt again"
+msgstr "重新載入設定以再次顯示此提示"
+
+msgid "Reloaded the configuration"
+msgstr "已重新載入設定"
+
+msgid "Remember choice for this split"
+msgstr "記住此窗格的選擇"
+
+msgid "Remote Forward (-R)"
+msgstr "遠端轉發 (-R)"
+
+msgid "Remote Host"
+msgstr "遠端主機"
+
+msgid "Remote Port"
+msgstr "遠端埠"
+
+msgid "Remote host reachable from the SSH host (use localhost for the SSH host itself)"
+msgstr "遠端主機相對於 SSH 主機可達（填 localhost 表示 SSH 主機自身）"
+
+msgid "Rename"
+msgstr "重新命名"
+
+msgid "Rename %@"
+msgstr "重新命名%@"
+
+msgid "Rename Category"
+msgstr "修改分類名稱"
+
+msgid "Rename Directory"
+msgstr "重新命名目錄"
+
+msgid "Rename File"
+msgstr "重新命名檔案"
+
+msgid "Reset"
+msgstr "重設"
+
+msgid "Resume"
+msgstr "恢復"
+
+msgid "Rule"
+msgstr "規則"
+
+msgid "Running"
+msgstr "執行中"
+
+msgid "SSH Host (Jump)"
+msgstr "SSH 主機（跳板機）"
+
+msgid "SSH Host Listen Port"
+msgstr "SSH 主機監聽埠"
+
+msgid "SSH Jump Host"
+msgstr "SSH 跳板"
+
+msgid "SSH control channel not created"
+msgstr "SSH 控制通道未建立"
+
+msgid "SSH host will listen on 0.0.0.0 and forward to this machine"
+msgstr "SSH 主機將在 0.0.0.0 上監聽並轉發到本機"
+
+msgid "SSH process exit code "
+msgstr "SSH 處理程序結束碼 "
+
+msgid "SSH process exit code %d"
+msgstr "SSH 處理程序結束碼 %d"
+
+msgid "Save"
+msgstr "儲存"
+
+msgid "Search by keyword"
+msgstr "按關鍵字搜尋"
+
+msgid "Select Host"
+msgstr "選擇主機"
+
+msgid "Select SSH Private Key"
+msgstr "選擇 SSH 私鑰檔案"
+
+msgid "Session Reuse"
+msgstr "工作階段複用"
+
+msgid "Session name"
+msgstr "工作階段名稱"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Shell Script"
+msgstr "Shell 腳本"
+
+msgid "Show Hidden Items"
+msgstr "顯示隱藏項目"
+
+msgid "Show Password"
+msgstr "顯示密碼"
+
+msgid "Split"
+msgstr "分割"
+
+msgid "Split Down"
+msgstr "向下分割"
+
+msgid "Split Left"
+msgstr "向左分割"
+
+msgid "Split Right"
+msgstr "向右分割"
+
+msgid "Split Up"
+msgstr "向上分割"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Subclass must implement sshInvocation"
+msgstr "子類別必須實作 sshInvocation"
+
+msgid "System Monitor"
+msgstr "系統監控"
+
+msgid "System Monitor requires xtop to be installed"
+msgstr "系統監控需要安裝 xtop 才能使用"
+
+msgid "System ssh command not found"
+msgstr "未找到系統 ssh 命令"
+
+msgid "Tab"
+msgstr "分頁"
+
+msgid "Terminal Encoding"
+msgstr "終端機顯示編碼"
+
+msgid "Terminal Inspector"
+msgstr "終端機檢查工具"
+
+msgid "Terminate "
+msgstr "結束 "
+
+msgid "Terminate this process and start port forwarding?"
+msgstr "是否結束該處理程序並啟動埠轉發？"
+
+msgid "Test Connection"
+msgstr "測試連線"
+
+msgid "Testing, please wait..."
+msgstr "正在測試，請稍候..."
+
+msgid "Testing..."
+msgstr "測試中..."
+
+msgid "The currently running process in this split will be terminated."
+msgstr "此窗格中目前執行的處理程序將被終止。"
+
+msgid "Timeout (ms)"
+msgstr "逾時時間 (ms)"
+
+msgid "Transfer Tasks"
+msgstr "傳輸任務"
+
+msgid "Transfer failed: "
+msgstr "傳輸失敗："
+
+msgid "Transfer failed: %@"
+msgstr "傳輸失敗：%@"
+
+msgid "Type"
+msgstr "類型"
+
+msgid "Unable to acquire an OpenGL context for rendering."
+msgstr "無法取得用於算繪的 OpenGL 上下文。"
+
+msgid "Unable to terminate process"
+msgstr "無法結束處理程序"
+
+msgid "Ungrouped"
+msgstr "未分組"
+
+msgid "Unknown Host"
+msgstr "未知主機"
+
+msgid "Unknown Process"
+msgstr "未知處理程序"
+
+msgid "Unsupported authentication method"
+msgstr "不支援的認證方式"
+
+msgid "Upload File"
+msgstr "上傳檔案"
+
+msgid "Upload Folder"
+msgstr "上傳資料夾"
+
+msgid "Upload tasks: %d, Download tasks: %d"
+msgstr "上傳任務：%d 個，下載任務：%d 個"
+
+msgid "Use this password to log in automatically"
+msgstr "使用此密碼自動登入"
+
+msgid "Username (optional)"
+msgstr "使用者名稱（可選）"
+
+msgid "Using expect to auto-enter password for authentication test"
+msgstr "使用 expect 自動輸入密碼進行認證測試"
+
+msgid "Using jump host: "
+msgstr "使用跳板機："
+
+msgid "Using jump host: %@ (%@)"
+msgstr "使用跳板機：%@ (%@)"
+
+msgid "Using key authentication: "
+msgstr "使用金鑰認證："
+
+msgid "Using key authentication: %@"
+msgstr "使用金鑰認證：%@"
+
+msgid "VRAM Usage"
+msgstr "顯存佔用"
+
+msgid "View Log"
+msgstr "檢視日誌"
+
+msgid "View Open Tabs"
+msgstr "檢視已開啟的分頁"
+
+msgid "Waiting for data…"
+msgstr "等待資料…"
+
+msgid "Warning: Potentially Unsafe Paste"
+msgstr "警告：可能有潛在安全風險的貼上操作"
+
+msgid "Window"
+msgstr "視窗"
+
+msgid "e.g. 192.168.1.10 or server.com"
+msgstr "例如: 192.168.1.10 或 server.com"
+
+msgid "e.g. Access remote MySQL"
+msgstr "例如：存取遠端 MySQL"
+
+msgid "e.g. Clear Logs"
+msgstr "例如：清理日誌"
+
+msgid "e.g. Production Web 01"
+msgstr "例如: Production Web 01"
+
+msgid "e.g. root"
+msgstr "例如: root"
+
+msgid "expect not found; cannot test password login"
+msgstr "未找到 expect，無法測試密碼登入"
+
+msgid "rsync exit code "
+msgstr "rsync 結束碼 "
+
+msgid "rsync exit code %d"
+msgstr "rsync 結束碼 %d"
+
+msgid "xtop not detected"
+msgstr "未偵測到 xtop"

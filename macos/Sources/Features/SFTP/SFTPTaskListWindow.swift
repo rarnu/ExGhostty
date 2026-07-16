@@ -42,7 +42,7 @@ final class SFTPTaskListWindowController: NSWindowController, NSWindowDelegate {
         ])
 
         window.contentView = container
-        window.title = "传输任务"
+        window.title = "Transfer Tasks".localized
         window.centerRelative(to: parentWindow)
 
         // 配置与主窗口一致的背景模糊。
