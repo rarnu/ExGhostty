@@ -431,6 +431,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 let gridSize = self.currentTerminalGridSize(for: tc) ?? (rows: 24, cols: 80)
                 cfg.environmentVariables["GHOSTTY_ROWS"] = "\(gridSize.rows)"
                 cfg.environmentVariables["GHOSTTY_COLS"] = "\(gridSize.cols)"
+                cfg.environmentVariables["TERM"] = "xterm-256color"
 
                 let scriptURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")

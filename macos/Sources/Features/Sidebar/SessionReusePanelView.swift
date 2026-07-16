@@ -153,19 +153,32 @@ final class SessionReusePanelViewModel: ObservableObject {
     // MARK: - 工具安装检测
 
     private func checkInstalled(command: String) async -> Bool {
-        do {
-            if let connection = connection {
+        if let connection = connection {
+            if await remoteExecutablePath(for: command, connection: connection) != nil {
+                return true
+            }
+            let fallback = """
+            if [ -n "$SHELL" ]; then "$SHELL" -l -c "command -v \(command)"; else command -v \(command); fi
+            """
+            do {
                 _ = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "command -v \(command)",
+                    remoteCommand: fallback,
                     connection: connection
                 )
-            } else {
-                // 使用 `which` 而非 `command -v`，以便支持 zsh alias（如 tmux 插件返回的 alias）。
-                _ = try await ProcessRunner.run(shellCommand: "which \(command)")
+                return true
+            } catch {
+                return false
             }
-            return true
-        } catch {
-            return false
+        } else {
+            if localExecutablePath(for: command) != nil {
+                return true
+            }
+            do {
+                _ = try await ProcessRunner.run(shellCommand: "which \(command)")
+                return true
+            } catch {
+                return false
+            }
         }
     }
 
@@ -173,15 +186,17 @@ final class SessionReusePanelViewModel: ObservableObject {
 
     private func listTmuxSessions() async -> [String] {
         do {
+            let executable: String
             let output: String
             if let connection = connection {
+                executable = await remoteExecutablePath(for: "tmux", connection: connection) ?? "tmux"
                 output = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "tmux list-sessions -F '#S'",
+                    remoteCommand: "\(executable.singleQuotedShellArgument()) list-sessions -F '#S'",
                     connection: connection
                 )
             } else {
-                // 用 `command tmux` 绕过 zsh alias/plugin wrapper，直接调用二进制。
-                output = try await ProcessRunner.run(shellCommand: "command tmux list-sessions -F '#S'")
+                executable = localExecutablePath(for: "tmux") ?? "command tmux"
+                output = try await ProcessRunner.run(shellCommand: "\(executable) list-sessions -F '#S'")
             }
             return output
                 .split(separator: "\n", omittingEmptySubsequences: true)
@@ -194,14 +209,17 @@ final class SessionReusePanelViewModel: ObservableObject {
 
     private func listZellijSessions() async -> [String] {
         do {
+            let executable: String
             let output: String
             if let connection = connection {
+                executable = await remoteExecutablePath(for: "zellij", connection: connection) ?? "zellij"
                 output = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "zellij list-sessions",
+                    remoteCommand: "\(executable.singleQuotedShellArgument()) list-sessions",
                     connection: connection
                 )
             } else {
-                output = try await ProcessRunner.run(shellCommand: "command zellij list-sessions")
+                executable = localExecutablePath(for: "zellij") ?? "zellij"
+                output = try await ProcessRunner.run(shellCommand: "\(executable) list-sessions")
             }
             return output
                 .split(separator: "\n", omittingEmptySubsequences: true)
@@ -214,6 +232,46 @@ final class SessionReusePanelViewModel: ObservableObject {
                 }
         } catch {
             return []
+        }
+    }
+
+    // MARK: - 可执行文件定位
+
+    /// macOS 上常见安装路径（Homebrew Apple/Intel、MacPorts、cargo）。
+    private func candidatePaths(for command: String) -> [String] {
+        [
+            "/opt/homebrew/bin/\(command)",
+            "/usr/local/bin/\(command)",
+            "/opt/local/bin/\(command)",
+            "~/.cargo/bin/\(command)",
+        ]
+    }
+
+    private func localExecutablePath(for command: String) -> String? {
+        for path in candidatePaths(for: command) {
+            let expanded = path.replacingOccurrences(of: "~", with: NSHomeDirectory())
+            if FileManager.default.isExecutableFile(atPath: expanded) {
+                return expanded
+            }
+        }
+        return nil
+    }
+
+    private func remoteExecutablePath(for command: String, connection: SSHConnection) async -> String? {
+        let tests = candidatePaths(for: command)
+            .map { "test -x \($0) && echo \($0)" }
+            .joined(separator: " || ")
+        do {
+            let output = try await SSHCommandExecutor.shared.execute(
+                remoteCommand: tests,
+                connection: connection
+            )
+            let path = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                .components(separatedBy: .newlines)
+                .first
+            return path?.isEmpty == false ? path : nil
+        } catch {
+            return nil
         }
     }
 
@@ -333,18 +391,12 @@ final class SessionReusePanelViewModel: ObservableObject {
 
     @MainActor
     func detachZellij() {
-        switch currentOS() {
-        case .macOS:
-            sendKeyEvents([
-                Ghostty.Input.KeyEvent(key: .o, action: .press, mods: .ctrl),
-                Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
-            ])
-        case .linux:
-            sendKeyEvents([
-                Ghostty.Input.KeyEvent(key: .o, action: .press, text: "\u{000F}", mods: .ctrl),
-                Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
-            ])
-        }
+        // zellij 的 prefix 是 Ctrl+o（ASCII 0x0F），必须同时发送控制字符文本，
+        // 否则在 macOS 上只会把后面的 d 当普通字符输出。
+        sendKeyEvents([
+            Ghostty.Input.KeyEvent(key: .o, action: .press, text: "\u{000F}", mods: .ctrl),
+            Ghostty.Input.KeyEvent(key: .d, action: .press, text: "d"),
+        ])
     }
 
     @MainActor

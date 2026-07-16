@@ -156,6 +156,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     /// 生成用于 Ghostty 终端的 SurfaceConfiguration，包含 expect 包装、自动登录、断线重连。
     func makeGhosttySurfaceConfiguration() -> Ghostty.SurfaceConfiguration {
         var cfg = Ghostty.SurfaceConfiguration()
+        cfg.environmentVariables["TERM"] = "xterm-256color"
 
         let scriptURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("ghostty_ssh_\(id.uuidString).exp")
