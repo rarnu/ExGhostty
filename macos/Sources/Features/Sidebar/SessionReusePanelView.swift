@@ -337,14 +337,21 @@ final class SessionReusePanelViewModel: ObservableObject {
     @MainActor
     func promptNewSession(type: SessionType) {
         guard let tc = terminalController, let window = tc.window else { return }
-        let controller = NewSessionNameWindowController(
-            config: tc.ghostty.config,
-            type: type,
-            parentWindow: window,
-            onConfirm: { [weak self] name in
-                self?.confirmNewSession(type: type, name: name)
+        let controller = GroupNameWindowController(
+            title: "新建\(type.displayName)会话",
+            placeholder: "会话名称",
+            confirmTitle: "确认",
+            cancelTitle: "取消",
+            filter: { text in
+                // tmux/zellij 会话名仅允许英文和数字。
+                text.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
             },
-            onDismiss: {}
+            config: tc.ghostty.config,
+            parentWindow: window,
+            completion: { [weak self] name in
+                guard let self = self, let name = name else { return }
+                self.confirmNewSession(type: type, name: name)
+            }
         )
         controller.showModal()
     }

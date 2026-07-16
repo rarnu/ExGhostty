@@ -68,9 +68,10 @@ final class SSHConfigWindowController: ModalWindowController {
 
 // MARK: - 分组名称输入窗口
 
-/// 标准的 macOS 模态窗口，用于新建分组。
+/// 标准的 macOS 模态窗口，用于输入单个名称（新建分组、tmux/zellij 会话、代码片段分类等）。
 final class GroupNameWindowController: ModalWindowController {
     private let textField = NSTextField()
+    private let filter: ((String) -> String)?
     private let completion: (String?) -> Void
     private var didComplete = false
 
@@ -78,10 +79,14 @@ final class GroupNameWindowController: ModalWindowController {
         title: String,
         placeholder: String = "",
         defaultText: String = "",
+        confirmTitle: String = "确认",
+        cancelTitle: String = "取消",
+        filter: ((String) -> String)? = nil,
         config: Ghostty.Config?,
         parentWindow: NSWindow? = nil,
         completion: @escaping (String?) -> Void
     ) {
+        self.filter = filter
         self.completion = completion
 
         let window = GhosttyPanelWindow(
@@ -105,12 +110,13 @@ final class GroupNameWindowController: ModalWindowController {
         textField.stringValue = defaultText
         textField.bezelStyle = .roundedBezel
         textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.delegate = self
 
-        let addButton = NSButton(title: "Add", target: self, action: #selector(confirm))
+        let addButton = NSButton(title: confirmTitle, target: self, action: #selector(confirm))
         addButton.keyEquivalent = "\r"
         addButton.translatesAutoresizingMaskIntoConstraints = false
 
-        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancel))
+        let cancelButton = NSButton(title: cancelTitle, target: self, action: #selector(cancel))
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
 
         contentView.addSubview(label)
@@ -164,6 +170,17 @@ final class GroupNameWindowController: ModalWindowController {
         if !didComplete {
             didComplete = true
             completion(nil)
+        }
+    }
+}
+
+extension GroupNameWindowController: NSTextFieldDelegate {
+    func controlTextDidChange(_ obj: Notification) {
+        guard let filter = filter else { return }
+        guard let field = obj.object as? NSTextField else { return }
+        let filtered = filter(field.stringValue)
+        if filtered != field.stringValue {
+            field.stringValue = filtered
         }
     }
 }

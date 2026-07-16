@@ -181,10 +181,12 @@ struct SSHConfigFormView: View {
         VStack(alignment: .leading, spacing: 8) {
             label("认证方式")
 
-            segmentedPicker(
-                selection: $authMode,
-                items: [("密码登录", .password), ("密钥登录", .key)]
-            )
+            Picker("", selection: $authMode) {
+                Text("密码登录").tag(SSHAuthMode.password)
+                Text("密钥登录").tag(SSHAuthMode.key)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
 
             VStack(alignment: .leading, spacing: 6) {
                 label("用户名（可选）")
@@ -298,13 +300,12 @@ struct SSHConfigFormView: View {
     private var connectionMethodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             label("连接方式")
-            segmentedPicker(
-                selection: $connectionMethod,
-                items: [
-                    ("直接连接", .direct),
-                    ("SSH 跳板", .jumpHost)
-                ]
-            )
+            Picker("", selection: $connectionMethod) {
+                Text("直接连接").tag(SSHConnectionMethod.direct)
+                Text("SSH 跳板").tag(SSHConnectionMethod.jumpHost)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
 
             if connectionMethod == .jumpHost {
                 jumpHostPicker
@@ -576,34 +577,6 @@ struct SSHConfigFormView: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.red)
         }
-    }
-
-    private func segmentedPicker<T: Hashable>(
-        selection: Binding<T>,
-        items: [(String, T)]
-    ) -> some View {
-        HStack(spacing: 0) {
-            ForEach(items, id: \.1) { title, value in
-                Button(action: { selection.wrappedValue = value }) {
-                    Text(title)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(selection.wrappedValue == value ? .primary : .secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(
-                            selection.wrappedValue == value
-                                ? Color(.selectedControlColor).opacity(0.5)
-                                : Color.clear
-                        )
-                        .cornerRadius(6)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(2)
-        .background(Color(.controlBackgroundColor))
-        .cornerRadius(8)
     }
 
     // MARK: - Actions

@@ -162,7 +162,18 @@ struct CodeSnippetPanelView: View {
 
     private func executeSnippet(_ snippet: CodeSnippet) {
         guard let surface = terminalController?.focusedSurface?.surfaceModel else { return }
-        surface.sendText(snippet.content)
+
+        let textToSend: String
+        switch snippet.type {
+        case .shell:
+            textToSend = snippet.content
+        case .python:
+            // 使用 heredoc 将 Python 代码交给 python3 执行，避免被 shell 逐行解析。
+            let delimiter = "GHOSTTY_PY_EOF_\(snippet.id.uuidString.replacingOccurrences(of: "-", with: ""))"
+            textToSend = "python3 << '\(delimiter)'\n\(snippet.content)\n\(delimiter)"
+        }
+
+        surface.sendText(textToSend)
         surface.sendKeyEvent(Ghostty.Input.KeyEvent(key: .enter, action: .press, text: "\r"))
     }
 
@@ -188,18 +199,27 @@ struct CodeSnippetPanelView: View {
 
     private func presentCategoryWindow(category: CodeSnippetCategory?) {
         guard let parent = NSApp.keyWindow else { return }
-        let controller = CodeSnippetCategoryWindowController(
-            category: category,
+        let title = category == nil ? "新增分类" : "修改分类"
+        let controller = GroupNameWindowController(
+            title: title,
+            placeholder: "分类名称",
+            defaultText: category?.name ?? "",
+            confirmTitle: "确认",
+            cancelTitle: "取消",
             config: config(),
             parentWindow: parent,
-            onSave: { saved in
-                if category == nil {
-                    self.store.addCategory(saved)
+            completion: { name in
+                guard let name = name else { return }
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                if let existing = category {
+                    var updated = existing
+                    updated.name = trimmed
+                    self.store.updateCategory(updated)
                 } else {
-                    self.store.updateCategory(saved)
+                    self.store.addCategory(CodeSnippetCategory(name: trimmed))
                 }
-            },
-            onDismiss: {}
+            }
         )
         controller.showModal()
     }

@@ -1,13 +1,39 @@
 import SwiftUI
 import AppKit
 
+/// 自定义 NSTextView，确保成为 first responder 或窗口变为 key 时启动插入点光标计时器。
+final class CodeEditorTextView: NSTextView {
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            restartInsertionPointTimer()
+        }
+        return result
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil {
+            restartInsertionPointTimer()
+        }
+    }
+
+    private func restartInsertionPointTimer() {
+        // 延迟到下一个 runloop，确保窗口已经成为 keyWindow 后再启动光标计时器。
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.window != nil else { return }
+            self.updateInsertionPointStateAndRestartTimer(true)
+        }
+    }
+}
+
 /// 基于 NSTextView 的简单代码编辑器，支持 Shell / Python 基础语法高亮。
 struct CodeEditorView: NSViewRepresentable {
     @Binding var text: String
     let language: CodeSnippetType
 
     func makeNSView(context: Context) -> NSScrollView {
-        let textView = NSTextView()
+        let textView = CodeEditorTextView()
         textView.isEditable = true
         textView.isSelectable = true
         textView.isRichText = false
@@ -48,7 +74,7 @@ struct CodeEditorView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSScrollView, context: Context) {
-        guard let textView = nsView.documentView as? NSTextView else { return }
+        guard let textView = nsView.documentView as? CodeEditorTextView else { return }
         guard !context.coordinator.isUpdating else { return }
 
         // 当用户正在编辑时，不要从 SwiftUI 回写字符串，避免光标跳动或文字被覆盖。
