@@ -32,7 +32,9 @@ struct FunctionPanelView: View {
             SessionReusePanelView(terminalController: terminalController)
         case .codeSnippet:
             CodeSnippetPanelView(terminalController: terminalController)
-        case .systemMonitor, .aiAssistant, .none:
+        case .systemMonitor:
+            SystemMonitorPanelView(terminalController: terminalController)
+        case .aiAssistant, .none:
             placeholder(feature?.title ?? "")
         }
     }

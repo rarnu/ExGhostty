@@ -29,6 +29,13 @@ private struct SSHCommandInvocation {
     let environment: [String: String]
 }
 
+/// 可用于长时间运行（流式）进程的 SSH 调用描述。
+struct SSHStreamingInvocation {
+    let executableURL: URL
+    let arguments: [String]
+    let environment: [String: String]
+}
+
 // MARK: - SSH 命令执行器
 
 /// 负责在 SSH 连接上执行远程命令，以及创建/复用 SSH ControlMaster 通道。
@@ -48,6 +55,23 @@ actor SSHCommandExecutor {
         let args = connection.sshBaseArgs.split(separator: " ").map(String.init) + [remoteCommand]
         let invocation = try backend.sshInvocation(args: args)
         return try await runCommand(invocation)
+    }
+
+    /// 构造一个可用于长时间运行（流式）进程的 SSH 调用描述。
+    ///
+    /// 调用方负责创建并管理 `Process` 的生命周期。
+    func streamingInvocation(
+        remoteCommand: String,
+        connection: SSHConnection
+    ) async throws -> SSHStreamingInvocation {
+        let backend = try backend(for: connection)
+        let args = connection.sshBaseArgs.split(separator: " ").map(String.init) + [remoteCommand]
+        let invocation = try backend.sshInvocation(args: args)
+        return SSHStreamingInvocation(
+            executableURL: invocation.executableURL,
+            arguments: invocation.arguments,
+            environment: invocation.environment
+        )
     }
 
     /// 为指定连接建立一个 SSH ControlMaster 通道，并在通道可用期间执行 `operation`。
