@@ -168,7 +168,7 @@ struct SidebarView: View {
                     connectionRow(conn)
                 }
             } header: {
-                Text(L("Default (%d)", defaultCount))
+                Text("Default (\(defaultCount))")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.secondary)
             }

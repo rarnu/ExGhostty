@@ -255,12 +255,6 @@ msgstr "エラーをコピー"
 msgid "Create Host"
 msgstr "ホストを作成"
 
-msgid "Default"
-msgstr "デフォルト"
-
-msgid "Default (%d)"
-msgstr "デフォルト (%d)"
-
 msgid "Delete"
 msgstr "削除"
 

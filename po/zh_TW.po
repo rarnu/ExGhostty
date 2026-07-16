@@ -254,12 +254,6 @@ msgstr "複製錯誤資訊"
 msgid "Create Host"
 msgstr "建立主機"
 
-msgid "Default"
-msgstr "預設"
-
-msgid "Default (%d)"
-msgstr "預設 (%d)"
-
 msgid "Delete"
 msgstr "刪除"
 

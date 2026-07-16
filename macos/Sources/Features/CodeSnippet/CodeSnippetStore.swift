@@ -46,14 +46,17 @@ final class CodeSnippetStore: ObservableObject {
 
     private let categoriesKey = "ghostty_code_snippet_categories"
     private let snippetsKey = "ghostty_code_snippets"
+    private let defaultCategoryName = "Default"
+    private let legacyDefaultNames: Set<String> = ["默认", "預設", "デフォルト"]
 
     private init() {
         load()
+        migrateLegacyDefaultCategory()
         ensureDefaultCategory()
     }
 
     var defaultCategory: CodeSnippetCategory {
-        categories.first { $0.name == "Default".localized } ?? CodeSnippetCategory(name: "Default".localized)
+        categories.first { $0.name == defaultCategoryName } ?? CodeSnippetCategory(name: defaultCategoryName)
     }
 
     // MARK: - 分类 CRUD
@@ -124,9 +127,18 @@ final class CodeSnippetStore: ObservableObject {
     }
 
     private func ensureDefaultCategory() {
-        if !categories.contains(where: { $0.name == "Default".localized }) {
-            categories.insert(CodeSnippetCategory(name: "Default".localized), at: 0)
+        if !categories.contains(where: { $0.name == defaultCategoryName }) {
+            categories.insert(CodeSnippetCategory(name: defaultCategoryName), at: 0)
             save()
         }
+    }
+
+    /// 将旧版本中按当前语言本地化的“默认”分类名称统一迁移为固定英文 "Default"，
+    /// 保证分类名称不再随系统语言变化。
+    private func migrateLegacyDefaultCategory() {
+        guard !categories.contains(where: { $0.name == defaultCategoryName }),
+              let index = categories.firstIndex(where: { legacyDefaultNames.contains($0.name) }) else { return }
+        categories[index].name = defaultCategoryName
+        save()
     }
 }

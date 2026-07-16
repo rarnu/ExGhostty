@@ -255,12 +255,6 @@ msgstr "复制错误信息"
 msgid "Create Host"
 msgstr "创建主机"
 
-msgid "Default"
-msgstr "默认"
-
-msgid "Default (%d)"
-msgstr "默认 (%d)"
-
 msgid "Delete"
 msgstr "删除"
 
