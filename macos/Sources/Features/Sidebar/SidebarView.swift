@@ -191,7 +191,7 @@ struct SidebarView: View {
                             showRenameGroupDialog()
                         },
                         onDelete: {
-                            store.removeGroup(group.id)
+                            showDeleteGroupConfirmation(group)
                         }
                     )
                 }
@@ -243,6 +243,30 @@ struct SidebarView: View {
 
     // MARK: - 弹窗
 
+    private func showDeleteGroupConfirmation(_ group: SSHGroup) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "删除分组"
+            alert.informativeText = "确定要删除分组 \"\(group.name)\" 吗？该分组下的连接将移动到未分组。"
+            alert.addButton(withTitle: "删除")
+            alert.addButton(withTitle: "取消")
+            alert.buttons.first?.hasDestructiveAction = true
+
+            if let win = NSApp.keyWindow {
+                alert.beginSheetModal(for: win) { resp in
+                    if resp == .alertFirstButtonReturn {
+                        store.removeGroup(group.id)
+                    }
+                }
+            } else {
+                let resp = alert.runModal()
+                if resp == .alertFirstButtonReturn {
+                    store.removeGroup(group.id)
+                }
+            }
+        }
+    }
+
     private func showDeleteConnectionConfirmation(_ conn: SSHConnection) {
         DispatchQueue.main.async {
             let alert = NSAlert()
@@ -274,6 +298,7 @@ struct SidebarView: View {
         let onAddGroup = self.onAddGroup
         let controller = GroupNameWindowController(
             title: "New Group",
+            message: "Input new group name",
             placeholder: "Group Name",
             config: config,
             parentWindow: parent
@@ -293,6 +318,7 @@ struct SidebarView: View {
         let store = self.store
         let controller = GroupNameWindowController(
             title: "Rename Group",
+            message: "Rename group to",
             placeholder: "Group Name",
             defaultText: group.name,
             config: config,
@@ -534,11 +560,35 @@ struct PortForwardListView: View {
             Button("清空日志") {
                 store.clearLog(for: rule.id)
             }
-            Button(role: .destructive) {
-                store.removeRule(rule.id)
+            Button {
+                showDeleteRuleConfirmation(rule)
             } label: {
                 Text("删除")
                     .foregroundColor(.red)
+            }
+        }
+    }
+
+    private func showDeleteRuleConfirmation(_ rule: PortForwardRule) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "删除端口转发"
+            alert.informativeText = "确定要删除端口转发规则 \"\(rule.name)\" 吗？此操作无法撤销。"
+            alert.addButton(withTitle: "删除")
+            alert.addButton(withTitle: "取消")
+            alert.buttons.first?.hasDestructiveAction = true
+
+            if let win = NSApp.keyWindow {
+                alert.beginSheetModal(for: win) { resp in
+                    if resp == .alertFirstButtonReturn {
+                        store.removeRule(rule.id)
+                    }
+                }
+            } else {
+                let resp = alert.runModal()
+                if resp == .alertFirstButtonReturn {
+                    store.removeRule(rule.id)
+                }
             }
         }
     }

@@ -77,6 +77,7 @@ final class GroupNameWindowController: ModalWindowController {
 
     init(
         title: String,
+        message: String? = nil,
         placeholder: String = "",
         defaultText: String = "",
         confirmTitle: String = "确认",
@@ -102,7 +103,8 @@ final class GroupNameWindowController: ModalWindowController {
         let contentView = NSView()
         contentView.translatesAutoresizingMaskIntoConstraints = false
 
-        let label = NSTextField(labelWithString: title)
+        let labelText = message ?? title
+        let label = NSTextField(labelWithString: labelText)
         label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         label.translatesAutoresizingMaskIntoConstraints = false
 

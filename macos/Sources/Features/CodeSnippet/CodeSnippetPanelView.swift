@@ -6,9 +6,6 @@ struct CodeSnippetPanelView: View {
     @ObservedObject private var store = CodeSnippetStore.shared
     let terminalController: TerminalController?
 
-    @State private var deleteCategoryConfirmation: CodeSnippetCategory? = nil
-    @State private var deleteSnippetConfirmation: CodeSnippet? = nil
-
     var body: some View {
         VStack(spacing: 0) {
             toolbar
@@ -16,26 +13,6 @@ struct CodeSnippetPanelView: View {
             listView
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .alert(item: $deleteCategoryConfirmation) { category in
-            Alert(
-                title: Text("删除分类"),
-                message: Text("确定要删除分类 \"\(category.name)\" 吗？该分类下的代码片段将移动到默认分类。"),
-                primaryButton: .destructive(Text("删除")) {
-                    store.removeCategory(category.id)
-                },
-                secondaryButton: .cancel(Text("取消"))
-            )
-        }
-        .alert(item: $deleteSnippetConfirmation) { snippet in
-            Alert(
-                title: Text("删除代码片段"),
-                message: Text("确定要删除代码片段 \"\(snippet.name)\" 吗？此操作不可撤销。"),
-                primaryButton: .destructive(Text("删除")) {
-                    store.removeSnippet(snippet.id)
-                },
-                secondaryButton: .cancel(Text("取消"))
-            )
-        }
     }
 
     // MARK: - 工具栏
@@ -107,15 +84,16 @@ struct CodeSnippetPanelView: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .contextMenu {
-            Button("修改分类名称") {
-                showEditCategory(category)
-            }
             if category.id != store.defaultCategory.id {
+                Button("修改分类名称") {
+                    showEditCategory(category)
+                }
                 Divider()
-                Button(role: .destructive) {
-                    deleteCategoryConfirmation = category
+                Button {
+                    showDeleteCategoryConfirmation(category)
                 } label: {
                     Text("删除分类")
+                        .foregroundColor(.red)
                 }
             }
         }
@@ -140,10 +118,11 @@ struct CodeSnippetPanelView: View {
             Button("修改代码片段") {
                 showEditSnippet(snippet)
             }
-            Button(role: .destructive) {
-                deleteSnippetConfirmation = snippet
+            Button {
+                showDeleteSnippetConfirmation(snippet)
             } label: {
                 Text("删除代码片段")
+                    .foregroundColor(.red)
             }
         }
         .onTapGesture(count: 2) {
@@ -177,6 +156,54 @@ struct CodeSnippetPanelView: View {
         surface.sendKeyEvent(Ghostty.Input.KeyEvent(key: .enter, action: .press, text: "\r"))
     }
 
+    private func showDeleteCategoryConfirmation(_ category: CodeSnippetCategory) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "删除分类"
+            alert.informativeText = "确定要删除分类 \"\(category.name)\" 吗？该分类下的代码片段将移动到默认分类。"
+            alert.addButton(withTitle: "删除")
+            alert.addButton(withTitle: "取消")
+            alert.buttons.first?.hasDestructiveAction = true
+
+            if let win = NSApp.keyWindow {
+                alert.beginSheetModal(for: win) { resp in
+                    if resp == .alertFirstButtonReturn {
+                        self.store.removeCategory(category.id)
+                    }
+                }
+            } else {
+                let resp = alert.runModal()
+                if resp == .alertFirstButtonReturn {
+                    self.store.removeCategory(category.id)
+                }
+            }
+        }
+    }
+
+    private func showDeleteSnippetConfirmation(_ snippet: CodeSnippet) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "删除代码片段"
+            alert.informativeText = "确定要删除代码片段 \"\(snippet.name)\" 吗？此操作不可撤销。"
+            alert.addButton(withTitle: "删除")
+            alert.addButton(withTitle: "取消")
+            alert.buttons.first?.hasDestructiveAction = true
+
+            if let win = NSApp.keyWindow {
+                alert.beginSheetModal(for: win) { resp in
+                    if resp == .alertFirstButtonReturn {
+                        self.store.removeSnippet(snippet.id)
+                    }
+                }
+            } else {
+                let resp = alert.runModal()
+                if resp == .alertFirstButtonReturn {
+                    self.store.removeSnippet(snippet.id)
+                }
+            }
+        }
+    }
+
     private func showAddCategory() {
         presentCategoryWindow(category: nil)
     }
@@ -202,6 +229,7 @@ struct CodeSnippetPanelView: View {
         let title = category == nil ? "新增分类" : "修改分类"
         let controller = GroupNameWindowController(
             title: title,
+            message: "输入分类名称",
             placeholder: "分类名称",
             defaultText: category?.name ?? "",
             confirmTitle: "确认",

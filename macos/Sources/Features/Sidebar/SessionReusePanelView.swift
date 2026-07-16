@@ -339,6 +339,7 @@ final class SessionReusePanelViewModel: ObservableObject {
         guard let tc = terminalController, let window = tc.window else { return }
         let controller = GroupNameWindowController(
             title: "新建\(type.displayName)会话",
+            message: "输入\(type.displayName)会话名称",
             placeholder: "会话名称",
             confirmTitle: "确认",
             cancelTitle: "取消",
@@ -592,6 +593,7 @@ struct SessionReusePanelView: View {
                             viewModel.deleteConfirmation = DeleteConfirmation(type: type, name: session)
                         } label: {
                             Text("删除")
+                                .foregroundColor(.red)
                         }
                     }
                     .onTapGesture(count: 2) {
