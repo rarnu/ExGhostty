@@ -436,7 +436,7 @@ language: ?[:0]const u8 = null,
 ///   * Powerline glyphs will be adjusted along with the cell height so
 ///     that things like status lines continue to look aligned.
 @"adjust-cell-width": ?MetricModifier = null,
-@"adjust-cell-height": ?MetricModifier = null,
+@"adjust-cell-height": ?MetricModifier = .{ .absolute = 2 },
 /// Distance in pixels or percentage adjustment from the bottom of the cell to the text baseline.
 /// Increase to move baseline UP, decrease to move baseline DOWN.
 /// See the notes about adjustments in `adjust-cell-width`.
@@ -598,7 +598,10 @@ language: ?[:0]const u8 = null,
 /// be fixed in a future update:
 ///
 ///   - macOS: titlebar tabs style is not updated when switching themes.
-theme: ?Theme = null,
+theme: ?Theme = .{
+    .light = "Catppuccin Mocha",
+    .dark = "Catppuccin Mocha",
+},
 
 /// Background color for the window.
 /// Specified as either hex (`#RRGGBB` or `RRGGBB`) or a named X11 color.
@@ -880,7 +883,7 @@ palette: Palette = .{},
 ///   * `bar`
 ///   * `underline`
 ///   * `block_hollow`
-@"cursor-style": terminal.CursorStyle = .block,
+@"cursor-style": terminal.CursorStyle = .bar,
 
 /// Sets the default blinking state of the cursor. This is just the default
 /// state; running programs may override the cursor style using `DECSCUSR` (`CSI
@@ -899,7 +902,7 @@ palette: Palette = .{},
 ///   * ` ` (blank)
 ///   * `true`
 ///   * `false`
-@"cursor-style-blink": ?bool = null,
+@"cursor-style-blink": ?bool = false,
 
 /// The color of the text under the cursor. If this is not set, a default will
 /// be chosen.
@@ -927,7 +930,7 @@ palette: Palette = .{},
 /// when the mouse is used (button, movement, etc.). Platform-specific behavior
 /// may dictate other scenarios where the mouse is shown. For example on macOS,
 /// the mouse is shown again when a new window, tab, or split is created.
-@"mouse-hide-while-typing": bool = false,
+@"mouse-hide-while-typing": bool = true,
 
 /// When to scroll the surface to the bottom. The format of this is a list of
 /// options to enable separated by commas. If you prefix an option with `no-`
@@ -1008,7 +1011,7 @@ palette: Palette = .{},
 /// widgets to show through which isn't generally desirable.
 ///
 /// On macOS, changing this configuration requires restarting Ghostty completely.
-@"background-opacity": f64 = 1.0,
+@"background-opacity": f64 = 0.80,
 
 /// Applies background opacity to cells with an explicit background color
 /// set.
@@ -1066,7 +1069,7 @@ palette: Palette = .{},
 /// need to set environment-specific settings and/or install third-party plugins
 /// in order to support background blur, as there isn't a unified interface for
 /// doing so.
-@"background-blur": BackgroundBlur = .false,
+@"background-blur": BackgroundBlur = .true,
 
 /// The opacity level (opposite of transparency) of an unfocused split.
 /// Unfocused splits by default are slightly faded out to make it easier to see
@@ -1400,7 +1403,7 @@ input: RepeatableReadableIO = .{},
 /// This is a future planned feature.
 ///
 /// This can be changed at runtime but will only affect new terminal surfaces.
-@"scrollback-limit": usize = 50_000_000, // 50MB
+@"scrollback-limit": usize = 8_388_608, // 8MB
 
 /// Whether to compress scrollback pages while the terminal is idle.
 ///
@@ -1440,7 +1443,7 @@ input: RepeatableReadableIO = .{},
 ///   * `never` - Never show a scrollbar. You can still scroll using the mouse,
 ///     keybind actions, etc. but you will not have a visual UI widget showing
 ///     a scrollbar.
-scrollbar: Scrollbar = .system,
+scrollbar: Scrollbar = .never,
 
 /// Match a regular expression against the terminal text and associate clicking
 /// it with an action. This can be used to match URLs, file paths, etc. Actions
@@ -1972,7 +1975,7 @@ keybind: Keybinds = .{},
 /// left padding to 2 and the right padding to 4. If you want to set both
 /// paddings to the same value, you can use a single value. For example,
 /// `window-padding-x = 2` will set both paddings to 2.
-@"window-padding-x": WindowPadding = .{ .top_left = 2, .bottom_right = 2 },
+@"window-padding-x": WindowPadding = .{ .top_left = 12, .bottom_right = 12 },
 
 /// Vertical window padding. This applies padding between the terminal cells and
 /// the top and bottom window borders. The value is in points, meaning that it
@@ -1991,7 +1994,7 @@ keybind: Keybinds = .{},
 /// top padding to 2 and the bottom padding to 4. If you want to set both
 /// paddings to the same value, you can use a single value. For example,
 /// `window-padding-y = 2` will set both paddings to 2.
-@"window-padding-y": WindowPadding = .{ .top_left = 2, .bottom_right = 2 },
+@"window-padding-y": WindowPadding = .{ .top_left = 10, .bottom_right = 10 },
 
 /// The viewport dimensions are usually not perfectly divisible by the cell
 /// size. In this case, some extra padding on the end of a column and the bottom
@@ -2125,7 +2128,7 @@ keybind: Keybinds = .{},
 ///
 /// macOS: To hide the titlebar without removing the native window borders
 ///        or rounded corners, use `macos-titlebar-style = hidden` instead.
-@"window-decoration": WindowDecoration = .auto,
+@"window-decoration": WindowDecoration = .client,
 
 /// The font that will be used for the application's window and tab titles.
 ///
@@ -2263,10 +2266,10 @@ keybind: Keybinds = .{},
 /// running, the previous window state will not be restored because Ghostty only
 /// saves state on exit if this is enabled.
 ///
-/// The default value is `default`.
+/// The default value is `always`.
 ///
 /// This is currently only supported on macOS. This has no effect on Linux.
-@"window-save-state": WindowSaveState = .default,
+@"window-save-state": WindowSaveState = .always,
 
 /// Resize the window in discrete increments of the focused surface's cell size.
 /// If this is disabled, surfaces are resized in pixel increments. Currently
@@ -2451,12 +2454,8 @@ keybind: Keybinds = .{},
 /// selection clipboard); with `clipboard` it reads from the system
 /// clipboard.
 ///
-/// The default value is true on Linux and macOS.
-@"copy-on-select": CopyOnSelect = switch (builtin.os.tag) {
-    .linux => .true,
-    .macos => .true,
-    else => .false,
-},
+/// The default value is `clipboard`.
+@"copy-on-select": CopyOnSelect = .clipboard,
 
 /// The action to take when the user right-clicks on the terminal surface.
 ///
@@ -2535,7 +2534,7 @@ keybind: Keybinds = .{},
 /// any confirmation. This can also be set to `always`, which will always
 /// confirm closing a surface, even if shell integration says a process isn't
 /// running.
-@"confirm-close-surface": ConfirmCloseSurface = .true,
+@"confirm-close-surface": ConfirmCloseSurface = .false,
 
 /// Whether or not to quit after the last surface is closed.
 ///
@@ -2894,7 +2893,13 @@ keybind: Keybinds = .{},
 /// when both `ssh-env` and `ssh-terminfo` are enabled, Ghostty will install its
 /// terminfo on remote hosts and use `xterm-ghostty` as TERM, falling back to
 /// `xterm-256color` with environment variables if terminfo installation fails.
-@"shell-integration-features": ShellIntegrationFeatures = .{},
+@"shell-integration-features": ShellIntegrationFeatures = .{
+    .cursor = true,
+    .title = true,
+    .path = true,
+    .@"ssh-env" = true,
+    .@"ssh-terminfo" = true,
+},
 
 /// Custom entries into the command palette.
 ///
@@ -3367,7 +3372,7 @@ keybind: Keybinds = .{},
 ///
 /// The values `left` or `right` enable this for the left or right *Option*
 /// key, respectively.
-@"macos-option-as-alt": ?inputpkg.OptionAsAlt = null,
+@"macos-option-as-alt": ?inputpkg.OptionAsAlt = .true,
 
 /// Whether to enable the macOS window shadow. The default value is true.
 /// With some window managers and window transparency settings, you may
@@ -3994,6 +3999,7 @@ test "handle bom in config files" {
         var reader: std.Io.Reader = .fixed(data);
         var cfg = try Config.default(alloc);
         defer cfg.deinit();
+        cfg.theme = null;
         try cfg.loadReader(
             alloc,
             &reader,
@@ -4013,6 +4019,7 @@ test "handle bom in config files" {
         var reader: std.Io.Reader = .fixed(data);
         var cfg = try Config.default(alloc);
         defer cfg.deinit();
+        cfg.theme = null;
         try cfg.loadReader(
             alloc,
             &reader,
@@ -7091,6 +7098,53 @@ pub const Keybinds = struct {
                 alloc,
                 .{ .key = .{ .unicode = '=' }, .mods = .{ .super = true, .ctrl = true } },
                 .{ .equalize_splits = {} },
+            );
+
+            // Custom default keybindings
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .unicode = 't' }, .mods = .{ .super = true } },
+                .{ .new_tab = {} },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .unicode = 'd' }, .mods = .{ .super = true } },
+                .{ .new_split = .right },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .unicode = 'd' }, .mods = .{ .super = true, .shift = true } },
+                .{ .new_split = .down },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .physical = .arrow_left }, .mods = .{ .super = true, .alt = true } },
+                .{ .goto_split = .left },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .physical = .arrow_right }, .mods = .{ .super = true, .alt = true } },
+                .{ .goto_split = .right },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .physical = .arrow_up }, .mods = .{ .super = true, .alt = true } },
+                .{ .goto_split = .up },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .physical = .arrow_down }, .mods = .{ .super = true, .alt = true } },
+                .{ .goto_split = .down },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .physical = .arrow_left }, .mods = .{ .super = true, .shift = true } },
+                .{ .previous_tab = {} },
+            );
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .physical = .arrow_right }, .mods = .{ .super = true, .shift = true } },
+                .{ .next_tab = {} },
             );
 
             // Jump to prompt, matches Terminal.app
