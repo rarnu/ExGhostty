@@ -1177,6 +1177,21 @@ msgstr "快捷键：聚焦上分屏"
 msgid "Keybind: Goto Split Down"
 msgstr "快捷键：聚焦下分屏"
 
+msgid "Capture Keybind"
+msgstr "捕获快捷键"
+
+msgid "Press a key combination for %@."
+msgstr "为 %@ 按下一个按键组合。"
+
+msgid "Listening for shortcut..."
+msgstr "等待快捷键输入..."
+
+msgid "Keybind Conflict"
+msgstr "快捷键冲突"
+
+msgid "The shortcut %@ is already used by %@."
+msgstr "快捷键 %@ 已被 %@ 使用。"
+
 msgid "Keybind: Increase Font Size"
 msgstr "快捷键：增大字体"
 

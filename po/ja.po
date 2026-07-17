@@ -1177,6 +1177,21 @@ msgstr ""
 msgid "Keybind: Goto Split Down"
 msgstr ""
 
+msgid "Capture Keybind"
+msgstr "キーバインドの取得"
+
+msgid "Press a key combination for %@."
+msgstr "%@ のキー組み合わせを押してください。"
+
+msgid "Listening for shortcut..."
+msgstr "ショートカットを待機中..."
+
+msgid "Keybind Conflict"
+msgstr "キーバインドの競合"
+
+msgid "The shortcut %@ is already used by %@."
+msgstr "ショートカット %@ は %@ で既に使用されています。"
+
 msgid "Keybind: Increase Font Size"
 msgstr ""
 

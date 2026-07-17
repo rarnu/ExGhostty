@@ -1176,6 +1176,21 @@ msgstr ""
 msgid "Keybind: Goto Split Down"
 msgstr ""
 
+msgid "Capture Keybind"
+msgstr "捕獲快速鍵"
+
+msgid "Press a key combination for %@."
+msgstr "為 %@ 按下快速鍵組合。"
+
+msgid "Listening for shortcut..."
+msgstr "等待快速鍵輸入..."
+
+msgid "Keybind Conflict"
+msgstr "快速鍵衝突"
+
+msgid "The shortcut %@ is already used by %@."
+msgstr "快速鍵 %@ 已被 %@ 使用。"
+
 msgid "Keybind: Increase Font Size"
 msgstr ""
 

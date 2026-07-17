@@ -219,6 +219,9 @@ final class SettingsModel: ObservableObject {
     private let config: Ghostty.Config
     private let fileURL: URL?
 
+    /// Exposed for window controllers that need to match the main app style.
+    var ghosttyConfig: Ghostty.Config { config }
+
     // General
     @Published var language: String = "en"
 
@@ -520,10 +523,18 @@ struct SettingsView: View {
 
                 Divider()
 
-                ScrollView {
-                    detailContent
-                        .padding(24)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                ZStack {
+                    if selectedCategory == .keybind {
+                        detailContent
+                            .padding(24)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    } else {
+                        ScrollView {
+                            detailContent
+                                .padding(24)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
                 }
                 .background(Color.clear)
             }
@@ -863,8 +874,6 @@ struct SettingsView: View {
 
     // MARK: Keybind
 
-    @State private var capturingAction: String? = nil
-
     private var keybindSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("Keybind")
@@ -873,38 +882,28 @@ struct SettingsView: View {
                 ForEach(SettingsModel.managedKeybindActions, id: \.self) { action in
                     HStack {
                         Text(keybindActionTitle(action))
-                            .frame(width: 180, alignment: .leading)
+                            .lineLimit(1)
+                            .frame(width: 200, alignment: .leading)
                         Spacer()
-                        if capturingAction == action {
-                            ShortcutCaptureView { trigger in
-                                if let trigger {
-                                    model.keybinds[action] = trigger
-                                }
-                                capturingAction = nil
-                            } onCancel: {
-                                capturingAction = nil
-                            }
-                            .frame(width: 160, height: 24)
-                        } else {
-                            Text(model.keybinds[action] ?? "None".localized)
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundColor(.secondary)
-                                .frame(width: 160, alignment: .trailing)
+                        Text(model.keybinds[action] ?? "None".localized)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .frame(width: 140, alignment: .trailing)
 
-                            Button("Edit".localized) {
-                                capturingAction = action
+                        Button("Edit".localized) {
+                            presentKeybindCaptureWindow(for: action)
+                        }
+                        .buttonStyle(.plain)
+
+                        if model.keybinds[action] != nil {
+                            Button {
+                                model.keybinds.removeValue(forKey: action)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .foregroundColor(.secondary)
                             }
                             .buttonStyle(.plain)
-
-                            if model.keybinds[action] != nil {
-                                Button {
-                                    model.keybinds.removeValue(forKey: action)
-                                } label: {
-                                    Image(systemName: "xmark")
-                                        .foregroundColor(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                            }
                         }
                     }
                     .padding(.vertical, 10)
@@ -914,6 +913,33 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .frame(maxHeight: .infinity)
         }
+    }
+
+    private func presentKeybindCaptureWindow(for action: String) {
+        let parentWindow = NSApp.keyWindow
+        let controller = KeybindCaptureWindowController(
+            config: model.ghosttyConfig,
+            parentWindow: parentWindow,
+            actionTitle: keybindActionTitle(action)
+        ) { [weak model] trigger in
+            guard let model, let trigger else { return }
+            if let conflictAction = model.keybinds.first(where: { $0.key != action && $0.value == trigger })?.key {
+                model.keybinds.removeValue(forKey: action)
+                let alert = NSAlert()
+                alert.messageText = "Keybind Conflict".localized
+                alert.informativeText = String(
+                    format: "The shortcut %@ is already used by %@.".localized,
+                    trigger,
+                    keybindActionTitle(conflictAction)
+                )
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK".localized)
+                alert.runModal()
+            } else {
+                model.keybinds[action] = trigger
+            }
+        }
+        controller.showModal()
     }
 
     // MARK: AI
@@ -991,6 +1017,97 @@ struct SettingsView: View {
             .replacingOccurrences(of: ":", with: " ")
         let key = "Keybind: \(formatted.capitalized)"
         return key.localized
+    }
+}
+
+// MARK: - Keybind Capture Window
+
+/// 模态窗口：捕获单个快捷键组合，捕获成功后通过回调返回。
+final class KeybindCaptureWindowController: ModalWindowController {
+    init(
+        config: Ghostty.Config,
+        parentWindow: NSWindow? = nil,
+        actionTitle: String,
+        completion: @escaping (String?) -> Void
+    ) {
+        let window = GhosttyPanelWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 160),
+            config: config
+        )
+        window.minSize = NSSize(width: 320, height: 140)
+        window.title = "Capture Keybind".localized
+        window.isReleasedWhenClosed = false
+
+        super.init(window: window, parentWindow: parentWindow)
+
+        let view = KeybindCaptureView(actionTitle: actionTitle) { [weak self] trigger in
+            completion(trigger)
+            self?.close()
+        } onCancel: { [weak self] in
+            completion(nil)
+            self?.close()
+        }
+
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(hostingView)
+
+        NSLayoutConstraint.activate([
+            hostingView.topAnchor.constraint(equalTo: container.topAnchor),
+            hostingView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
+
+        window.contentView = container
+        window.configureBackgroundBlur(config: config, container: container)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+}
+
+private struct KeybindCaptureView: View {
+    let actionTitle: String
+    var onCapture: (String?) -> Void
+    var onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(String(format: "Press a key combination for %@.".localized, actionTitle))
+                .font(.system(size: 13))
+                .multilineTextAlignment(.center)
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(6)
+
+                Text("Listening for shortcut...".localized)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+
+                ShortcutCaptureView { trigger in
+                    onCapture(trigger)
+                } onCancel: {
+                    onCancel()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(height: 42)
+
+            Button("Cancel".localized) {
+                onCancel()
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
