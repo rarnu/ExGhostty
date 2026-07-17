@@ -37,6 +37,11 @@ struct SSHTestDetailView: View {
         .onDisappear {
             task?.cancel()
         }
+        .onExitCommand {
+            task?.cancel()
+            onComplete?(false)
+            dismiss()
+        }
     }
 
     // MARK: - Header
@@ -150,12 +155,12 @@ struct SSHTestDetailView: View {
             Spacer()
 
             Button("Close".localized) {
-                onComplete?(isSuccess)
+                task?.cancel()
+                onComplete?(isFinished ? isSuccess : false)
                 dismiss()
             }
             .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
-            .disabled(!isFinished)
+            .keyboardShortcut(.cancelAction)
         }
     }
 

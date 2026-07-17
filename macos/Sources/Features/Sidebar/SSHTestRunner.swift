@@ -59,7 +59,7 @@ enum SSHTester {
     /// 以异步流的形式返回测试过程中的步骤、日志与最终结果
     static func stream(config: SSHTestConfig) -> AsyncStream<SSHTestEvent> {
         AsyncStream { continuation in
-            let task = Task {
+            let task = Task.detached {
                 await run(config: config, continuation: continuation)
             }
             continuation.onTermination = { _ in
@@ -254,42 +254,129 @@ enum SSHTester {
         return options
     }
 
+    private static let processTimeout: TimeInterval = 60.0
+
     private static func runProcess(
         executable: String,
         args: [String],
         env: [String: String],
         continuation: AsyncStream<SSHTestEvent>.Continuation
     ) async -> Result<Void, Error> {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = args
+        process.environment = ProcessInfo.processInfo.environment.merging(env) { $1 }
+
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
+
         do {
-            let stdout = try await ProcessRunner.run(
-                executable: URL(fileURLWithPath: executable),
-                arguments: args,
-                environment: ProcessInfo.processInfo.environment.merging(env) { $1 }
-            )
-            for line in stdout.split(separator: "\n", omittingEmptySubsequences: true) {
-                let trimmed = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    continuation.yield(.log(trimmed))
-                }
-            }
-            return .success(())
-        } catch let error as ProcessRunnerError {
-            if case .executionFailed(_, let status, let stderr) = error {
-                for line in stderr.split(separator: "\n", omittingEmptySubsequences: true) {
-                    let trimmed = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        continuation.yield(.log(trimmed))
-                    }
-                }
-                if status == 124 {
-                    return .failure(TestError.connectionFailed("Connection timed out".localized))
-                } else {
-                    return .failure(TestError.connectionFailed(L("SSH process exit code %d", status)))
-                }
-            }
-            return .failure(error)
+            try process.run()
         } catch {
             return .failure(error)
         }
+
+        // 超时兜底：若进程长时间不退出则强制终止。
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(processTimeout * 1_000_000_000))
+            if process.isRunning {
+                process.terminate()
+            }
+        }
+
+        var outBuffer = Data()
+        var errBuffer = Data()
+
+        return await withTaskCancellationHandler(operation: {
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    do {
+                        for try await byte in outPipe.fileHandleForReading.bytes {
+                            outBuffer.append(byte)
+                            flushBuffer(&outBuffer, continuation: continuation)
+                        }
+                    } catch {
+                        // 读取结束或被取消时退出。
+                    }
+                }
+
+                group.addTask {
+                    do {
+                        for try await byte in errPipe.fileHandleForReading.bytes {
+                            errBuffer.append(byte)
+                            flushBuffer(&errBuffer, continuation: continuation)
+                        }
+                    } catch {
+                        // 读取结束或被取消时退出。
+                    }
+                }
+
+                group.addTask {
+                    process.waitUntilExit()
+                    timeoutTask.cancel()
+
+                    // 终止可能仍在运行的子进程（例如 expect 启动的 ssh）。
+                    let pid = Int32(process.processIdentifier)
+                    for child in ProcessInspector.childPIDs(of: pid) {
+                        ProcessInspector.forceKill(pid: child)
+                    }
+                }
+
+                // 等待任一任务完成（通常是等待进程退出的任务），然后取消读取任务。
+                _ = await group.next()
+                group.cancelAll()
+                // 等待被取消的任务结束。
+                while await group.next() != nil {}
+
+                flushBuffer(&outBuffer, continuation: continuation)
+                flushBuffer(&errBuffer, continuation: continuation)
+                flushRemaining(&outBuffer, continuation: continuation)
+                flushRemaining(&errBuffer, continuation: continuation)
+
+                let status = process.terminationStatus
+                if status == 0 {
+                    return .success(())
+                }
+                let stderr = String(data: errBuffer, encoding: .utf8) ?? ""
+                if status == 124 || stderr.localizedLowercase.contains("timed out") {
+                    return .failure(TestError.connectionFailed("Connection timed out".localized))
+                }
+                return .failure(TestError.connectionFailed(L("SSH process exit code %d", status)))
+            }
+        }, onCancel: {
+            process.terminate()
+            let pid = Int32(process.processIdentifier)
+            for child in ProcessInspector.childPIDs(of: pid) {
+                ProcessInspector.forceKill(pid: child)
+            }
+        })
+    }
+
+    private static func flushBuffer(
+        _ data: inout Data,
+        continuation: AsyncStream<SSHTestEvent>.Continuation
+    ) {
+        while let range = data.range(of: Data("\n".utf8)) {
+            let lineData = data.subdata(in: 0..<range.lowerBound)
+            data.removeSubrange(0..<range.upperBound)
+            if let line = String(data: lineData, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty {
+                continuation.yield(.log(line))
+            }
+        }
+    }
+
+    private static func flushRemaining(
+        _ data: inout Data,
+        continuation: AsyncStream<SSHTestEvent>.Continuation
+    ) {
+        if !data.isEmpty,
+           let line = String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty {
+            continuation.yield(.log(line))
+        }
+        data.removeAll()
     }
 }
