@@ -398,7 +398,8 @@ final class SettingsModel: ObservableObject {
         aiEndpoint = ud.string(forKey: "ai-endpoint") ?? ""
         aiApiKey = ud.string(forKey: "ai-apikey") ?? ""
         aiModel = ud.string(forKey: "ai-model") ?? ""
-        iCloudSync = ud.object(forKey: "icloud-sync") as? Bool ?? false
+        // 默认开启：仅对从未设置过该开关的用户生效。
+        iCloudSync = ud.object(forKey: "icloud-sync") as? Bool ?? true
     }
 
     func save() {

@@ -15,10 +15,14 @@ final class ICloudSyncManager: ObservableObject {
     private let iCloudDirName = "ExGhostty"
     private let syncInterval: TimeInterval = 30.0
     private let timeTolerance: TimeInterval = 1.0
+    private let lastChangeDefaultsKey = "icloud-sync-last-change"
 
     private var timer: Timer?
     private var isSyncing = false
     private(set) var isImporting = false
+
+    /// 每类配置的本地最后修改时间（真实修改时间，关闭同步期间也会记录）。
+    private var lastLocalChange: [SyncCategory: Date] = [:]
 
     /// iCloud Drive 根目录（`com~apple~CloudDocs`）。
     private var iCloudBaseURL: URL? {
@@ -51,6 +55,8 @@ final class ICloudSyncManager: ObservableObject {
     }
 
     private init() {
+        loadLastLocalChange()
+
         Task { @MainActor [weak self] in
             self?.loadEnabledState()
         }
@@ -79,7 +85,8 @@ final class ICloudSyncManager: ObservableObject {
     }
 
     @MainActor private func loadEnabledState() {
-        let value = UserDefaults.ghostty.object(forKey: "icloud-sync") as? Bool ?? false
+        // 默认开启：仅对从未设置过该开关的用户生效。
+        let value = UserDefaults.ghostty.object(forKey: "icloud-sync") as? Bool ?? true
         if value != isEnabled {
             isEnabled = value
         }
@@ -134,7 +141,11 @@ final class ICloudSyncManager: ObservableObject {
     }
 
     /// 本地数据发生变化时调用，触发同步。
+    /// 无论同步是否开启，都会记录该类的本地最后修改时间，
+    /// 以便之后开启同步时能按真实修改时间比较新旧。
     @MainActor func localDidChange(category: SyncCategory) {
+        lastLocalChange[category] = Date()
+        persistLastLocalChange()
         guard isEnabled else { return }
         sync()
     }
@@ -163,14 +174,37 @@ final class ICloudSyncManager: ObservableObject {
         let localExists = FileManager.default.fileExists(atPath: localURL.path)
         let iCloudExists = FileManager.default.fileExists(atPath: iCloudURL.path)
 
+        // SSH/端口转发/代码片段首次运行（本地镜像不存在）时的初始化处理。
+        if !localExists && category != .config {
+            if iCloudExists {
+                // 云端已有数据：下载并导入，避免用本地旧数据覆盖云端。
+                try copyPreservingAttributes(from: iCloudURL, to: localURL)
+                try importFromLocal(category: category, sourceURL: localURL)
+                markLocalChangeTime(category, modificationDate(of: localURL) ?? Date())
+                logger.info("Initialized \(category.rawValue, privacy: .public) from iCloud")
+            } else {
+                // 云端也没有：用当前本地数据生成镜像并上传。
+                try generateLocalMirrorIfNeeded(category: category)
+                if FileManager.default.fileExists(atPath: localURL.path) {
+                    try copyPreservingAttributes(from: localURL, to: iCloudURL)
+                    markLocalChangeTime(category, modificationDate(of: localURL) ?? Date())
+                    logger.info("Initialized \(category.rawValue, privacy: .public) to iCloud")
+                }
+            }
+            return
+        }
+
         if !localExists && !iCloudExists {
             return
         }
 
         if !iCloudExists {
             // 本地有、云端无：上传。
-            try generateLocalMirrorIfNeeded(category: category)
+            if category != .config {
+                try generateLocalMirrorIfNeeded(category: category)
+            }
             try copyPreservingAttributes(from: localURL, to: iCloudURL)
+            markLocalChangeTime(category, modificationDate(of: localURL) ?? Date())
             logger.info("Uploaded \(category.rawValue, privacy: .public) to iCloud")
             return
         }
@@ -179,22 +213,34 @@ final class ICloudSyncManager: ObservableObject {
             // 云端有、本地无：下载并导入。
             try copyPreservingAttributes(from: iCloudURL, to: localURL)
             try importFromLocal(category: category, sourceURL: localURL)
+            markLocalChangeTime(category, modificationDate(of: localURL) ?? Date())
             logger.info("Downloaded \(category.rawValue, privacy: .public) from iCloud")
             return
         }
 
-        let localMtime = modificationDate(of: localURL) ?? .distantPast
+        // 双方都有数据：按真实修改时间比较。
         let iCloudMtime = modificationDate(of: iCloudURL) ?? .distantPast
+        let localChangeTime: Date
+        if category == .config {
+            // 配置文件本身的修改时间即真实修改时间。
+            localChangeTime = modificationDate(of: localURL) ?? .distantPast
+        } else {
+            // 使用保存时记录的真实修改时间（同步关闭期间也会记录）；
+            // 没有记录时退化为镜像文件时间。
+            localChangeTime = lastLocalChange[category] ?? modificationDate(of: localURL) ?? .distantPast
+        }
 
-        if iCloudMtime.timeIntervalSince(localMtime) > timeTolerance {
+        if iCloudMtime.timeIntervalSince(localChangeTime) > timeTolerance {
             // 云端更新：下载覆盖本地并导入。
             try copyPreservingAttributes(from: iCloudURL, to: localURL)
             try importFromLocal(category: category, sourceURL: localURL)
+            markLocalChangeTime(category, iCloudMtime)
             logger.info("Imported \(category.rawValue, privacy: .public) from iCloud")
-        } else if localMtime.timeIntervalSince(iCloudMtime) > timeTolerance {
+        } else if localChangeTime.timeIntervalSince(iCloudMtime) > timeTolerance {
             // 本地更新：重新生成镜像并上传。
             try generateLocalMirrorIfNeeded(category: category)
             try copyPreservingAttributes(from: localURL, to: iCloudURL)
+            markLocalChangeTime(category, modificationDate(of: localURL) ?? Date())
             logger.info("Uploaded \(category.rawValue, privacy: .public) to iCloud")
         }
     }
@@ -305,6 +351,30 @@ final class ICloudSyncManager: ObservableObject {
         if value == "true" || value == "yes" || value == "1" { return true }
         if value == "false" || value == "no" || value == "0" { return false }
         return nil
+    }
+
+    // MARK: - 本地修改时间跟踪
+
+    private func loadLastLocalChange() {
+        guard let dict = UserDefaults.ghostty.dictionary(forKey: lastChangeDefaultsKey) as? [String: Double] else { return }
+        for (key, value) in dict {
+            if let category = SyncCategory(rawValue: key) {
+                lastLocalChange[category] = Date(timeIntervalSince1970: value)
+            }
+        }
+    }
+
+    private func persistLastLocalChange() {
+        var dict: [String: Double] = [:]
+        for (category, date) in lastLocalChange {
+            dict[category.rawValue] = date.timeIntervalSince1970
+        }
+        UserDefaults.ghostty.set(dict, forKey: lastChangeDefaultsKey)
+    }
+
+    private func markLocalChangeTime(_ category: SyncCategory, _ date: Date) {
+        lastLocalChange[category] = date
+        persistLastLocalChange()
     }
 }
 
