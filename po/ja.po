@@ -1218,3 +1218,10 @@ msgstr "繁体字中国語"
 
 msgid "日本語"
 msgstr "日本語"
+
+msgid "Theme"
+msgstr "テーマ"
+
+msgid "No Preview"
+msgstr "プレビューなし"
+

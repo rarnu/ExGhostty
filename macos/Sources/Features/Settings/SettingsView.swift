@@ -226,10 +226,13 @@ final class SettingsModel: ObservableObject {
     @Published var language: String = "en"
 
     // Appearance
+    @Published var theme: String = ""
     @Published var fontFamily: String = ""
     @Published var fontSize: Float = 15
     @Published var fontThicken: Bool = true
+    @Published var useBackgroundColor: Bool = true
     @Published var backgroundColor: Color = Color(hex: "#282C34")
+    @Published var useForegroundColor: Bool = true
     @Published var foregroundColor: Color = Color.white
     @Published var backgroundOpacity: Double = 0.8
     @Published var backgroundBlur: Bool = true
@@ -298,12 +301,25 @@ final class SettingsModel: ObservableObject {
             let writer = ConfigFileWriter(url: url)
 
             language = writer.firstValue(for: "language") ?? "en"
+            theme = writer.firstValue(for: "theme") ?? config.theme
             fontFamily = writer.firstValue(for: "font-family") ?? (families.contains(preferredFont) ? preferredFont : "")
             fontSize = Float(writer.firstValue(for: "font-size") ?? "") ?? 15
             fontThicken = parseBool(writer.firstValue(for: "font-thicken")) ?? true
 
-            backgroundColor = writer.firstValue(for: "background").flatMap { Color(hex: $0) } ?? config.backgroundColor
-            foregroundColor = writer.firstValue(for: "foreground").flatMap { Color(hex: $0) } ?? Color.white
+            if let bg = writer.firstValue(for: "background").flatMap({ Color(hex: $0) }) {
+                useBackgroundColor = true
+                backgroundColor = bg
+            } else {
+                useBackgroundColor = false
+                backgroundColor = config.backgroundColor
+            }
+            if let fg = writer.firstValue(for: "foreground").flatMap({ Color(hex: $0) }) {
+                useForegroundColor = true
+                foregroundColor = fg
+            } else {
+                useForegroundColor = false
+                foregroundColor = Color.white
+            }
             backgroundOpacity = writer.firstValue(for: "background-opacity").flatMap(Double.init) ?? config.backgroundOpacity
             backgroundBlur = parseBlur(writer.firstValue(for: "background-blur")) ?? config.backgroundBlur.isEnabled
             backgroundImage = writer.firstValue(for: "background-image") ?? ""
@@ -366,7 +382,10 @@ final class SettingsModel: ObservableObject {
             keybinds = binds
         } else {
             // 没有配置文件路径时回退到当前运行时配置
+            useBackgroundColor = false
             backgroundColor = config.backgroundColor
+            useForegroundColor = false
+            foregroundColor = Color.white
             backgroundOpacity = config.backgroundOpacity
             backgroundBlur = config.backgroundBlur.isEnabled
             fontFamily = families.contains(preferredFont) ? preferredFont : ""
@@ -383,12 +402,13 @@ final class SettingsModel: ObservableObject {
         let writer = ConfigFileWriter(url: url)
 
         writer.setValue(language == "en" ? nil : language, forKey: "language")
+        writer.setValue(theme.isEmpty ? nil : theme, forKey: "theme")
         writer.setValue(fontFamily.isEmpty ? nil : fontFamily, forKey: "font-family")
         writer.setValue(String(format: "%.0f", fontSize), forKey: "font-size")
         writer.setValue(fontThicken ? "true" : "false", forKey: "font-thicken")
 
-        writer.setValue(backgroundColor.toHex(), forKey: "background")
-        writer.setValue(foregroundColor.toHex(), forKey: "foreground")
+        writer.setValue(useBackgroundColor ? backgroundColor.toHex() : nil, forKey: "background")
+        writer.setValue(useForegroundColor ? foregroundColor.toHex() : nil, forKey: "foreground")
         writer.setValue(String(format: "%.2f", backgroundOpacity), forKey: "background-opacity")
         writer.setValue(backgroundBlur ? "true" : "false", forKey: "background-blur")
         writer.setValue(backgroundImage.isEmpty ? nil : backgroundImage, forKey: "background-image")
@@ -473,12 +493,13 @@ enum SettingsAsyncBackend: String, CaseIterable {
 }
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case general, appearance, notification, window, directory, secure, terminal, keybind, ai
+    case general, theme, appearance, notification, window, directory, secure, terminal, keybind, ai
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .general: return "General".localized
+        case .theme: return "Theme".localized
         case .appearance: return "Appearance".localized
         case .notification: return "Notification".localized
         case .window: return "Window".localized
@@ -493,6 +514,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: return "gearshape"
+        case .theme: return "paintpalette"
         case .appearance: return "paintbrush"
         case .notification: return "bell.badge"
         case .window: return "macwindow"
@@ -578,6 +600,7 @@ struct SettingsView: View {
     private var detailContent: some View {
         switch selectedCategory {
         case .general: generalSection
+        case .theme: themeSection
         case .appearance: appearanceSection
         case .notification: notificationSection
         case .window: windowSection
@@ -626,6 +649,62 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: Theme
+
+    /// Lists the names of all bundled Ghostty themes by scanning
+    /// `Contents/Resources/ghostty/themes` in the app bundle.
+    private var bundledThemeNames: [String] {
+        guard let themesURL = Bundle.main.resourceURL?.appendingPathComponent("ghostty/themes") else { return [] }
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(atPath: themesURL.path) else { return [] }
+        return files.sorted()
+    }
+
+    /// Returns the preview image filename for a theme name, matching the
+    /// naming convention used when images were downloaded from
+    /// iTerm2-Color-Schemes: lowercase, remove dots, spaces/punctuation
+    /// become hyphens, collapse and trim hyphens.
+    private func themePreviewFilename(_ name: String) -> String {
+        var result = name.lowercased()
+        result = result.replacingOccurrences(of: ".", with: "")
+        let punctuation = CharacterSet(charactersIn: " \\/_.'()&+")
+        let components = result.components(separatedBy: punctuation)
+            .filter { !$0.isEmpty }
+        return components.joined(separator: "-")
+    }
+
+    private func themePreviewURL(_ name: String) -> URL? {
+        let filename = themePreviewFilename(name) + ".png"
+        return Bundle.main.resourceURL?.appendingPathComponent("themes/" + filename)
+    }
+
+    private var themeSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Theme")
+
+            let columns = [
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16),
+            ]
+
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(bundledThemeNames, id: \.self) { name in
+                        ThemeCell(
+                            name: name,
+                            previewURL: themePreviewURL(name),
+                            isSelected: model.theme == name
+                        )
+                        .onTapGesture {
+                            model.theme = name
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Appearance
 
     private var appearanceSection: some View {
@@ -660,11 +739,35 @@ struct SettingsView: View {
             }
 
             settingsRow(label: "Background".localized) {
-                ColorPicker("", selection: $model.backgroundColor, supportsOpacity: false)
+                HStack(spacing: 8) {
+                    ColorPicker("", selection: colorBinding($model.backgroundColor, use: $model.useBackgroundColor), supportsOpacity: false)
+                    Button {
+                        model.useBackgroundColor = false
+                        model.backgroundColor = model.ghosttyConfig.backgroundColor
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete".localized)
+                    .disabled(!model.useBackgroundColor)
+                }
             }
 
             settingsRow(label: "Foreground".localized) {
-                ColorPicker("", selection: $model.foregroundColor, supportsOpacity: false)
+                HStack(spacing: 8) {
+                    ColorPicker("", selection: colorBinding($model.foregroundColor, use: $model.useForegroundColor), supportsOpacity: false)
+                    Button {
+                        model.useForegroundColor = false
+                        model.foregroundColor = Color.white
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete".localized)
+                    .disabled(!model.useForegroundColor)
+                }
             }
 
             settingsRow(label: "Background Opacity".localized) {
@@ -713,9 +816,9 @@ struct SettingsView: View {
                 .frame(width: 260)
             }
 
-            optionalColorRow(label: "Selection Foreground".localized, use: $model.useSelectionForeground, color: $model.selectionForeground)
-            optionalColorRow(label: "Selection Background".localized, use: $model.useSelectionBackground, color: $model.selectionBackground)
-            optionalColorRow(label: "Cursor Color".localized, use: $model.useCursorColor, color: $model.cursorColor)
+            optionalColorRow(label: "Selection Foreground".localized, use: $model.useSelectionForeground, color: $model.selectionForeground, defaultColor: Color.white)
+            optionalColorRow(label: "Selection Background".localized, use: $model.useSelectionBackground, color: $model.selectionBackground, defaultColor: Color.black)
+            optionalColorRow(label: "Cursor Color".localized, use: $model.useCursorColor, color: $model.cursorColor, defaultColor: Color.white)
 
             settingsRow(label: "Cursor Opacity".localized) {
                 Slider(value: $model.cursorOpacity, in: 0.1...1, step: 0.05)
@@ -999,16 +1102,38 @@ struct SettingsView: View {
         }
     }
 
-    private func optionalColorRow(label: String, use: Binding<Bool>, color: Binding<Color>) -> some View {
+    private func optionalColorRow(label: String, use: Binding<Bool>, color: Binding<Color>, defaultColor: Color) -> some View {
         HStack(spacing: 12) {
             Text(label)
                 .font(.system(size: 13))
                 .frame(width: 170, alignment: .leading)
-            Toggle("Use Default".localized, isOn: use)
-            ColorPicker("", selection: color, supportsOpacity: false)
+            HStack(spacing: 8) {
+                ColorPicker("", selection: colorBinding(color, use: use), supportsOpacity: false)
+                Button {
+                    use.wrappedValue = false
+                    color.wrappedValue = defaultColor
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Delete".localized)
                 .disabled(!use.wrappedValue)
+            }
             Spacer()
         }
+    }
+
+    private func colorBinding(_ color: Binding<Color>, use: Binding<Bool>) -> Binding<Color> {
+        Binding(
+            get: { color.wrappedValue },
+            set: { newValue in
+                color.wrappedValue = newValue
+                if !use.wrappedValue {
+                    use.wrappedValue = true
+                }
+            }
+        )
     }
 
     private func chooseBackgroundImage() {
@@ -1082,6 +1207,58 @@ final class KeybindCaptureWindowController: ModalWindowController {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+}
+
+private struct ThemeCell: View {
+    let name: String
+    let previewURL: URL?
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.controlBackgroundColor))
+
+                if let previewURL,
+                   FileManager.default.fileExists(atPath: previewURL.path),
+                   let nsImage = NSImage(contentsOf: previewURL) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(6)
+                } else {
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(width: 48, height: 24)
+                        Text("No Preview".localized)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 4 : 1)
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.accentColor)
+                        .background(Circle().fill(Color(.windowBackgroundColor)))
+                        .offset(x: 6, y: -6)
+                }
+            }
+            .aspectRatio(2, contentMode: .fit)
+            .shadow(color: isSelected ? Color.accentColor.opacity(0.25) : Color.clear, radius: 6, x: 0, y: 2)
+
+            Text(name)
+                .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                .foregroundColor(isSelected ? .accentColor : .primary)
+                .lineLimit(1)
+        }
+        .contentShape(Rectangle())
     }
 }
 

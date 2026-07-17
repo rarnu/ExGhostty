@@ -1217,3 +1217,10 @@ msgstr "繁體中文"
 
 msgid "日本語"
 msgstr "日本語"
+
+msgid "Theme"
+msgstr "主題"
+
+msgid "No Preview"
+msgstr "無預覽"
+

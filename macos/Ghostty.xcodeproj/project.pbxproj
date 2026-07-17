@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02B0BA271AAA9DF56C320C0A /* themes in Resources */ = {isa = PBXBuildFile; fileRef = 3288F788D53A434398755E2F /* themes */; };
 		29C15B1D2CDC3B2900520DD4 /* bat in Resources */ = {isa = PBXBuildFile; fileRef = 29C15B1C2CDC3B2000520DD4 /* bat */; };
 		55154BE02B33911F001622DC /* ghostty in Resources */ = {isa = PBXBuildFile; fileRef = 55154BDF2B33911F001622DC /* ghostty */; };
 		552964E62B34A9B400030505 /* vim in Resources */ = {isa = PBXBuildFile; fileRef = 552964E52B34A9B400030505 /* vim */; };
@@ -70,6 +71,7 @@
 
 /* Begin PBXFileReference section */
 		29C15B1C2CDC3B2000520DD4 /* bat */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bat; path = "../zig-out/share/bat"; sourceTree = "<group>"; };
+		3288F788D53A434398755E2F /* themes */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; name = themes; path = ../images/themes; sourceTree = "<group>"; };
 		3B39CAA42B33949B00DABEB8 /* GhosttyReleaseLocal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GhosttyReleaseLocal.entitlements; sourceTree = "<group>"; };
 		55154BDF2B33911F001622DC /* ghostty */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ghostty; path = "../zig-out/share/ghostty"; sourceTree = "<group>"; };
 		552964E52B34A9B400030505 /* vim */ = {isa = PBXFileReference; lastKnownFileType = folder; name = vim; path = "../zig-out/share/vim"; sourceTree = "<group>"; };
@@ -96,7 +98,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8193245D2F24E80800A9ED8F /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		8193245D2F24E80800A9ED8F /* Exceptions for "Sources" folder in "DockTilePlugin" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Features/Custom App Icon/AppIcon.swift",
@@ -113,7 +115,7 @@
 			);
 			target = 8193244C2F24E6C000A9ED8F /* DockTilePlugin */;
 		};
-		81F82CB02E8281F5001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		81F82CB02E8281F5001EDFA7 /* Exceptions for "Sources" folder in "Ghostty-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/macOS/AppDelegate.swift,
@@ -258,7 +260,7 @@
 			);
 			target = A5D4499C2B53AE7B000F5B83 /* Ghostty-iOS */;
 		};
-		81F82CB12E8281F9001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		81F82CB12E8281F9001EDFA7 /* Exceptions for "Sources" folder in "Ghostty" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/iOS/iOSApp.swift,
@@ -270,9 +272,42 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		810ACCA02E9D3302004F8F92 /* GhosttyUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = GhosttyUITests; sourceTree = "<group>"; };
-		81F82BC72E82815D001EDFA7 /* Sources */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (81F82CB12E8281F9001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 81F82CB02E8281F5001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 8193245D2F24E80800A9ED8F /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Sources; sourceTree = "<group>"; };
-		A54F45F42E1F047A0046BD5C /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
+		810ACCA02E9D3302004F8F92 /* GhosttyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = GhosttyUITests;
+			sourceTree = "<group>";
+		};
+		81F82BC72E82815D001EDFA7 /* Sources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				81F82CB12E8281F9001EDFA7 /* Exceptions for "Sources" folder in "Ghostty" target */,
+				81F82CB02E8281F5001EDFA7 /* Exceptions for "Sources" folder in "Ghostty-iOS" target */,
+				8193245D2F24E80800A9ED8F /* Exceptions for "Sources" folder in "DockTilePlugin" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A54F45F42E1F047A0046BD5C /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -318,6 +353,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		85D30B35855DEDDA56C140E6 /* images */ = {
+			isa = PBXGroup;
+			children = (
+				3288F788D53A434398755E2F /* themes */,
+			);
+			name = images;
+			path = ../images;
+			sourceTree = "<group>";
+		};
 		A5A1F8862A489D7400D1E8BC /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -351,6 +395,7 @@
 				A5D495A3299BECBA00DD1313 /* Frameworks */,
 				A5A1F8862A489D7400D1E8BC /* Resources */,
 				A5B30532299BEAAA0047F10C /* Products */,
+				85D30B35855DEDDA56C140E6 /* images */,
 			);
 			sourceTree = "<group>";
 		};
@@ -578,6 +623,7 @@
 				552964E62B34A9B400030505 /* vim in Resources */,
 				FC5218FA2D10FFCE004C93E0 /* zsh in Resources */,
 				A5B30539299BEAAB0047F10C /* Assets.xcassets in Resources */,
+				02B0BA271AAA9DF56C320C0A /* themes in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
