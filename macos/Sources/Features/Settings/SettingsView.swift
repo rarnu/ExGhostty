@@ -653,7 +653,7 @@ struct SettingsView: View {
                 .frame(width: 180)
             }
 
-            Text("Language changes will take effect after restarting Ghostty.".localized)
+            Text("Language changes will take effect after restarting ExGhostty.".localized)
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
