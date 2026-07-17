@@ -34,7 +34,9 @@ struct FunctionPanelView: View {
             CodeSnippetPanelView(terminalController: terminalController)
         case .systemMonitor:
             SystemMonitorPanelView(terminalController: terminalController)
-        case .aiAssistant, .none:
+        case .aiAssistant:
+            AIAssistantPanelView(terminalController: terminalController)
+        case .none:
             placeholder(feature?.title ?? "")
         }
     }

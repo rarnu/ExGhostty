@@ -1224,3 +1224,51 @@ msgstr "主題"
 msgid "No Preview"
 msgstr "無預覽"
 
+msgid "New Chat"
+msgstr "新增對話"
+
+msgid "History"
+msgstr "歷史對話"
+
+msgid "AI not configured"
+msgstr "AI 未設定"
+
+msgid "No history conversations"
+msgstr "無歷史對話"
+
+msgid "Clear All History?"
+msgstr "清除所有歷史對話？"
+
+msgid "This will delete all saved AI conversations. This action cannot be undone."
+msgstr "這將刪除所有儲存的 AI 對話，此操作無法復原。"
+
+msgid "New Conversation"
+msgstr "新對話"
+
+msgid "AI configuration is missing. Please set ai-endpoint, ai-apikey and ai-model in settings."
+msgstr "缺少 AI 設定。請在設定中配置 ai-endpoint、ai-apikey 與 ai-model。"
+
+msgid "Invalid AI endpoint URL."
+msgstr "無效的 AI 介面網址。"
+
+msgid "Invalid response from AI service."
+msgstr "AI 服務回傳無效回應。"
+
+msgid "AI request failed (%d): %@"
+msgstr "AI 請求失敗 (%d)：%@"
+
+msgid "%d messages"
+msgstr "%d 則訊息"
+
+msgid "Send"
+msgstr "傳送"
+
+msgid "Copy to Terminal"
+msgstr "複製到終端機"
+
+msgid "Command"
+msgstr "命令"
+
+msgid "Python"
+msgstr "Python"
+

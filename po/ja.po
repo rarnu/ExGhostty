@@ -1225,3 +1225,51 @@ msgstr "テーマ"
 msgid "No Preview"
 msgstr "プレビューなし"
 
+msgid "New Chat"
+msgstr "新規チャット"
+
+msgid "History"
+msgstr "履歴"
+
+msgid "AI not configured"
+msgstr "AI が設定されていません"
+
+msgid "No history conversations"
+msgstr "履歴の会話はありません"
+
+msgid "Clear All History?"
+msgstr "すべての履歴を削除しますか？"
+
+msgid "This will delete all saved AI conversations. This action cannot be undone."
+msgstr "保存されている AI 会話をすべて削除します。この操作は元に戻せません。"
+
+msgid "New Conversation"
+msgstr "新規会話"
+
+msgid "AI configuration is missing. Please set ai-endpoint, ai-apikey and ai-model in settings."
+msgstr "AI 設定がありません。設定で ai-endpoint、ai-apikey、ai-model を設定してください。"
+
+msgid "Invalid AI endpoint URL."
+msgstr "AI エンドポイント URL が無効です。"
+
+msgid "Invalid response from AI service."
+msgstr "AI サービスからの応答が無効です。"
+
+msgid "AI request failed (%d): %@"
+msgstr "AI リクエストに失敗しました (%d): %@"
+
+msgid "%d messages"
+msgstr "%d 件のメッセージ"
+
+msgid "Send"
+msgstr "送信"
+
+msgid "Copy to Terminal"
+msgstr "ターミナルにコピー"
+
+msgid "Command"
+msgstr "コマンド"
+
+msgid "Python"
+msgstr "Python"
+
