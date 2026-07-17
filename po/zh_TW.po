@@ -138,7 +138,7 @@ msgid "Close"
 msgstr "關閉"
 
 msgid "Close Split"
-msgstr ""
+msgstr "關閉分屏"
 
 msgid "Close Split?"
 msgstr "是否要關閉窗格？"
@@ -925,256 +925,256 @@ msgid "xtop not detected"
 msgstr "未偵測到 xtop"
 
 msgid "General"
-msgstr ""
+msgstr "一般"
 
 msgid "Appearance"
-msgstr ""
+msgstr "外觀"
 
 msgid "Notification"
-msgstr ""
+msgstr "通知"
 
 msgid "Directory"
-msgstr ""
+msgstr "目錄"
 
 msgid "Secure"
-msgstr ""
+msgstr "安全"
 
 msgid "Terminal"
-msgstr ""
+msgstr "終端"
 
 msgid "Keybind"
-msgstr ""
+msgstr "快捷鍵"
 
 msgid "AI"
-msgstr ""
+msgstr "AI"
 
 msgid "Language"
-msgstr ""
+msgstr "語言"
 
 msgid "Font Family"
-msgstr ""
+msgstr "字體"
 
 msgid "Font Size"
-msgstr ""
+msgstr "字體大小"
 
 msgid "Font Thicken"
-msgstr ""
+msgstr "字體加粗"
 
 msgid "Background"
-msgstr ""
+msgstr "背景色"
 
 msgid "Foreground"
 msgstr "前景色"
 
 msgid "Background Opacity"
-msgstr ""
+msgstr "背景透明度"
 
 msgid "Background Blur"
-msgstr ""
+msgstr "背景模糊"
 
 msgid "Background Image"
 msgstr "背景圖片"
 
 msgid "Background Image Opacity"
-msgstr ""
+msgstr "背景圖片透明度"
 
 msgid "Background Fit"
-msgstr ""
+msgstr "背景圖片適應"
 
 msgid "Selection Foreground"
-msgstr ""
+msgstr "選中前景色"
 
 msgid "Selection Background"
-msgstr ""
+msgstr "選中背景色"
 
 msgid "Cursor Color"
-msgstr ""
+msgstr "游標顏色"
 
 msgid "Cursor Opacity"
-msgstr ""
+msgstr "游標透明度"
 
 msgid "Cursor Style"
-msgstr ""
+msgstr "游標樣式"
 
 msgid "Cursor Blink"
-msgstr ""
+msgstr "游標閃爍"
 
 msgid "Notify on Command Finish"
-msgstr ""
+msgstr "命令結束通知"
 
 msgid "Notify Action"
-msgstr ""
+msgstr "通知方式"
 
 msgid "Bell"
-msgstr ""
+msgstr "響鈴"
 
 msgid "Notify"
-msgstr ""
+msgstr "通知"
 
 msgid "Scrollback Limit"
-msgstr ""
+msgstr "可捲動行數"
 
 msgid "Scrollbar"
-msgstr ""
+msgstr "捲動條"
 
 msgid "Maximize on Launch"
-msgstr ""
+msgstr "啟動時最大化"
 
 msgid "Confirm Close"
-msgstr ""
+msgstr "關閉前確認"
 
 msgid "Window Inherit Working Directory"
-msgstr ""
+msgstr "新視窗繼承工作目錄"
 
 msgid "Tab Inherit Working Directory"
-msgstr ""
+msgstr "新標籤繼承工作目錄"
 
 msgid "Split Inherit Working Directory"
-msgstr ""
+msgstr "新分欄繼承工作目錄"
 
 msgid "Clipboard Read"
-msgstr ""
+msgstr "讀取剪貼簿"
 
 msgid "Clipboard Write"
-msgstr ""
+msgstr "寫入剪貼簿"
 
 msgid "Clipboard Trim Trailing Spaces"
-msgstr ""
+msgstr "剪貼簿去除尾部空格"
 
 msgid "Clipboard Paste Protection"
-msgstr ""
+msgstr "剪貼簿貼上保護"
 
 msgid "Auto Secure Input"
-msgstr ""
+msgstr "自動安全輸入"
 
 msgid "Secure Input Indication"
-msgstr ""
+msgstr "安全輸入指示器"
 
 msgid "AppleScript"
-msgstr ""
+msgstr "AppleScript"
 
 msgid "Shortcuts"
-msgstr ""
+msgstr "快捷指令"
 
 msgid "Term"
-msgstr ""
+msgstr "終端識別"
 
 msgid "Async Backend"
-msgstr ""
+msgstr "非同步後端"
 
 msgid "Auto"
-msgstr ""
+msgstr "自動"
 
 msgid "epoll"
-msgstr ""
+msgstr "epoll"
 
 msgid "io_uring"
-msgstr ""
+msgstr "io_uring"
 
 msgid "I/O Uring"
 msgstr "I/O Uring"
 
 msgid "Model"
-msgstr ""
+msgstr "模型"
 
 msgid "API Endpoint"
-msgstr ""
+msgstr "API 位址"
 
 msgid "API Key"
-msgstr ""
+msgstr "API 金鑰"
 
 msgid "Choose..."
-msgstr ""
+msgstr "選擇..."
 
 msgid "System Default"
-msgstr ""
+msgstr "系統預設"
 
 msgid "Use Default"
-msgstr ""
+msgstr "使用預設"
 
 msgid "English"
-msgstr ""
+msgstr "英語"
 
 msgid "Contain"
-msgstr ""
+msgstr "適應"
 
 msgid "Cover"
-msgstr ""
+msgstr "覆蓋"
 
 msgid "Stretch"
-msgstr ""
+msgstr "拉伸"
 
 msgid "None"
-msgstr ""
+msgstr "無"
 
 msgid "Bar"
-msgstr ""
+msgstr "豎線"
 
 msgid "Block"
-msgstr ""
+msgstr "方塊"
 
 msgid "Underline"
-msgstr ""
+msgstr "底線"
 
 msgid "Block Hollow"
-msgstr ""
+msgstr "空心方塊"
 
 msgid "Never"
-msgstr ""
+msgstr "從不"
 
 msgid "Unfocused"
-msgstr ""
+msgstr "未聚焦時"
 
 msgid "Always"
-msgstr ""
+msgstr "總是"
 
 msgid "Ask"
 msgstr "詢問"
 
 msgid "Language changes will take effect after restarting Ghostty."
-msgstr ""
+msgstr "語言變更將在重啟 Ghostty 後生效。"
 
 msgid "Keybind: New Tab"
-msgstr ""
+msgstr "快捷鍵：新增標籤"
 
 msgid "Keybind: New Split Right"
-msgstr ""
+msgstr "快捷鍵：向右分屏"
 
 msgid "Keybind: New Split Down"
-msgstr ""
+msgstr "快捷鍵：向下分屏"
 
 msgid "Keybind: Close Surface"
-msgstr ""
+msgstr "快捷鍵：關閉終端"
 
 msgid "Keybind: Quit"
-msgstr ""
+msgstr "快捷鍵：退出"
 
 msgid "Keybind: Copy To Clipboard"
-msgstr ""
+msgstr "快捷鍵：複製"
 
 msgid "Keybind: Paste From Clipboard"
-msgstr ""
+msgstr "快捷鍵：貼上"
 
 msgid "Keybind: Select All"
-msgstr ""
+msgstr "快捷鍵：全選"
 
 msgid "Keybind: Previous Tab"
-msgstr ""
+msgstr "快捷鍵：上一個標籤"
 
 msgid "Keybind: Next Tab"
-msgstr ""
+msgstr "快捷鍵：下一個標籤"
 
 msgid "Keybind: Goto Split Left"
-msgstr ""
+msgstr "快捷鍵：聚焦左分屏"
 
 msgid "Keybind: Goto Split Right"
-msgstr ""
+msgstr "快捷鍵：聚焦右分屏"
 
 msgid "Keybind: Goto Split Up"
-msgstr ""
+msgstr "快捷鍵：聚焦上分屏"
 
 msgid "Keybind: Goto Split Down"
-msgstr ""
+msgstr "快捷鍵：聚焦下分屏"
 
 msgid "Capture Keybind"
 msgstr "捕獲快速鍵"
@@ -1192,19 +1192,19 @@ msgid "The shortcut %@ is already used by %@."
 msgstr "快速鍵 %@ 已被 %@ 使用。"
 
 msgid "Keybind: Increase Font Size"
-msgstr ""
+msgstr "快捷鍵：增大字體"
 
 msgid "Keybind: Decrease Font Size"
-msgstr ""
+msgstr "快捷鍵：減小字體"
 
 msgid "Keybind: Reset Font Size"
-msgstr ""
+msgstr "快捷鍵：重置字體"
 
 msgid "Keybind: Toggle Fullscreen"
-msgstr ""
+msgstr "快捷鍵：切換全屏"
 
 msgid "Keybind: Inspector"
-msgstr ""
+msgstr "快捷鍵：檢查器"
 
 msgid "System"
 msgstr "系統"

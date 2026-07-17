@@ -167,6 +167,13 @@ pub export fn ghostty_i18n_init(resources_dir: [*:0]const u8) void {
     };
 }
 
+/// Set the active translation language and apply it to the runtime locale.
+/// This should be called whenever the user changes the configured language
+/// so that subsequent gettext calls resolve to the correct translations.
+pub export fn ghostty_i18n_set_language(language: [*:0]const u8) void {
+    internal_os.setLanguage(std.mem.span(language));
+}
+
 /// Free a string allocated by Ghostty.
 pub export fn ghostty_string_free(str: String) void {
     str.deinit();

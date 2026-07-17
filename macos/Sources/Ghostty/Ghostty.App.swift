@@ -54,6 +54,16 @@ extension Ghostty {
             return ghostty_app_needs_confirm_quit(app)
         }
 
+        /// Reads the `language` value directly from the config file. On macOS,
+        /// libghostty's `language` config is GTK-only, so we bypass the
+        /// runtime config and read the file ourselves.
+        private static func configuredLanguage(at configPath: String?) -> String {
+            let path = configPath ?? Ghostty.AllocatedString(ghostty_config_open_path()).string
+            guard !path.isEmpty else { return "en" }
+            let writer = ConfigFileWriter(url: URL(fileURLWithPath: path))
+            return writer.firstValue(for: "language") ?? "en"
+        }
+
         init(configPath: String? = nil) {
             self.configPath = configPath
             // Initialize the global configuration.
@@ -79,9 +89,11 @@ extension Ghostty {
 
             // Respect the configured language before initializing gettext so
             // that UI strings resolve consistently with the user's choice.
-            let language = config.language
+            // On macOS, libghostty's `language` config is marked GTK-only, so
+            // read the value directly from the config file instead.
+            let language = Self.configuredLanguage(at: configPath)
             if !language.isEmpty {
-                setenv("LANGUAGE", language, 1)
+                language.withCString { ghostty_i18n_set_language($0) }
             }
 
             // Initialize i18n so that bundled translations are loaded before
@@ -182,9 +194,11 @@ extension Ghostty {
 
             // Keep gettext in sync with the configured language so UI strings
             // resolve to the user's choice after settings changes.
-            let language = newConfig.language
+            // On macOS, libghostty's `language` config is marked GTK-only, so
+            // read the value directly from the config file instead.
+            let language = Self.configuredLanguage(at: configPath)
             if !language.isEmpty {
-                setenv("LANGUAGE", language, 1)
+                language.withCString { ghostty_i18n_set_language($0) }
             }
 
             ghostty_app_update_config(app, newConfig.config!)

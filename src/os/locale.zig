@@ -65,6 +65,38 @@ pub fn ensureLocale(alloc: std.mem.Allocator) !void {
     } else log.warn("setlocale failed even with the fallback, uncertain results", .{});
 }
 
+/// Set the active translation language and apply it to the C runtime locale.
+/// This should be used by apprts that want to override the system default
+/// language based on user configuration.
+pub fn setLanguage(language: []const u8) void {
+    if (language.len == 0) return;
+
+    var lc_buf: [128]u8 = undefined;
+    const lc = std.fmt.bufPrintZ(&lc_buf, "{s}.UTF-8", .{language}) catch {
+        log.warn("language too long, cannot set locale language={s}", .{language});
+        return;
+    };
+
+    var lang_buf: [128:0]u8 = undefined;
+    const lang_z = std.fmt.bufPrintZ(&lang_buf, "{s}", .{language}) catch {
+        log.warn("language too long, cannot set locale language={s}", .{language});
+        return;
+    };
+
+    _ = internal_os.setenv("LANGUAGE", lang_z);
+    _ = internal_os.setenv("LC_MESSAGES", lc);
+    _ = internal_os.setenv("LANG", lc);
+
+    // Apply the new LC_MESSAGES locale so gettext uses it for subsequent
+    // dgettext calls. Without this the C runtime keeps the locale that was
+    // set during the earlier ensureLocale call.
+    if (setlocale(LC_MESSAGES, "")) |v| {
+        log.info("set language result={s}", .{std.mem.sliceTo(v, 0)});
+    } else {
+        log.warn("setlocale failed for language={s}", .{language});
+    }
+}
+
 /// This sets the LANG environment variable based on the macOS system
 /// preferences selected locale settings.
 fn setLangFromCocoa() void {
@@ -113,7 +145,15 @@ fn setLangFromCocoa() void {
     }
 
     // Get our preferred languages and set that to the LANGUAGE
-    // env var in case our language differs from our locale.
+    // env var in case our language differs from our locale. If the
+    // apprt has already configured a language (e.g. from the config file)
+    // then respect that choice and do not override it.
+    if (internal_os.getenvNotEmpty(std.heap.page_allocator, "LANGUAGE") catch null) |old| {
+        old.deinit(std.heap.page_allocator);
+        log.debug("LANGUAGE already set, skipping Cocoa override", .{});
+        return;
+    }
+
     language: {
         var buf: [1024]u8 = undefined;
         const pref_ = preferredLanguageFromCocoa(
@@ -212,6 +252,7 @@ fn preferredLanguageFromCocoa(
 
 const c = @import("locale-c");
 const LC_ALL: c_int = c.LC_ALL;
+const LC_MESSAGES: c_int = c.LC_MESSAGES;
 const LC_ALL_MASK: c_int = c.LC_ALL_MASK;
 const locale_t = c.locale_t;
 const setlocale = c.setlocale;

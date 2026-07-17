@@ -16,10 +16,7 @@ struct ConfigurationErrorsView<ViewModel: ConfigurationErrorsViewModel>: View {
                     .padding()
                     .frame(alignment: .center)
 
-                Text("""
-                    ^[\(model.errors.count) error(s) were](inflect: true) found while loading the configuration. \
-                    Please review the errors below and reload your configuration or ignore the erroneous lines.
-                    """)
+                Text("One or more errors were found while loading the configuration. Please review the errors below and reload your configuration or ignore the erroneous lines.".localized)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
             }
@@ -45,9 +42,9 @@ struct ConfigurationErrorsView<ViewModel: ConfigurationErrorsViewModel>: View {
 
             HStack {
                 Spacer()
-                Button("Ignore") { model.errors = [] }
+                Button("Ignore".localized) { model.errors = [] }
                     .keyboardShortcut(.cancelAction)
-                Button("Reload Configuration") { reloadConfig() }
+                Button("Reload Configuration".localized) { reloadConfig() }
                     .keyboardShortcut(.defaultAction)
             }
             .controlSize(.large)

@@ -139,7 +139,7 @@ msgid "Close"
 msgstr "閉じる"
 
 msgid "Close Split"
-msgstr ""
+msgstr "分割を閉じる"
 
 msgid "Close Split?"
 msgstr "分割ウィンドウを閉じますか?"
@@ -926,256 +926,256 @@ msgid "xtop not detected"
 msgstr "xtop が検出されません"
 
 msgid "General"
-msgstr ""
+msgstr "一般"
 
 msgid "Appearance"
-msgstr ""
+msgstr "外観"
 
 msgid "Notification"
-msgstr ""
+msgstr "通知"
 
 msgid "Directory"
-msgstr ""
+msgstr "ディレクトリ"
 
 msgid "Secure"
-msgstr ""
+msgstr "セキュリティ"
 
 msgid "Terminal"
-msgstr ""
+msgstr "ターミナル"
 
 msgid "Keybind"
-msgstr ""
+msgstr "キーバインド"
 
 msgid "AI"
-msgstr ""
+msgstr "AI"
 
 msgid "Language"
-msgstr ""
+msgstr "言語"
 
 msgid "Font Family"
-msgstr ""
+msgstr "フォント"
 
 msgid "Font Size"
-msgstr ""
+msgstr "フォントサイズ"
 
 msgid "Font Thicken"
-msgstr ""
+msgstr "フォントを太くする"
 
 msgid "Background"
-msgstr ""
+msgstr "背景色"
 
 msgid "Foreground"
 msgstr "前景色"
 
 msgid "Background Opacity"
-msgstr ""
+msgstr "背景の不透明度"
 
 msgid "Background Blur"
-msgstr ""
+msgstr "背景ぼかし"
 
 msgid "Background Image"
 msgstr "背景画像"
 
 msgid "Background Image Opacity"
-msgstr ""
+msgstr "背景画像の不透明度"
 
 msgid "Background Fit"
-msgstr ""
+msgstr "背景画像の表示"
 
 msgid "Selection Foreground"
-msgstr ""
+msgstr "選択時の前景色"
 
 msgid "Selection Background"
-msgstr ""
+msgstr "選択時の背景色"
 
 msgid "Cursor Color"
-msgstr ""
+msgstr "カーソル色"
 
 msgid "Cursor Opacity"
-msgstr ""
+msgstr "カーソルの不透明度"
 
 msgid "Cursor Style"
-msgstr ""
+msgstr "カーソルスタイル"
 
 msgid "Cursor Blink"
-msgstr ""
+msgstr "カーソルの点滅"
 
 msgid "Notify on Command Finish"
-msgstr ""
+msgstr "コマンド終了時に通知"
 
 msgid "Notify Action"
-msgstr ""
+msgstr "通知アクション"
 
 msgid "Bell"
-msgstr ""
+msgstr "ベル"
 
 msgid "Notify"
-msgstr ""
+msgstr "通知"
 
 msgid "Scrollback Limit"
-msgstr ""
+msgstr "スクロールバック制限"
 
 msgid "Scrollbar"
-msgstr ""
+msgstr "スクロールバー"
 
 msgid "Maximize on Launch"
-msgstr ""
+msgstr "起動時に最大化"
 
 msgid "Confirm Close"
-msgstr ""
+msgstr "閉じる前に確認"
 
 msgid "Window Inherit Working Directory"
-msgstr ""
+msgstr "新規ウィンドウが作業ディレクトリを継承"
 
 msgid "Tab Inherit Working Directory"
-msgstr ""
+msgstr "新規タブが作業ディレクトリを継承"
 
 msgid "Split Inherit Working Directory"
-msgstr ""
+msgstr "新規分割が作業ディレクトリを継承"
 
 msgid "Clipboard Read"
-msgstr ""
+msgstr "クリップボード読み取り"
 
 msgid "Clipboard Write"
-msgstr ""
+msgstr "クリップボード書き込み"
 
 msgid "Clipboard Trim Trailing Spaces"
-msgstr ""
+msgstr "クリップボードの末尾スペースを削除"
 
 msgid "Clipboard Paste Protection"
-msgstr ""
+msgstr "クリップボード貼り付け保護"
 
 msgid "Auto Secure Input"
-msgstr ""
+msgstr "自動セキュア入力"
 
 msgid "Secure Input Indication"
-msgstr ""
+msgstr "セキュア入力表示"
 
 msgid "AppleScript"
-msgstr ""
+msgstr "AppleScript"
 
 msgid "Shortcuts"
-msgstr ""
+msgstr "ショートカット"
 
 msgid "Term"
-msgstr ""
+msgstr "ターミナル識別子"
 
 msgid "Async Backend"
-msgstr ""
+msgstr "非同期バックエンド"
 
 msgid "Auto"
-msgstr ""
+msgstr "自動"
 
 msgid "epoll"
-msgstr ""
+msgstr "epoll"
 
 msgid "io_uring"
-msgstr ""
+msgstr "io_uring"
 
 msgid "I/O Uring"
 msgstr "I/O Uring"
 
 msgid "Model"
-msgstr ""
+msgstr "モデル"
 
 msgid "API Endpoint"
-msgstr ""
+msgstr "API エンドポイント"
 
 msgid "API Key"
-msgstr ""
+msgstr "API キー"
 
 msgid "Choose..."
-msgstr ""
+msgstr "選択..."
 
 msgid "System Default"
-msgstr ""
+msgstr "システムデフォルト"
 
 msgid "Use Default"
-msgstr ""
+msgstr "デフォルトを使用"
 
 msgid "English"
-msgstr ""
+msgstr "英語"
 
 msgid "Contain"
-msgstr ""
+msgstr "収める"
 
 msgid "Cover"
-msgstr ""
+msgstr "覆う"
 
 msgid "Stretch"
-msgstr ""
+msgstr "伸ばす"
 
 msgid "None"
-msgstr ""
+msgstr "なし"
 
 msgid "Bar"
-msgstr ""
+msgstr "棒"
 
 msgid "Block"
-msgstr ""
+msgstr "ブロック"
 
 msgid "Underline"
-msgstr ""
+msgstr "下線"
 
 msgid "Block Hollow"
-msgstr ""
+msgstr "中空ブロック"
 
 msgid "Never"
-msgstr ""
+msgstr "常にしない"
 
 msgid "Unfocused"
-msgstr ""
+msgstr "非フォーカス時"
 
 msgid "Always"
-msgstr ""
+msgstr "常に"
 
 msgid "Ask"
 msgstr "問い合わせ"
 
 msgid "Language changes will take effect after restarting Ghostty."
-msgstr ""
+msgstr "言語の変更は Ghostty を再起動した後に反映されます。"
 
 msgid "Keybind: New Tab"
-msgstr ""
+msgstr "キーバインド: 新規タブ"
 
 msgid "Keybind: New Split Right"
-msgstr ""
+msgstr "キーバインド: 右に分割"
 
 msgid "Keybind: New Split Down"
-msgstr ""
+msgstr "キーバインド: 下に分割"
 
 msgid "Keybind: Close Surface"
-msgstr ""
+msgstr "キーバインド: サーフェスを閉じる"
 
 msgid "Keybind: Quit"
-msgstr ""
+msgstr "キーバインド: 終了"
 
 msgid "Keybind: Copy To Clipboard"
-msgstr ""
+msgstr "キーバインド: コピー"
 
 msgid "Keybind: Paste From Clipboard"
-msgstr ""
+msgstr "キーバインド: 貼り付け"
 
 msgid "Keybind: Select All"
-msgstr ""
+msgstr "キーバインド: すべて選択"
 
 msgid "Keybind: Previous Tab"
-msgstr ""
+msgstr "キーバインド: 前のタブ"
 
 msgid "Keybind: Next Tab"
-msgstr ""
+msgstr "キーバインド: 次のタブ"
 
 msgid "Keybind: Goto Split Left"
-msgstr ""
+msgstr "キーバインド: 左の分割に移動"
 
 msgid "Keybind: Goto Split Right"
-msgstr ""
+msgstr "キーバインド: 右の分割に移動"
 
 msgid "Keybind: Goto Split Up"
-msgstr ""
+msgstr "キーバインド: 上の分割に移動"
 
 msgid "Keybind: Goto Split Down"
-msgstr ""
+msgstr "キーバインド: 下の分割に移動"
 
 msgid "Capture Keybind"
 msgstr "キーバインドの取得"
@@ -1193,19 +1193,19 @@ msgid "The shortcut %@ is already used by %@."
 msgstr "ショートカット %@ は %@ で既に使用されています。"
 
 msgid "Keybind: Increase Font Size"
-msgstr ""
+msgstr "キーバインド: フォントを拡大"
 
 msgid "Keybind: Decrease Font Size"
-msgstr ""
+msgstr "キーバインド: フォントを縮小"
 
 msgid "Keybind: Reset Font Size"
-msgstr ""
+msgstr "キーバインド: フォントサイズをリセット"
 
 msgid "Keybind: Toggle Fullscreen"
-msgstr ""
+msgstr "キーバインド: フルスクリーン切り替え"
 
 msgid "Keybind: Inspector"
-msgstr ""
+msgstr "キーバインド: インスペクター"
 
 msgid "System"
 msgstr "システム"

@@ -513,7 +513,21 @@ struct SettingsView: View {
     var onSave: () -> Void = {}
     var onCancel: () -> Void = {}
 
-    @State private var selectedCategory: SettingsCategory? = .general
+    @State private var selectedCategory: SettingsCategory = .general
+
+    /// A nullable binding for SwiftUI `List(selection:)` that ignores
+    /// attempts to clear the selection (e.g. clicking empty space in the
+    /// sidebar), so the right-hand pane never becomes blank.
+    private var selectedCategoryBinding: Binding<SettingsCategory?> {
+        Binding(
+            get: { selectedCategory },
+            set: { newValue in
+                if let newValue {
+                    selectedCategory = newValue
+                }
+            }
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -549,7 +563,7 @@ struct SettingsView: View {
     }
 
     private var categoryList: some View {
-        List(SettingsCategory.allCases, selection: $selectedCategory) { category in
+        List(SettingsCategory.allCases, selection: selectedCategoryBinding) { category in
             Label(category.title, systemImage: category.icon)
                 .font(.system(size: 15))
                 .frame(height: 38)
@@ -572,7 +586,6 @@ struct SettingsView: View {
         case .terminal: terminalSection
         case .keybind: keybindSection
         case .ai: aiSection
-        case .none: EmptyView()
         }
     }
 
@@ -1101,10 +1114,6 @@ private struct KeybindCaptureView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(height: 42)
-
-            Button("Cancel".localized) {
-                onCancel()
-            }
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1135,6 +1144,12 @@ private final class ShortcutCaptureNSView: NSView {
     var onCancel: (() -> Void)?
 
     override var acceptsFirstResponder: Bool { true }
+
+    // 该视图只用于捕获按键事件，不应拦截鼠标点击；
+    // 否则它可能覆盖下方的 SwiftUI Button（例如“取消”），导致按钮点击失效。
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return nil
+    }
 
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 { // Escape

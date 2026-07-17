@@ -658,6 +658,9 @@ msgstr "刷新"
 msgid "Reload Configuration"
 msgstr "重新加载配置"
 
+msgid "One or more errors were found while loading the configuration. Please review the errors below and reload your configuration or ignore the erroneous lines."
+msgstr "加载配置时发现一个或多个错误。请检查下方的错误，然后重新加载配置或忽略出错的行。"
+
 msgid "Reload configuration to show this prompt again"
 msgstr "本提示将在重载配置后再次出现"
 
