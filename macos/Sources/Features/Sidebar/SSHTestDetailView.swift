@@ -11,6 +11,8 @@ struct SSHTestDetailView: View {
     @State private var isSuccess = false
     @State private var finalMessage = ""
     @State private var task: Task<Void, Never>?
+    @State private var buffer = SSHTestEventBuffer()
+    @State private var eventTimer: Timer?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,11 +35,18 @@ struct SSHTestDetailView: View {
         }
         .frame(width: 680, height: 420)
         .background(Color(.windowBackgroundColor))
-        .onAppear(perform: startTest)
+        .onAppear {
+            NSLog("[SSHTestDetailView] onAppear")
+            startTest()
+        }
         .onDisappear {
+            NSLog("[SSHTestDetailView] onDisappear")
+            eventTimer?.invalidate()
             task?.cancel()
         }
         .onExitCommand {
+            NSLog("[SSHTestDetailView] onExitCommand")
+            eventTimer?.invalidate()
             task?.cancel()
             onComplete?(false)
             dismiss()
@@ -155,6 +164,7 @@ struct SSHTestDetailView: View {
             Spacer()
 
             Button("Close".localized) {
+                eventTimer?.invalidate()
                 task?.cancel()
                 onComplete?(isFinished ? isSuccess : false)
                 dismiss()
@@ -172,27 +182,42 @@ struct SSHTestDetailView: View {
         isSuccess = false
         finalMessage = ""
 
-        task = Task {
-            let stream = SSHTester.stream(config: config)
-            for await event in stream {
-                guard !Task.isCancelled else { break }
-                await MainActor.run {
-                    switch event {
-                    case .step(let text):
-                        logs.append(SSHTestLogItem(kind: .step, text: text))
-                    case .log(let text):
-                        logs.append(SSHTestLogItem(kind: .log, text: text))
-                    case .success(let message):
-                        isSuccess = true
-                        finalMessage = message
-                        isFinished = true
-                    case .failure(let message):
-                        isSuccess = false
-                        finalMessage = message
-                        isFinished = true
-                    }
-                }
+        NSLog("[SSHTestDetailView] startTest, isMainThread=%d", Thread.isMainThread)
+        task = SSHTester.runTest(config: config) { event in
+            buffer.append(event)
+        }
+
+        // 使用 common 模式的 Timer 轮询事件缓冲；sheet/modal 会话下也能稳定触发。
+        eventTimer?.invalidate()
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [buffer] _ in
+            let events = buffer.drain()
+            guard !events.isEmpty else { return }
+            for event in events {
+                apply(event)
             }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        eventTimer = timer
+    }
+
+    private func apply(_ event: SSHTestEvent) {
+        switch event {
+        case .step(let text):
+            NSLog("[SSHTestDetailView] step: %@", text)
+            logs.append(SSHTestLogItem(kind: .step, text: text))
+        case .log(let text):
+            NSLog("[SSHTestDetailView] log: %@", text)
+            logs.append(SSHTestLogItem(kind: .log, text: text))
+        case .success(let message):
+            NSLog("[SSHTestDetailView] success: %@", message)
+            isSuccess = true
+            finalMessage = message
+            isFinished = true
+        case .failure(let message):
+            NSLog("[SSHTestDetailView] failure: %@", message)
+            isSuccess = false
+            finalMessage = message
+            isFinished = true
         }
     }
 
@@ -202,6 +227,29 @@ struct SSHTestDetailView: View {
         } else {
             NSApp.keyWindow?.close()
         }
+    }
+}
+
+// MARK: - Event Buffer
+
+/// 线程安全的事件缓冲：后台线程追加，主线程 Timer 轮询读取。
+private final class SSHTestEventBuffer {
+    private var events: [SSHTestEvent] = []
+    private let lock = NSLock()
+
+    func append(_ event: SSHTestEvent) {
+        lock.lock()
+        events.append(event)
+        lock.unlock()
+        NSLog("[SSHTestDetailView] buffered event")
+    }
+
+    func drain() -> [SSHTestEvent] {
+        lock.lock()
+        defer { lock.unlock() }
+        let drained = events
+        events.removeAll()
+        return drained
     }
 }
 

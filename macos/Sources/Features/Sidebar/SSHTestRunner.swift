@@ -56,11 +56,28 @@ enum SSHTester {
         }
     }
 
-    /// 以异步流的形式返回测试过程中的步骤、日志与最终结果
+    /// 在后台任务中执行测试，通过回调逐条投递事件。
+    /// 返回的任务可用于取消测试；取消时会终止底层进程。
+    @discardableResult
+    static func runTest(
+        config: SSHTestConfig,
+        onEvent: @escaping (SSHTestEvent) -> Void
+    ) -> Task<Void, Never> {
+        Task.detached {
+            NSLog("[SSHTester] test task started")
+            await run(config: config, emit: onEvent)
+            NSLog("[SSHTester] test task finished")
+        }
+    }
+
+    /// 以异步流的形式返回测试过程中的步骤、日志与最终结果（保留用于兼容）。
     static func stream(config: SSHTestConfig) -> AsyncStream<SSHTestEvent> {
         AsyncStream { continuation in
             let task = Task.detached {
-                await run(config: config, continuation: continuation)
+                await run(config: config) { event in
+                    continuation.yield(event)
+                }
+                continuation.finish()
             }
             continuation.onTermination = { _ in
                 task.cancel()
@@ -70,16 +87,16 @@ enum SSHTester {
 
     private static func run(
         config: SSHTestConfig,
-        continuation: AsyncStream<SSHTestEvent>.Continuation
+        emit: @escaping (SSHTestEvent) -> Void
     ) async {
+        NSLog("[SSHTester] run started, host=%@:%@", config.host, String(config.port))
         guard FileManager.default.isExecutableFile(atPath: "/usr/bin/ssh") else {
-            continuation.yield(.failure(TestError.sshNotFound.localizedDescription))
-            continuation.finish()
+            emit(.failure(TestError.sshNotFound.localizedDescription))
             return
         }
 
-        continuation.yield(.step("Checking system SSH command".localized))
-        continuation.yield(.log("Found /usr/bin/ssh"))
+        emit(.step("Checking system SSH command".localized))
+        emit(.log("Found /usr/bin/ssh"))
 
         var sshArgs: [String] = ["-v", "-o", "StrictHostKeyChecking=accept-new"]
         sshArgs += commonSSHOptions(config: config)
@@ -88,37 +105,36 @@ enum SSHTester {
             let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
             let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
             sshArgs += ["-J", "\(jumpUser)\(jump.host)\(jumpPort)"]
-            continuation.yield(.step(L("Using jump host: %@ (%@)", jump.name, "\(jump.host)\(jumpPort)")))
+            emit(.step(L("Using jump host: %@ (%@)", jump.name, "\(jump.host)\(jumpPort)")))
         } else {
-            continuation.yield(.step("Connecting directly to target host".localized))
+            emit(.step("Connecting directly to target host".localized))
         }
 
-        continuation.yield(.step("Building SSH command".localized))
+        emit(.step("Building SSH command".localized))
 
         let targetDescription: String
         switch config.authMode {
         case .password:
             if config.password.isEmpty {
-                continuation.yield(.step("Password empty; using BatchMode for connectivity test".localized))
+                emit(.step("Password empty; using BatchMode for connectivity test".localized))
                 sshArgs += ["-o", "BatchMode=yes"]
                 targetDescription = "Password empty; testing network connectivity only".localized
             } else {
-                continuation.yield(.step("Using expect to auto-enter password for authentication test".localized))
-                await testWithExpect(config: config, continuation: continuation)
+                emit(.step("Using expect to auto-enter password for authentication test".localized))
+                await testWithExpect(config: config, emit: emit)
                 return
             }
         case .key:
             if let keyPath = config.keyPath {
                 guard FileManager.default.fileExists(atPath: keyPath) else {
-                    continuation.yield(.failure(L("Key file does not exist: %@", keyPath)))
-                    continuation.finish()
+                    emit(.failure(L("Key file does not exist: %@", keyPath)))
                     return
                 }
-                continuation.yield(.step(L("Using key authentication: %@", keyPath)))
+                emit(.step(L("Using key authentication: %@", keyPath)))
                 sshArgs += ["-i", keyPath, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes"]
                 targetDescription = "Key Authentication".localized
             } else {
-                continuation.yield(.step("No key specified; using BatchMode for connectivity test".localized))
+                emit(.step("No key specified; using BatchMode for connectivity test".localized))
                 sshArgs += ["-o", "BatchMode=yes"]
                 targetDescription = "No key specified; testing network connectivity only".localized
             }
@@ -131,37 +147,38 @@ enum SSHTester {
         }
         sshArgs += ["exit"]
 
-        continuation.yield(.log("$ ssh \(sshArgs.joined(separator: " "))"))
-        continuation.yield(.step("Executing SSH test connection".localized))
+        emit(.log("$ ssh \(sshArgs.joined(separator: " "))"))
+        emit(.step("Executing SSH test connection".localized))
 
+        NSLog("[SSHTester] starting ssh process")
         let result = await runProcess(
             executable: "/usr/bin/ssh",
             args: sshArgs,
             env: ["SSH_AUTH_SOCK": ""].merging(config.encodingEnvironment) { $1 },
-            continuation: continuation
+            emit: emit
         )
+        NSLog("[SSHTester] ssh process finished, result=%@", String(describing: result))
 
         switch result {
         case .success:
-            continuation.yield(.success(L("Connection test passed (%@)", targetDescription)))
+            emit(.success(L("Connection test passed (%@)", targetDescription)))
         case .failure(let error):
-            continuation.yield(.failure(error.localizedDescription))
+            emit(.failure(error.localizedDescription))
         }
-        continuation.finish()
+        NSLog("[SSHTester] run finished")
     }
 
     private static func testWithExpect(
         config: SSHTestConfig,
-        continuation: AsyncStream<SSHTestEvent>.Continuation
+        emit: @escaping (SSHTestEvent) -> Void
     ) async {
         guard FileManager.default.isExecutableFile(atPath: "/usr/bin/expect") else {
-            continuation.yield(.failure(TestError.expectNotFound.localizedDescription))
-            continuation.finish()
+            emit(.failure(TestError.expectNotFound.localizedDescription))
             return
         }
 
-        continuation.yield(.step("Checking system expect command".localized))
-        continuation.yield(.log("Found /usr/bin/expect"))
+        emit(.step("Checking system expect command".localized))
+        emit(.log("Found /usr/bin/expect"))
 
         var sshArgs = "-v -o StrictHostKeyChecking=accept-new " + commonSSHOptions(config: config).joined(separator: " ")
 
@@ -210,34 +227,34 @@ enum SSHTester {
         do {
             try script.write(to: tempURL, atomically: true, encoding: .utf8)
         } catch {
-            continuation.yield(.failure(L("Failed to write expect script: %@", error.localizedDescription)))
-            continuation.finish()
+            emit(.failure(L("Failed to write expect script: %@", error.localizedDescription)))
             return
         }
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        continuation.yield(.log("$ expect \(tempURL.path)"))
-        continuation.yield(.log("$ ssh \(sshArgs)"))
-        continuation.yield(.step("Executing expect password auto-entry test".localized))
+        emit(.log("$ expect \(tempURL.path)"))
+        emit(.log("$ ssh \(sshArgs)"))
+        emit(.step("Executing expect password auto-entry test".localized))
 
+        NSLog("[SSHTester] starting expect process")
         let result = await runProcess(
             executable: "/usr/bin/expect",
             args: [tempURL.path],
             env: ["SSHPASS": config.password, "SSH_AUTH_SOCK": ""].merging(config.encodingEnvironment) { $1 },
-            continuation: continuation
+            emit: emit
         )
+        NSLog("[SSHTester] expect process finished, result=%@", String(describing: result))
 
         switch result {
         case .success:
-            continuation.yield(.success("Connection test passed (password authentication)".localized))
+            emit(.success("Connection test passed (password authentication)".localized))
         case .failure(let error):
             if case TestError.connectionFailed(let msg) = error, msg.contains("timed out") {
-                continuation.yield(.failure("Connection timed out. Check address, port, and jump host reachability.".localized))
+                emit(.failure("Connection timed out. Check address, port, and jump host reachability.".localized))
             } else {
-                continuation.yield(.failure(error.localizedDescription))
+                emit(.failure(error.localizedDescription))
             }
         }
-        continuation.finish()
     }
 
     private static func commonSSHOptions(config: SSHTestConfig) -> [String] {
@@ -260,7 +277,7 @@ enum SSHTester {
         executable: String,
         args: [String],
         env: [String: String],
-        continuation: AsyncStream<SSHTestEvent>.Continuation
+        emit: @escaping (SSHTestEvent) -> Void
     ) async -> Result<Void, Error> {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -272,9 +289,13 @@ enum SSHTester {
         process.standardOutput = outPipe
         process.standardError = errPipe
 
+        NSLog("[SSHTester] runProcess launching: %@ %@", executable, args.joined(separator: " "))
+
         do {
             try process.run()
+            NSLog("[SSHTester] process launched, pid=%d", process.processIdentifier)
         } catch {
+            NSLog("[SSHTester] process launch failed: %@", error.localizedDescription)
             return .failure(error)
         }
 
@@ -282,6 +303,7 @@ enum SSHTester {
         let timeoutTask = Task {
             try? await Task.sleep(nanoseconds: UInt64(processTimeout * 1_000_000_000))
             if process.isRunning {
+                NSLog("[SSHTester] timeout, terminating process pid=%d", process.processIdentifier)
                 process.terminate()
             }
         }
@@ -289,32 +311,38 @@ enum SSHTester {
         var outBuffer = Data()
         var errBuffer = Data()
 
+        NSLog("[SSHTester] entering task group")
+
         return await withTaskCancellationHandler(operation: {
             await withTaskGroup(of: Void.self) { group in
                 group.addTask {
+                    NSLog("[SSHTester] stdout reader started")
                     do {
                         for try await byte in outPipe.fileHandleForReading.bytes {
                             outBuffer.append(byte)
-                            flushBuffer(&outBuffer, continuation: continuation)
+                            flushBuffer(&outBuffer, emit: emit)
                         }
                     } catch {
-                        // 读取结束或被取消时退出。
+                        NSLog("[SSHTester] stdout reader ended: %@", error.localizedDescription)
                     }
                 }
 
                 group.addTask {
+                    NSLog("[SSHTester] stderr reader started")
                     do {
                         for try await byte in errPipe.fileHandleForReading.bytes {
                             errBuffer.append(byte)
-                            flushBuffer(&errBuffer, continuation: continuation)
+                            flushBuffer(&errBuffer, emit: emit)
                         }
                     } catch {
-                        // 读取结束或被取消时退出。
+                        NSLog("[SSHTester] stderr reader ended: %@", error.localizedDescription)
                     }
                 }
 
                 group.addTask {
+                    NSLog("[SSHTester] waiting for process exit")
                     process.waitUntilExit()
+                    NSLog("[SSHTester] process exited, status=%d", process.terminationStatus)
                     timeoutTask.cancel()
 
                     // 终止可能仍在运行的子进程（例如 expect 启动的 ssh）。
@@ -326,14 +354,16 @@ enum SSHTester {
 
                 // 等待任一任务完成（通常是等待进程退出的任务），然后取消读取任务。
                 _ = await group.next()
+                NSLog("[SSHTester] first task completed, cancelling readers")
                 group.cancelAll()
                 // 等待被取消的任务结束。
                 while await group.next() != nil {}
+                NSLog("[SSHTester] task group finished")
 
-                flushBuffer(&outBuffer, continuation: continuation)
-                flushBuffer(&errBuffer, continuation: continuation)
-                flushRemaining(&outBuffer, continuation: continuation)
-                flushRemaining(&errBuffer, continuation: continuation)
+                flushBuffer(&outBuffer, emit: emit)
+                flushBuffer(&errBuffer, emit: emit)
+                flushRemaining(&outBuffer, emit: emit)
+                flushRemaining(&errBuffer, emit: emit)
 
                 let status = process.terminationStatus
                 if status == 0 {
@@ -346,6 +376,7 @@ enum SSHTester {
                 return .failure(TestError.connectionFailed(L("SSH process exit code %d", status)))
             }
         }, onCancel: {
+            NSLog("[SSHTester] runProcess cancelled, terminating process pid=%d", process.processIdentifier)
             process.terminate()
             let pid = Int32(process.processIdentifier)
             for child in ProcessInspector.childPIDs(of: pid) {
@@ -356,26 +387,26 @@ enum SSHTester {
 
     private static func flushBuffer(
         _ data: inout Data,
-        continuation: AsyncStream<SSHTestEvent>.Continuation
+        emit: @escaping (SSHTestEvent) -> Void
     ) {
         while let range = data.range(of: Data("\n".utf8)) {
             let lineData = data.subdata(in: 0..<range.lowerBound)
             data.removeSubrange(0..<range.upperBound)
             if let line = String(data: lineData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty {
-                continuation.yield(.log(line))
+                emit(.log(line))
             }
         }
     }
 
     private static func flushRemaining(
         _ data: inout Data,
-        continuation: AsyncStream<SSHTestEvent>.Continuation
+        emit: @escaping (SSHTestEvent) -> Void
     ) {
         if !data.isEmpty,
            let line = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty {
-            continuation.yield(.log(line))
+            emit(.log(line))
         }
         data.removeAll()
     }

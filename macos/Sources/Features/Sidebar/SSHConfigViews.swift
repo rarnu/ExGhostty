@@ -316,33 +316,16 @@ struct SSHConfigFormView: View {
     private var jumpHostPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
             label("Jump Host".localized)
-            Menu {
-                Button("Please select a jump host".localized) { jumpHostID = nil }
+            Picker("", selection: $jumpHostID) {
+                Text("Please select a jump host".localized).tag(Optional<UUID>.none)
                 ForEach(availableJumpHosts) { conn in
-                    Button("\(conn.name) (\(conn.host):\(conn.port))") { jumpHostID = conn.id }
+                    Text("\(conn.name) (\(conn.host):\(conn.port))").tag(Optional(conn.id))
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(jumpHostTitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(jumpHostID == nil ? .secondary : .primary)
-                        .lineLimit(1)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(.controlBackgroundColor))
-                .cornerRadius(8)
-                .contentShape(Rectangle())
             }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
+            .pickerStyle(.menu)
+            .labelsHidden()
             .disabled(availableJumpHosts.isEmpty)
-            // 强制 Menu 随可用跳板机列表重建，避免 SwiftUI 缓存已删除的菜单项
+            // 强制 Picker 随可用跳板机列表重建，避免 SwiftUI 缓存已删除的选项
             .id(jumpHostMenuID)
 
             if availableJumpHosts.isEmpty {
@@ -351,13 +334,6 @@ struct SSHConfigFormView: View {
                     .foregroundColor(.secondary)
             }
         }
-    }
-
-    private var jumpHostTitle: String {
-        guard let id = jumpHostID, let conn = availableJumpHosts.first(where: { $0.id == id }) else {
-            return "Please select a jump host".localized
-        }
-        return "\(conn.name) (\(conn.host):\(conn.port))"
     }
 
     private var jumpHostMenuID: String {
@@ -460,35 +436,14 @@ struct SSHConfigFormView: View {
     private var encodingPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
             label("Terminal Encoding".localized)
-            Menu {
+            Picker("", selection: $encoding) {
                 ForEach(SSHTerminalEncoding.allCases, id: \.self) { enc in
-                    Button(enc.displayName) { encoding = enc.rawValue }
+                    Text(enc.displayName).tag(enc.rawValue)
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(currentEncodingDisplayName)
-                        .font(.system(size: 12))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(.controlBackgroundColor))
-                .cornerRadius(8)
-                .contentShape(Rectangle())
             }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
+            .pickerStyle(.menu)
+            .labelsHidden()
         }
-    }
-
-    private var currentEncodingDisplayName: String {
-        SSHTerminalEncoding.allCases.first(where: { $0.rawValue == encoding })?.displayName ?? encoding
     }
 
     private func numberField(_ title: String, value: Binding<String>) -> some View {
@@ -556,8 +511,10 @@ struct SSHConfigFormView: View {
     }
 
     private var canSave: Bool {
-        canTest &&
-        testResult == .success
+        // 只需必填项填写完整即可保存，不再要求通过 Test Connection。
+        !name.isEmpty &&
+        !host.isEmpty &&
+        (connectionMethod != .jumpHost || availableJumpHosts.contains(where: { $0.id == jumpHostID }))
     }
 
     private var testSignature: String {
@@ -634,6 +591,7 @@ struct SSHConfigFormView: View {
         sheet.setContentSize(NSSize(width: 680, height: 420))
         sheet.isReleasedWhenClosed = false
 
+        NSLog("[SSHConfigViews] beginSheet for test connection")
         parent.beginSheet(sheet) { _ in }
     }
 
