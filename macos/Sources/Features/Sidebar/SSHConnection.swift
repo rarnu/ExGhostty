@@ -66,7 +66,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
 
     /// 认证模式：密码登录 / 密钥登录
     var authMode: SSHAuthMode
-    /// 密码登录时的密码
+    /// 密码登录时的密码（内存中为明文；持久化时经 AES 加密存储）
     var password: String
     /// 密钥登录时的密钥文件路径
     var keyPath: String?
@@ -133,7 +133,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
         self.groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
         self.authMode = try container.decodeIfPresent(SSHAuthMode.self, forKey: .authMode) ?? .password
-        self.password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
+        self.password = PasswordCipher.decrypt(try container.decodeIfPresent(String.self, forKey: .password) ?? "")
         self.keyPath = try container.decodeIfPresent(String.self, forKey: .keyPath)
         self.connectionMethod = {
             let raw = (try? container.decodeIfPresent(String.self, forKey: .connectionMethod)) ?? nil
@@ -145,6 +145,27 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.heartbeatMs = try container.decodeIfPresent(UInt32.self, forKey: .heartbeatMs) ?? 30000
         self.encoding = try container.decodeIfPresent(String.self, forKey: .encoding) ?? SSHTerminalEncoding.utf8.rawValue
         self.x11Forwarding = try container.decodeIfPresent(Bool.self, forKey: .x11Forwarding) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(host, forKey: .host)
+        try container.encode(port, forKey: .port)
+        try container.encode(username, forKey: .username)
+        try container.encodeIfPresent(groupID, forKey: .groupID)
+        try container.encode(authMode, forKey: .authMode)
+        // 密码加密后存储，避免明文落盘。
+        try container.encode(PasswordCipher.encrypt(password), forKey: .password)
+        try container.encodeIfPresent(keyPath, forKey: .keyPath)
+        try container.encode(connectionMethod, forKey: .connectionMethod)
+        try container.encodeIfPresent(jumpHostID, forKey: .jumpHostID)
+        try container.encode(notes, forKey: .notes)
+        try container.encode(timeoutMs, forKey: .timeoutMs)
+        try container.encode(heartbeatMs, forKey: .heartbeatMs)
+        try container.encode(encoding, forKey: .encoding)
+        try container.encode(x11Forwarding, forKey: .x11Forwarding)
     }
 
     private enum CodingKeys: String, CodingKey {
