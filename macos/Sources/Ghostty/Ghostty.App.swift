@@ -31,6 +31,14 @@ extension Ghostty {
 
         /// Preferred config file than the default ones
         private var configPath: String?
+
+        /// The default or explicitly configured config file path on disk.
+        var configFileURL: URL? {
+            let path = configPath ?? Ghostty.AllocatedString(ghostty_config_open_path()).string
+            guard !path.isEmpty else { return nil }
+            return URL(fileURLWithPath: path)
+        }
+
         /// The ghostty app instance. We only have one of these for the entire app, although I guess
         /// in theory you can have multiple... I don't know why you would...
         @Published var app: ghostty_app_t? {
@@ -68,6 +76,13 @@ extension Ghostty {
                     App.writeClipboard(userdata, location: loc, content: content, len: len, confirm: confirm) },
                 close_surface_cb: { userdata, processAlive in App.closeSurface(userdata, processAlive: processAlive) }
             )
+
+            // Respect the configured language before initializing gettext so
+            // that UI strings resolve consistently with the user's choice.
+            let language = config.language
+            if !language.isEmpty {
+                setenv("LANGUAGE", language, 1)
+            }
 
             // Initialize i18n so that bundled translations are loaded before
             // any UI strings are resolved. The locale data is copied by the
@@ -163,6 +178,13 @@ extension Ghostty {
             guard newConfig.loaded else {
                 Ghostty.logger.warning("failed to reload configuration")
                 return
+            }
+
+            // Keep gettext in sync with the configured language so UI strings
+            // resolve to the user's choice after settings changes.
+            let language = newConfig.language
+            if !language.isEmpty {
+                setenv("LANGUAGE", language, 1)
             }
 
             ghostty_app_update_config(app, newConfig.config!)

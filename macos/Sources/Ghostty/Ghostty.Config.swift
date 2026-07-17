@@ -214,6 +214,16 @@ extension Ghostty {
             return String(cString: ptr)
         }
 
+        var language: String {
+            guard let config = self.config else { return "en" }
+            var v: UnsafePointer<Int8>?
+            let key = "language"
+            guard ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8))) else { return "en" }
+            guard let ptr = v else { return "en" }
+            let str = String(cString: ptr)
+            return str.isEmpty ? "en" : str
+        }
+
         var windowSaveState: String {
             guard let config = self.config else { return "" }
             var v: UnsafePointer<Int8>?

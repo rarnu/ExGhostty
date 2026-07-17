@@ -126,7 +126,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             backgroundColor: sidebarBackgroundColor,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
-            onOpenSSH: nil
+            onOpenSSH: nil,
+            onSettings: nil
         )
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
         self.sidebarHostingView.wantsLayer = true
@@ -559,6 +560,10 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         }
                     }
                 }
+            },
+            onSettings: { [weak self, weak tc] in
+                guard let self, let tc, let window = self.view.window else { return }
+                SettingsWindowController.shared.show(relativeTo: window, config: tc.ghostty.config)
             }
         )
         sidebarHostingView.rootView = newSidebar

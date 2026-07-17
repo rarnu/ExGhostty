@@ -924,3 +924,282 @@ msgstr "rsync 退出码 %d"
 
 msgid "xtop not detected"
 msgstr "未检测到 xtop"
+
+msgid "General"
+msgstr "通用"
+
+msgid "Appearance"
+msgstr "外观"
+
+msgid "Notification"
+msgstr "通知"
+
+msgid "Directory"
+msgstr "目录"
+
+msgid "Secure"
+msgstr "安全"
+
+msgid "Terminal"
+msgstr "终端"
+
+msgid "Keybind"
+msgstr "快捷键"
+
+msgid "AI"
+msgstr "AI"
+
+msgid "Language"
+msgstr "语言"
+
+msgid "Font Family"
+msgstr "字体"
+
+msgid "Font Size"
+msgstr "字体大小"
+
+msgid "Font Thicken"
+msgstr "字体加粗"
+
+msgid "Background"
+msgstr "背景色"
+
+msgid "Foreground"
+msgstr "前景色"
+
+msgid "Background Opacity"
+msgstr "背景透明度"
+
+msgid "Background Blur"
+msgstr "背景模糊"
+
+msgid "Background Image"
+msgstr "背景图片"
+
+msgid "Background Image Opacity"
+msgstr "背景图片透明度"
+
+msgid "Background Fit"
+msgstr "背景图片适应"
+
+msgid "Selection Foreground"
+msgstr "选中前景色"
+
+msgid "Selection Background"
+msgstr "选中背景色"
+
+msgid "Cursor Color"
+msgstr "光标颜色"
+
+msgid "Cursor Opacity"
+msgstr "光标透明度"
+
+msgid "Cursor Style"
+msgstr "光标样式"
+
+msgid "Cursor Blink"
+msgstr "光标闪烁"
+
+msgid "Notify on Command Finish"
+msgstr "命令结束通知"
+
+msgid "Notify Action"
+msgstr "通知方式"
+
+msgid "Bell"
+msgstr "响铃"
+
+msgid "Notify"
+msgstr "通知"
+
+msgid "Scrollback Limit"
+msgstr "可滚动行数"
+
+msgid "Scrollbar"
+msgstr "滚动条"
+
+msgid "Maximize on Launch"
+msgstr "启动时最大化"
+
+msgid "Confirm Close"
+msgstr "关闭前确认"
+
+msgid "Window Inherit Working Directory"
+msgstr "新窗口继承工作目录"
+
+msgid "Tab Inherit Working Directory"
+msgstr "新标签继承工作目录"
+
+msgid "Split Inherit Working Directory"
+msgstr "新分栏继承工作目录"
+
+msgid "Clipboard Read"
+msgstr "读取剪贴板"
+
+msgid "Clipboard Write"
+msgstr "写入剪贴板"
+
+msgid "Clipboard Trim Trailing Spaces"
+msgstr "剪贴板去除尾部空格"
+
+msgid "Clipboard Paste Protection"
+msgstr "剪贴板粘贴保护"
+
+msgid "Auto Secure Input"
+msgstr "自动安全输入"
+
+msgid "Secure Input Indication"
+msgstr "安全输入指示器"
+
+msgid "AppleScript"
+msgstr "AppleScript"
+
+msgid "Shortcuts"
+msgstr "快捷指令"
+
+msgid "Term"
+msgstr "终端标识"
+
+msgid "Async Backend"
+msgstr "异步后端"
+
+msgid "Auto"
+msgstr "自动"
+
+msgid "epoll"
+msgstr "epoll"
+
+msgid "io_uring"
+msgstr "io_uring"
+
+msgid "I/O Uring"
+msgstr "I/O Uring"
+
+msgid "Model"
+msgstr "模型"
+
+msgid "API Endpoint"
+msgstr "API 地址"
+
+msgid "API Key"
+msgstr "API 密钥"
+
+msgid "Choose..."
+msgstr "选择..."
+
+msgid "System Default"
+msgstr "系统默认"
+
+msgid "Use Default"
+msgstr "使用默认"
+
+msgid "English"
+msgstr "英语"
+
+msgid "Contain"
+msgstr "适应"
+
+msgid "Cover"
+msgstr "覆盖"
+
+msgid "Stretch"
+msgstr "拉伸"
+
+msgid "None"
+msgstr "无"
+
+msgid "Bar"
+msgstr "竖线"
+
+msgid "Block"
+msgstr "方块"
+
+msgid "Underline"
+msgstr "下划线"
+
+msgid "Block Hollow"
+msgstr "空心方块"
+
+msgid "Never"
+msgstr "从不"
+
+msgid "Unfocused"
+msgstr "未聚焦时"
+
+msgid "Always"
+msgstr "总是"
+
+msgid "Ask"
+msgstr "询问"
+
+msgid "Language changes will take effect after restarting Ghostty."
+msgstr "语言更改将在重启 Ghostty 后生效。"
+
+msgid "Keybind: New Tab"
+msgstr "快捷键：新建标签"
+
+msgid "Keybind: New Split Right"
+msgstr "快捷键：向右分屏"
+
+msgid "Keybind: New Split Down"
+msgstr "快捷键：向下分屏"
+
+msgid "Keybind: Close Surface"
+msgstr "快捷键：关闭终端"
+
+msgid "Keybind: Quit"
+msgstr "快捷键：退出"
+
+msgid "Keybind: Copy To Clipboard"
+msgstr "快捷键：复制"
+
+msgid "Keybind: Paste From Clipboard"
+msgstr "快捷键：粘贴"
+
+msgid "Keybind: Select All"
+msgstr "快捷键：全选"
+
+msgid "Keybind: Previous Tab"
+msgstr "快捷键：上一个标签"
+
+msgid "Keybind: Next Tab"
+msgstr "快捷键：下一个标签"
+
+msgid "Keybind: Goto Split Left"
+msgstr "快捷键：聚焦左分屏"
+
+msgid "Keybind: Goto Split Right"
+msgstr "快捷键：聚焦右分屏"
+
+msgid "Keybind: Goto Split Up"
+msgstr "快捷键：聚焦上分屏"
+
+msgid "Keybind: Goto Split Down"
+msgstr "快捷键：聚焦下分屏"
+
+msgid "Keybind: Increase Font Size"
+msgstr "快捷键：增大字体"
+
+msgid "Keybind: Decrease Font Size"
+msgstr "快捷键：减小字体"
+
+msgid "Keybind: Reset Font Size"
+msgstr "快捷键：重置字体"
+
+msgid "Keybind: Toggle Fullscreen"
+msgstr "快捷键：切换全屏"
+
+msgid "Keybind: Inspector"
+msgstr "快捷键：检查器"
+
+msgid "System"
+msgstr "系统"
+
+msgid "简体中文"
+msgstr "简体中文"
+
+msgid "繁體中文"
+msgstr "繁體中文"
+
+msgid "日本語"
+msgstr "日本語"

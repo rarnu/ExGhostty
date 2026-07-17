@@ -14,6 +14,7 @@ struct SidebarView: View {
     var onOpenSSH: ((SSHConnection) -> Void)?
     var onAddSSH: ((SSHConnection) -> Void)?
     var onAddGroup: ((SSHGroup) -> Void)?
+    var onSettings: (() -> Void)?
 
     // 编辑弹窗状态（SwiftUI sheet 已移除，改用 AppKit 弹窗）
     @State private var editingConnection: SSHConnection?
@@ -53,7 +54,7 @@ struct SidebarView: View {
             .sidebarTooltip("New Local Terminal".localized)
 
             Spacer()
-            Button(action: {}) {
+            Button(action: { onSettings?() }) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
@@ -138,7 +139,7 @@ struct SidebarView: View {
     // MARK: - 设置按钮
 
     private var settingsButton: some View {
-        Button(action: {}) {
+        Button(action: { onSettings?() }) {
             HStack(spacing: 4) {
                 Image(systemName: "gearshape").font(.system(size: 13))
                 Text("Settings").font(.system(size: 13))

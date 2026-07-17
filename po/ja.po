@@ -924,3 +924,282 @@ msgstr "rsync 終了コード %d"
 
 msgid "xtop not detected"
 msgstr "xtop が検出されません"
+
+msgid "General"
+msgstr ""
+
+msgid "Appearance"
+msgstr ""
+
+msgid "Notification"
+msgstr ""
+
+msgid "Directory"
+msgstr ""
+
+msgid "Secure"
+msgstr ""
+
+msgid "Terminal"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "AI"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Font Family"
+msgstr ""
+
+msgid "Font Size"
+msgstr ""
+
+msgid "Font Thicken"
+msgstr ""
+
+msgid "Background"
+msgstr ""
+
+msgid "Foreground"
+msgstr "前景色"
+
+msgid "Background Opacity"
+msgstr ""
+
+msgid "Background Blur"
+msgstr ""
+
+msgid "Background Image"
+msgstr "背景画像"
+
+msgid "Background Image Opacity"
+msgstr ""
+
+msgid "Background Fit"
+msgstr ""
+
+msgid "Selection Foreground"
+msgstr ""
+
+msgid "Selection Background"
+msgstr ""
+
+msgid "Cursor Color"
+msgstr ""
+
+msgid "Cursor Opacity"
+msgstr ""
+
+msgid "Cursor Style"
+msgstr ""
+
+msgid "Cursor Blink"
+msgstr ""
+
+msgid "Notify on Command Finish"
+msgstr ""
+
+msgid "Notify Action"
+msgstr ""
+
+msgid "Bell"
+msgstr ""
+
+msgid "Notify"
+msgstr ""
+
+msgid "Scrollback Limit"
+msgstr ""
+
+msgid "Scrollbar"
+msgstr ""
+
+msgid "Maximize on Launch"
+msgstr ""
+
+msgid "Confirm Close"
+msgstr ""
+
+msgid "Window Inherit Working Directory"
+msgstr ""
+
+msgid "Tab Inherit Working Directory"
+msgstr ""
+
+msgid "Split Inherit Working Directory"
+msgstr ""
+
+msgid "Clipboard Read"
+msgstr ""
+
+msgid "Clipboard Write"
+msgstr ""
+
+msgid "Clipboard Trim Trailing Spaces"
+msgstr ""
+
+msgid "Clipboard Paste Protection"
+msgstr ""
+
+msgid "Auto Secure Input"
+msgstr ""
+
+msgid "Secure Input Indication"
+msgstr ""
+
+msgid "AppleScript"
+msgstr ""
+
+msgid "Shortcuts"
+msgstr ""
+
+msgid "Term"
+msgstr ""
+
+msgid "Async Backend"
+msgstr ""
+
+msgid "Auto"
+msgstr ""
+
+msgid "epoll"
+msgstr ""
+
+msgid "io_uring"
+msgstr ""
+
+msgid "I/O Uring"
+msgstr "I/O Uring"
+
+msgid "Model"
+msgstr ""
+
+msgid "API Endpoint"
+msgstr ""
+
+msgid "API Key"
+msgstr ""
+
+msgid "Choose..."
+msgstr ""
+
+msgid "System Default"
+msgstr ""
+
+msgid "Use Default"
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+msgid "Contain"
+msgstr ""
+
+msgid "Cover"
+msgstr ""
+
+msgid "Stretch"
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Bar"
+msgstr ""
+
+msgid "Block"
+msgstr ""
+
+msgid "Underline"
+msgstr ""
+
+msgid "Block Hollow"
+msgstr ""
+
+msgid "Never"
+msgstr ""
+
+msgid "Unfocused"
+msgstr ""
+
+msgid "Always"
+msgstr ""
+
+msgid "Ask"
+msgstr "問い合わせ"
+
+msgid "Language changes will take effect after restarting Ghostty."
+msgstr ""
+
+msgid "Keybind: New Tab"
+msgstr ""
+
+msgid "Keybind: New Split Right"
+msgstr ""
+
+msgid "Keybind: New Split Down"
+msgstr ""
+
+msgid "Keybind: Close Surface"
+msgstr ""
+
+msgid "Keybind: Quit"
+msgstr ""
+
+msgid "Keybind: Copy To Clipboard"
+msgstr ""
+
+msgid "Keybind: Paste From Clipboard"
+msgstr ""
+
+msgid "Keybind: Select All"
+msgstr ""
+
+msgid "Keybind: Previous Tab"
+msgstr ""
+
+msgid "Keybind: Next Tab"
+msgstr ""
+
+msgid "Keybind: Goto Split Left"
+msgstr ""
+
+msgid "Keybind: Goto Split Right"
+msgstr ""
+
+msgid "Keybind: Goto Split Up"
+msgstr ""
+
+msgid "Keybind: Goto Split Down"
+msgstr ""
+
+msgid "Keybind: Increase Font Size"
+msgstr ""
+
+msgid "Keybind: Decrease Font Size"
+msgstr ""
+
+msgid "Keybind: Reset Font Size"
+msgstr ""
+
+msgid "Keybind: Toggle Fullscreen"
+msgstr ""
+
+msgid "Keybind: Inspector"
+msgstr ""
+
+msgid "System"
+msgstr "システム"
+
+msgid "简体中文"
+msgstr "簡体字中国語"
+
+msgid "繁體中文"
+msgstr "繁体字中国語"
+
+msgid "日本語"
+msgstr "日本語"
