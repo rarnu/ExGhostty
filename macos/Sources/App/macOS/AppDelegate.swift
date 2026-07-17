@@ -220,6 +220,9 @@ class AppDelegate: NSObject,
         // Initial config loading
         ghosttyConfigDidChange(config: ghostty.config)
 
+        // Initialize iCloud sync manager.
+        _ = ICloudSyncManager.shared
+
         // Start our update checker.
         updateController.startUpdater()
 

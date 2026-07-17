@@ -1273,3 +1273,9 @@ msgstr "コマンド"
 msgid "Python"
 msgstr "Python"
 
+
+msgid "Sync"
+msgstr "同期"
+
+msgid "iCloud Sync"
+msgstr "iCloud 同期"

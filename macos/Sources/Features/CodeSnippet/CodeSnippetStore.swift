@@ -105,7 +105,7 @@ final class CodeSnippetStore: ObservableObject {
 
     // MARK: - 持久化
 
-    private func save() {
+    func save() {
         if let data = try? JSONEncoder().encode(categories) {
             UserDefaults.standard.set(data, forKey: categoriesKey)
         }
@@ -113,6 +113,12 @@ final class CodeSnippetStore: ObservableObject {
             UserDefaults.standard.set(data, forKey: snippetsKey)
         }
         UserDefaults.standard.synchronize()
+
+        if !ICloudSyncManager.shared.isImporting {
+            Task { @MainActor in
+                ICloudSyncManager.shared.localDidChange(category: .codeSnippet)
+            }
+        }
     }
 
     private func load() {

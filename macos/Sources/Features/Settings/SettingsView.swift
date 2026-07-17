@@ -287,6 +287,9 @@ final class SettingsModel: ObservableObject {
     @Published var aiApiKey: String = ""
     @Published var aiModel: String = ""
 
+    // Sync
+    @Published var iCloudSync: Bool = false
+
     init(config: Ghostty.Config) {
         self.config = config
         self.fileURL = (NSApp.delegate as? AppDelegate)?.ghostty.configFileURL
@@ -395,6 +398,7 @@ final class SettingsModel: ObservableObject {
         aiEndpoint = ud.string(forKey: "ai-endpoint") ?? ""
         aiApiKey = ud.string(forKey: "ai-apikey") ?? ""
         aiModel = ud.string(forKey: "ai-model") ?? ""
+        iCloudSync = ud.object(forKey: "icloud-sync") as? Bool ?? false
     }
 
     func save() {
@@ -457,8 +461,11 @@ final class SettingsModel: ObservableObject {
         ud.set(aiEndpoint, forKey: "ai-endpoint")
         ud.set(aiApiKey, forKey: "ai-apikey")
         ud.set(aiModel, forKey: "ai-model")
+        ud.set(iCloudSync, forKey: "icloud-sync")
 
         (NSApp.delegate as? AppDelegate)?.ghostty.reloadConfig()
+
+        ICloudSyncManager.shared.localDidChange(category: .config)
     }
 }
 
@@ -493,7 +500,7 @@ enum SettingsAsyncBackend: String, CaseIterable {
 }
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case general, theme, appearance, notification, window, directory, secure, terminal, keybind, ai
+    case general, theme, appearance, notification, window, directory, secure, terminal, keybind, ai, sync
     var id: String { rawValue }
 
     var title: String {
@@ -508,6 +515,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .terminal: return "Terminal".localized
         case .keybind: return "Keybind".localized
         case .ai: return "AI".localized
+        case .sync: return "Sync".localized
         }
     }
 
@@ -523,6 +531,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         case .terminal: return "terminal"
         case .keybind: return "keyboard"
         case .ai: return "cpu"
+        case .sync: return "icloud"
         }
     }
 }
@@ -609,6 +618,7 @@ struct SettingsView: View {
         case .terminal: terminalSection
         case .keybind: keybindSection
         case .ai: aiSection
+        case .sync: syncSection
         }
     }
 
@@ -1080,6 +1090,19 @@ struct SettingsView: View {
                 TextField("", text: $model.aiModel)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 360)
+            }
+        }
+    }
+
+    // MARK: Sync
+
+    private var syncSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            sectionHeader("Sync")
+
+            settingsRow(label: "iCloud Sync".localized) {
+                Toggle("", isOn: $model.iCloudSync)
+                    .toggleStyle(.switch)
             }
         }
     }

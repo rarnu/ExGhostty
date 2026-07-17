@@ -91,7 +91,7 @@ class SSHStore: ObservableObject {
 
     // MARK: - 持久化
 
-    private func save() {
+    func save() {
         if let connData = try? JSONEncoder().encode(connections) {
             UserDefaults.standard.set(connData, forKey: connectionsKey)
         }
@@ -99,6 +99,12 @@ class SSHStore: ObservableObject {
             UserDefaults.standard.set(groupData, forKey: groupsKey)
         }
         UserDefaults.standard.synchronize()
+
+        if !ICloudSyncManager.shared.isImporting {
+            Task { @MainActor in
+                ICloudSyncManager.shared.localDidChange(category: .ssh)
+            }
+        }
     }
 
     private func load() {
@@ -170,10 +176,16 @@ class PortForwardStore: ObservableObject {
 
     // MARK: - 持久化
 
-    private func save() {
+    func save() {
         guard let data = try? JSONEncoder().encode(rules) else { return }
         UserDefaults.standard.set(data, forKey: rulesKey)
         UserDefaults.standard.synchronize()
+
+        if !ICloudSyncManager.shared.isImporting {
+            Task { @MainActor in
+                ICloudSyncManager.shared.localDidChange(category: .portForward)
+            }
+        }
     }
 
     private func load() {
