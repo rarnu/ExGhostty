@@ -1308,3 +1308,9 @@ msgstr "檢查更新失敗"
 
 msgid "OK"
 msgstr "好"
+
+msgid "Version: %@"
+msgstr "版本：%@"
+
+msgid "A brand-new SSH tool based on Ghostty"
+msgstr "一款基於 Ghostty 的全新 SSH 工具"

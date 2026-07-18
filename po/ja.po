@@ -1309,3 +1309,9 @@ msgstr "更新の確認に失敗しました"
 
 msgid "OK"
 msgstr "OK"
+
+msgid "Version: %@"
+msgstr "バージョン：%@"
+
+msgid "A brand-new SSH tool based on Ghostty"
+msgstr "Ghostty をベースにした新しい SSH ツール"

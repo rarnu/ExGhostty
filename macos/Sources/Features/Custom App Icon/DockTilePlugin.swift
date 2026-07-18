@@ -52,10 +52,10 @@ class DockTilePlugin: NSObject, NSDockTilePlugIn {
         let appIcon: NSImage?
         if #available(macOS 26.0, *) {
             #if DEBUG
-            // Use the `Blueprint` icon to distinguish Debug from Release builds.
-            appIcon = pluginBundle.image(forResource: "BlueprintImage")!
+            // Use the bundled icon to distinguish Debug from Release builds.
+            appIcon = pluginBundle.image(forResource: "AppIconImage")!
             #else
-            // Reset to Ghostty.icon
+            // Reset to the default app icon.
             appIcon = nil
             #endif
         } else {

@@ -32,9 +32,6 @@ protocol TerminalViewModel: ObservableObject {
 
     /// The command palette state.
     var commandPaletteIsShowing: Bool { get set }
-
-    /// The update overlay should be visible.
-    var updateOverlayIsVisible: Bool { get }
 }
 
 /// The main terminal view. This terminal view supports splits.
@@ -111,35 +108,12 @@ struct TerminalView<ViewModel: TerminalViewModel>: View {
                     TerminalCommandPaletteView(
                         surfaceView: surfaceView,
                         isPresented: $viewModel.commandPaletteIsShowing,
-                        ghosttyConfig: ghostty.config,
-                        updateViewModel: (NSApp.delegate as? AppDelegate)?.updateViewModel) { action in
+                        ghosttyConfig: ghostty.config) { action in
                         self.delegate?.performAction(action, on: surfaceView)
                     }
                 }
-
-                // Show update information above all else.
-                if viewModel.updateOverlayIsVisible {
-                    UpdateOverlay()
-                }
             }
             .frame(maxWidth: .greatestFiniteMagnitude, maxHeight: .greatestFiniteMagnitude)
-        }
-    }
-}
-
-private struct UpdateOverlay: View {
-    var body: some View {
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            VStack {
-                Spacer()
-
-                HStack {
-                    Spacer()
-                    UpdatePill(model: appDelegate.updateViewModel)
-                        .padding(.bottom, 9)
-                        .padding(.trailing, 9)
-                }
-            }
         }
     }
 }

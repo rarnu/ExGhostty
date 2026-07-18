@@ -443,35 +443,6 @@ extension Ghostty {
             #endif
         }
 
-        var macosIconFrame: MacOSIconFrame {
-            let defaultValue = MacOSIconFrame.aluminum
-            guard let config = self.config else { return defaultValue }
-            var v: UnsafePointer<Int8>?
-            let key = "macos-icon-frame"
-            guard ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8))) else { return defaultValue }
-            guard let ptr = v else { return defaultValue }
-            let str = String(cString: ptr)
-            return MacOSIconFrame(rawValue: str) ?? defaultValue
-        }
-
-        var macosIconGhostColor: OSColor? {
-            guard let config = self.config else { return nil }
-            var v: ghostty_config_color_s = .init()
-            let key = "macos-icon-ghost-color"
-            guard ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8))) else { return nil }
-            return .init(ghostty: v)
-        }
-
-        var macosIconScreenColor: [OSColor]? {
-            guard let config = self.config else { return nil }
-            var v: ghostty_config_color_list_s = .init()
-            let key = "macos-icon-screen-color"
-            guard ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8))) else { return nil }
-            guard v.len > 0 else { return nil }
-            let buffer = UnsafeBufferPointer(start: v.colors, count: v.len)
-            return buffer.map { .init(ghostty: $0) }
-        }
-
         var macosHidden: MacHidden {
             guard let config = self.config else { return .never }
             var v: UnsafePointer<Int8>?
@@ -664,27 +635,6 @@ extension Ghostty {
             return .milliseconds(v)
         }
 
-        var autoUpdate: AutoUpdate? {
-            guard let config = self.config else { return nil }
-            var v: UnsafePointer<Int8>?
-            let key = "auto-update"
-            guard ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8))) else { return nil }
-            guard let ptr = v else { return nil }
-            let str = String(cString: ptr)
-            return AutoUpdate(rawValue: str)
-        }
-
-        var autoUpdateChannel: AutoUpdateChannel {
-            let defaultValue = AutoUpdateChannel.stable
-            guard let config = self.config else { return defaultValue }
-            var v: UnsafePointer<Int8>?
-            let key = "auto-update-channel"
-            guard ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8))) else { return defaultValue }
-            guard let ptr = v else { return defaultValue }
-            let str = String(cString: ptr)
-            return AutoUpdateChannel(rawValue: str) ?? defaultValue
-        }
-
         var autoSecureInput: Bool {
             guard let config = self.config else { return true }
             var v = false
@@ -772,12 +722,6 @@ extension Ghostty {
 // MARK: Configuration Enums
 
 extension Ghostty.Config {
-    enum AutoUpdate: String {
-        case off
-        case check
-        case download
-    }
-
     /// Background blur configuration that maps from the C API values.
     /// Positive values represent blur radius, special negative values
     /// represent macOS-specific glass effects.

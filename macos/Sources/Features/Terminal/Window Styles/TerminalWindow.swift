@@ -21,9 +21,6 @@ class TerminalWindow: NSWindow {
     /// Reset split zoom button in titlebar
     private let resetZoomAccessory = NSTitlebarAccessoryViewController()
 
-    /// Update notification UI in titlebar
-    private let updateAccessory = NSTitlebarAccessoryViewController()
-
     /// Visual indicator that mirrors the selected tab color.
     private lazy var tabColorIndicator: NSHostingView<TabColorIndicatorView> = {
         let view = NSHostingView(rootView: TabColorIndicatorView(tabColor: tabColor))
@@ -42,13 +39,6 @@ class TerminalWindow: NSWindow {
         hostWindow: self,
         delegate: self
     )
-
-    /// Whether this window supports the update accessory. If this is false, then views within this
-    /// window should determine how to show update notifications.
-    var supportsUpdateAccessory: Bool {
-        // Native window supports it.
-        true
-    }
 
     /// Glass effect view for liquid glass background when transparency is enabled
     private var glassEffectView: NSView?
@@ -142,17 +132,6 @@ class TerminalWindow: NSWindow {
                 }))
             addTitlebarAccessoryViewController(resetZoomAccessory)
             resetZoomAccessory.view.translatesAutoresizingMaskIntoConstraints = false
-
-            // Create update notification accessory
-            if supportsUpdateAccessory {
-                updateAccessory.layoutAttribute = .right
-                updateAccessory.view = NonDraggableHostingView(rootView: UpdateAccessoryView(
-                    viewModel: viewModel,
-                    model: appDelegate.updateViewModel
-                ))
-                addTitlebarAccessoryViewController(updateAccessory)
-                updateAccessory.view.translatesAutoresizingMaskIntoConstraints = false
-            }
         }
 
         // Setup the accessory view for tabs that shows our keyboard shortcuts,
@@ -663,18 +642,6 @@ extension TerminalWindow {
     }
 
     /// A pill-shaped button that displays update status and provides access to update actions.
-    struct UpdateAccessoryView: View {
-        @ObservedObject var viewModel: ViewModel
-        @ObservedObject var model: UpdateViewModel
-
-        var body: some View {
-            // We use the same top/trailing padding so that it hugs the same.
-            UpdatePill(model: model)
-                .padding(.top, viewModel.accessoryTopPadding)
-                .padding(.trailing, viewModel.accessoryTopPadding)
-        }
-    }
-
 }
 
 /// A small circle indicator displayed in the tab accessory view that shows
