@@ -77,10 +77,27 @@ private extension NSDockTile {
             }
             let iconView = NSImageView(frame: CGRect(origin: .zero, size: self.size))
             iconView.wantsLayer = true
-            iconView.image = newIcon
+            iconView.image = newIcon.roundedForDock()
             self.contentView = iconView
             self.display()
         }
+    }
+}
+
+private extension NSImage {
+    /// 将图片裁剪为 macOS 应用图标的连续圆角形状（与系统遮罩一致，约 22.37% 半径）。
+    func roundedForDock() -> NSImage {
+        let size = self.size
+        guard size.width > 0, size.height > 0 else { return self }
+
+        let radius = size.width * 0.2237
+        let result = NSImage(size: size)
+        result.lockFocus()
+        let rect = NSRect(origin: .zero, size: size)
+        NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).addClip()
+        self.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+        result.unlockFocus()
+        return result
     }
 }
 
