@@ -1282,3 +1282,33 @@ msgstr "同步"
 
 msgid "iCloud Sync"
 msgstr "iCloud 同步"
+
+msgid "New Version Available: %@"
+msgstr "发现新版本：%@"
+
+msgid "A new version of ExGhostty is available. You are running %@."
+msgstr "ExGhostty 有新版本可用，当前版本为 %@。"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Later"
+msgstr "稍后"
+
+msgid "No Update Available"
+msgstr "没有可用更新"
+
+msgid "You are running the latest version (%@)."
+msgstr "当前已是最新版本（%@）。"
+
+msgid "No Releases Found"
+msgstr "没有发布版本"
+
+msgid "The repository has not published any releases yet."
+msgstr "仓库还没有发布任何版本。"
+
+msgid "Update Check Failed"
+msgstr "检查更新失败"
+
+msgid "OK"
+msgstr "好"

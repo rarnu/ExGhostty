@@ -226,6 +226,11 @@ class AppDelegate: NSObject,
         // Start our update checker.
         updateController.startUpdater()
 
+        // 启动后延迟做一次静默的 GitHub 版本检查（仅发现新版本时提示）。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            GitHubUpdateChecker.shared.checkInBackground()
+        }
+
         // Register our service provider. This must happen after everything is initialized.
         NSApp.servicesProvider = ServiceProvider()
 
@@ -948,8 +953,7 @@ class AppDelegate: NSObject,
     }
 
     @IBAction func checkForUpdates(_ sender: Any?) {
-        updateController.checkForUpdates()
-        // UpdateSimulator.happyPath.simulate(with: updateViewModel)
+        GitHubUpdateChecker.shared.checkManually()
     }
 
     @IBAction func newWindow(_ sender: Any?) {

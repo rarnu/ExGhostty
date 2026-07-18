@@ -1279,3 +1279,33 @@ msgstr "同期"
 
 msgid "iCloud Sync"
 msgstr "iCloud 同期"
+
+msgid "New Version Available: %@"
+msgstr "新しいバージョンがあります：%@"
+
+msgid "A new version of ExGhostty is available. You are running %@."
+msgstr "ExGhostty の新しいバージョンが利用可能です。現在のバージョンは %@ です。"
+
+msgid "Download"
+msgstr "ダウンロード"
+
+msgid "Later"
+msgstr "後で"
+
+msgid "No Update Available"
+msgstr "利用可能な更新はありません"
+
+msgid "You are running the latest version (%@)."
+msgstr "最新バージョン（%@）を実行中です。"
+
+msgid "No Releases Found"
+msgstr "リリースが見つかりません"
+
+msgid "The repository has not published any releases yet."
+msgstr "リポジトリにはまだリリースがありません。"
+
+msgid "Update Check Failed"
+msgstr "更新の確認に失敗しました"
+
+msgid "OK"
+msgstr "OK"
