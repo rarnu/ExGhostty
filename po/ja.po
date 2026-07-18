@@ -1307,9 +1307,6 @@ msgstr "リポジトリにはまだリリースがありません。"
 msgid "Update Check Failed"
 msgstr "更新の確認に失敗しました"
 
-msgid "OK"
-msgstr "OK"
-
 msgid "Version: %@"
 msgstr "バージョン：%@"
 

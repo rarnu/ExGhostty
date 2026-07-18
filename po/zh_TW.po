@@ -1306,9 +1306,6 @@ msgstr "倉庫還沒有發佈任何版本。"
 msgid "Update Check Failed"
 msgstr "檢查更新失敗"
 
-msgid "OK"
-msgstr "好"
-
 msgid "Version: %@"
 msgstr "版本：%@"
 

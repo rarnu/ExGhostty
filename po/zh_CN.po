@@ -1310,9 +1310,6 @@ msgstr "仓库还没有发布任何版本。"
 msgid "Update Check Failed"
 msgstr "检查更新失败"
 
-msgid "OK"
-msgstr "好"
-
 msgid "Version: %@"
 msgstr "版本：%@"
 
