@@ -545,7 +545,18 @@ struct SSHConfigFormView: View {
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.isAccessoryViewDisclosed = true
-        panel.begin { response in
+
+        // 以 sheet 形式挂在当前（SSH 配置）窗口上，避免被模态窗口挡住。
+        guard let window = NSApp.keyWindow else {
+            panel.begin { response in
+                if response == .OK, let url = panel.url {
+                    keyPath = url.path
+                }
+            }
+            return
+        }
+
+        panel.beginSheetModal(for: window) { response in
             if response == .OK, let url = panel.url {
                 keyPath = url.path
             }

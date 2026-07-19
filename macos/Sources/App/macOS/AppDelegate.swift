@@ -557,6 +557,30 @@ class AppDelegate: NSObject,
         }
     }
 
+    /// 标准文本编辑动作（复制/粘贴/剪切/全选）。
+    private enum EditingAction {
+        case copy, paste, cut, selectAll
+    }
+
+    /// 识别事件是否为标准的 Cmd+C/V/X/A 编辑快捷键（不含 Ctrl/Option）。
+    private func editingAction(for event: NSEvent) -> EditingAction? {
+        let mods = event.modifierFlags
+        guard mods.contains(.command),
+              !mods.contains(.control),
+              !mods.contains(.option),
+              let chars = event.charactersIgnoringModifiers?.lowercased(),
+              chars.count == 1 else {
+            return nil
+        }
+        switch chars {
+        case "c": return .copy
+        case "v": return .paste
+        case "x": return .cut
+        case "a": return .selectAll
+        default: return nil
+        }
+    }
+
     private func localEventKeyDown(_ event: NSEvent) -> NSEvent? {
         // If the tab overview is visible and escape is pressed, close it.
         // This can't POSSIBLY be right and is probably a FirstResponder problem
@@ -567,6 +591,20 @@ class AppDelegate: NSObject,
            let tabGroup = window.tabGroup,
            tabGroup.isOverviewVisible {
             window.toggleTabOverview(nil)
+            return nil
+        }
+
+        // 当焦点在文本编辑控件（输入框、文本编辑器）上时，直接对其执行标准
+        // 编辑命令，避免依赖菜单 keyEquivalent（copy/paste 的 Ghostty 绑定是
+        // performable，不会出现在菜单快捷键里，导致 Cmd+C/V/X 失效）。
+        if let textView = NSApp.keyWindow?.firstResponder as? NSTextView,
+           let action = editingAction(for: event) {
+            switch action {
+            case .copy: textView.copy(nil)
+            case .paste: textView.paste(nil)
+            case .cut: textView.cut(nil)
+            case .selectAll: textView.selectAll(nil)
+            }
             return nil
         }
 
