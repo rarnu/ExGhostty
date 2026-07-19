@@ -26,9 +26,6 @@ final class SFTPPanelViewModel: ObservableObject {
     private var defaultHomeDirectory: String {
         connection.username == "root" ? "/root" : "/home/\(connection.username)"
     }
-    /// 目录内容定时刷新器，用于同步终端中 rm/mv/mkdir/touch 等引起的变化。
-    private var refreshTimer: Timer?
-
     init(connection: SSHConnection, terminalController: TerminalController?) {
         self.connection = connection
         self.terminalController = terminalController
@@ -64,27 +61,7 @@ final class SFTPPanelViewModel: ObservableObject {
 
         updateTaskCounts(from: SFTPTransferManager.shared.tasks)
         fetchRemoteHomeDirectory()
-        startRefreshTimer()
         refresh()
-    }
-
-    deinit {
-        stopRefreshTimer()
-    }
-
-    private func startRefreshTimer() {
-        stopRefreshTimer()
-        let timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.refresh()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        refreshTimer = timer
-    }
-
-    private func stopRefreshTimer() {
-        refreshTimer?.invalidate()
-        refreshTimer = nil
     }
 
     /// 从标题栏文本推导绝对路径并应用。Ghostty bash integration 的 title 使用 \w，会显示为
