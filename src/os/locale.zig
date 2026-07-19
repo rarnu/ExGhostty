@@ -7,6 +7,7 @@ const internal_os = @import("main.zig");
 const i18n = internal_os.i18n;
 
 const log = std.log.scoped(.os_locale);
+const testing = std.testing;
 
 /// Ensure that the locale is set.
 pub fn ensureLocale(alloc: std.mem.Allocator) !void {
@@ -71,9 +72,13 @@ pub fn ensureLocale(alloc: std.mem.Allocator) !void {
 pub fn setLanguage(language: []const u8) void {
     if (language.len == 0) return;
 
-    var lc_buf: [128]u8 = undefined;
-    const lc = std.fmt.bufPrintZ(&lc_buf, "{s}.UTF-8", .{language}) catch {
-        log.warn("language too long, cannot set locale language={s}", .{language});
+    // The `language` value is a translation code such as "en", "zh_CN",
+    // "zh_TW", or "ja". Convert it to a valid POSIX locale string so that
+    // the C runtime and child processes (e.g. zsh + starship) do not receive
+    // an invalid locale like "en.UTF-8", which causes character-width
+    // miscalculation and display artifacts during line redrawing.
+    const lc = localeFromLanguage(language) catch |err| {
+        log.warn("language too long, cannot set locale language={s} err={}", .{ language, err });
         return;
     };
 
@@ -85,7 +90,12 @@ pub fn setLanguage(language: []const u8) void {
 
     _ = internal_os.setenv("LANGUAGE", lang_z);
     _ = internal_os.setenv("LC_MESSAGES", lc);
-    _ = internal_os.setenv("LANG", lc);
+    // Do not set LANG here. The `language` config is documented as only
+    // affecting Ghostty's graphical user interface, not programs run within
+    // Ghostty. Setting LANG to a locale without a country code (e.g.
+    // "en.UTF-8") breaks tools like starship that rely on a valid locale
+    // for Unicode width calculation. LANG is already initialized to a valid
+    // system locale by ensureLocale().
 
     // Apply the new LC_MESSAGES locale so gettext uses it for subsequent
     // dgettext calls. Without this the C runtime keeps the locale that was
@@ -93,8 +103,35 @@ pub fn setLanguage(language: []const u8) void {
     if (setlocale(LC_MESSAGES, "")) |v| {
         log.info("set language result={s}", .{std.mem.sliceTo(v, 0)});
     } else {
-        log.warn("setlocale failed for language={s}", .{language});
+        log.warn("setlocale failed for language={s} locale={s}", .{ language, lc });
     }
+}
+
+/// Convert a translation language code (e.g. "en", "zh_CN", "ja") to a
+/// valid POSIX locale string with UTF-8 encoding. If the code already
+/// contains a region, it is used as-is; otherwise a default region is
+/// appended for the languages Ghostty ships translations for.
+fn localeFromLanguage(language: []const u8) error{LanguageTooLong}![:0]const u8 {
+    var buf: [128]u8 = undefined;
+    const result = if (std.mem.indexOfScalar(u8, language, '_') != null)
+        std.fmt.bufPrintZ(&buf, "{s}.UTF-8", .{language})
+    else result: {
+        // For the locales Ghostty ships translations for, append a
+        // default region so the result is a valid POSIX locale. For
+        // unsupported language codes, preserve the original behavior
+        // of appending only the encoding.
+        const region: ?[]const u8 = if (std.mem.eql(u8, language, "en"))
+            "US"
+        else if (std.mem.eql(u8, language, "ja"))
+            "JP"
+        else
+            null;
+        break :result if (region) |r|
+            std.fmt.bufPrintZ(&buf, "{s}_{s}.UTF-8", .{ language, r })
+        else
+            std.fmt.bufPrintZ(&buf, "{s}.UTF-8", .{language});
+    };
+    return result catch error.LanguageTooLong;
 }
 
 /// This sets the LANG environment variable based on the macOS system
@@ -258,3 +295,14 @@ const locale_t = c.locale_t;
 const setlocale = c.setlocale;
 const newlocale = c.newlocale;
 const freelocale = c.freelocale;
+
+test "localeFromLanguage maps supported language codes to valid locales" {
+    try testing.expectEqualStrings("en_US.UTF-8", try localeFromLanguage("en"));
+    try testing.expectEqualStrings("zh_CN.UTF-8", try localeFromLanguage("zh_CN"));
+    try testing.expectEqualStrings("zh_TW.UTF-8", try localeFromLanguage("zh_TW"));
+    try testing.expectEqualStrings("ja_JP.UTF-8", try localeFromLanguage("ja"));
+}
+
+test "localeFromLanguage preserves unknown language codes" {
+    try testing.expectEqualStrings("fr.UTF-8", try localeFromLanguage("fr"));
+}

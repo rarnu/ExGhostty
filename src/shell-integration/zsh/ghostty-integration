@@ -171,7 +171,16 @@ _ghostty_deferred_init() {
                 # newlines can break pattern matching in themes that
                 # strip/rebuild the prompt dynamically (e.g., Pure).
                 if (( ! ps1_changed )) && [[ $PS1 == *$'\n'* ]]; then
-                    PS1=${PS1//$'\n'/$'\n'${mark2}}
+                    # Don't insert marks between a backslash and newline, because
+                    # `\<newline>` is a zsh prompt line-continuation and injecting
+                    # text between them breaks zsh's prompt-width calculation.
+                    # This manifests as duplicated characters during redraws such
+                    # as menu completion.
+                    builtin setopt localoptions extendedglob
+                    PS1=${PS1//(#m)[^\\]$'\n'/${MATCH%$'\n'}$'\n'${mark2}}
+                    if [[ ${PS1[1]} == $'\n' ]]; then
+                        PS1=${mark2}${PS1}
+                    fi
                 fi
 
                 # PS2 mark is needed when clearing the prompt on resize
