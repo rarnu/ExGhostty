@@ -1077,6 +1077,9 @@ msgstr "I/O Uring"
 msgid "Model"
 msgstr "模型"
 
+msgid "Move to Parent Directory"
+msgstr "移動到上一層目錄"
+
 msgid "API Endpoint"
 msgstr "API 位址"
 

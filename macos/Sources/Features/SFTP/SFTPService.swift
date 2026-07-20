@@ -233,6 +233,17 @@ actor SFTPService {
         _ = try await SSHCommandExecutor.shared.execute(remoteCommand: cmd, connection: connection)
     }
 
+    // MARK: - 权限
+
+    /// 检查远程路径对当前用户是否可写。检查失败时按不可写处理。
+    func isWritable(connection: SSHConnection, path: String) async -> Bool {
+        let cmd = "test -w \(path.singleQuotedShellArgument()) && echo 1 || echo 0"
+        guard let output = try? await SSHCommandExecutor.shared.execute(remoteCommand: cmd, connection: connection) else {
+            return false
+        }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+    }
+
     // MARK: - rsync 传输
 
     private func runRsyncUpload(

@@ -1081,6 +1081,9 @@ msgstr "I/O Uring"
 msgid "Model"
 msgstr "模型"
 
+msgid "Move to Parent Directory"
+msgstr "移动到上一级目录"
+
 msgid "API Endpoint"
 msgstr "API 地址"
 

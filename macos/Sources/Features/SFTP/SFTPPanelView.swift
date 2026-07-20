@@ -12,11 +12,11 @@ final class SFTPPanelViewModel: ObservableObject {
     @Published var showHidden: Bool = false
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
-    @Published var selectedItems: Set<UUID> = [] {
-        didSet { enforceSelectionRules() }
-    }
+    @Published var selectedItems: Set<UUID> = []
     @Published var activeUploadCount: Int = 0
     @Published var activeDownloadCount: Int = 0
+    /// 上一级目录对当前用户是否可写，决定是否显示"移动到上一级"菜单项。
+    @Published var parentIsWritable: Bool = false
     weak var taskListWindowController: SFTPTaskListWindowController?
 
     private var cancellables = Set<AnyCancellable>()
@@ -123,6 +123,12 @@ final class SFTPPanelViewModel: ObservableObject {
 
     // MARK: - 导航
 
+    /// 上一级目录路径；当前位于根目录时为 nil。
+    var parentPath: String? {
+        let parent = (currentPath as NSString).deletingLastPathComponent
+        return parent == currentPath ? nil : parent
+    }
+
     func refresh() {
         guard !isLoading else { return }
         isLoading = true
@@ -136,6 +142,13 @@ final class SFTPPanelViewModel: ObservableObject {
                     path: currentPath,
                     showHidden: showHidden
                 )
+                // 顺带检查上一级目录是否可写，用于"移动到上一级"菜单项的显隐。
+                let writable: Bool
+                if let parent = self.parentPath {
+                    writable = await SFTPService.shared.isWritable(connection: self.connection, path: parent)
+                } else {
+                    writable = false
+                }
                 await MainActor.run {
                     self.items = list.sorted {
                         if $0.isDirectory != $1.isDirectory {
@@ -144,6 +157,7 @@ final class SFTPPanelViewModel: ObservableObject {
                         return $0.name.localizedStandardCompare($1.name) == .orderedAscending
                     }
                     self.selectedItems = Set(self.items.filter { previouslySelectedNames.contains($0.name) }.map { $0.id })
+                    self.parentIsWritable = writable
                     self.isLoading = false
                 }
             } catch {
@@ -175,30 +189,13 @@ final class SFTPPanelViewModel: ObservableObject {
         refresh()
     }
 
-    // MARK: - 选择规则
-
     // MARK: - 选择
-
-    private func enforceSelectionRules() {
-        let selectedObjects = items.filter { selectedItems.contains($0.id) }
-        let hasDirectory = selectedObjects.contains { $0.isDirectory }
-        if hasDirectory && selectedObjects.count > 1 {
-            // 目录只能单选
-            if let dir = selectedObjects.first(where: { $0.isDirectory }) {
-                selectedItems = [dir.id]
-            }
-        }
-    }
 
     func toggleSelection(_ item: SFTPFileItem) {
         guard !item.isDirectory else { return }
         if selectedItems.contains(item.id) {
             selectedItems.remove(item.id)
         } else {
-            // 如果当前选中了目录，先清除，再改为选中该文件。
-            if selectedItems.contains(where: { id in items.first { $0.id == id }?.isDirectory ?? false }) {
-                selectedItems.removeAll()
-            }
             selectedItems.insert(item.id)
         }
     }
@@ -327,6 +324,117 @@ final class SFTPPanelViewModel: ObservableObject {
         } catch {
             await MainActor.run {
                 self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - 移动
+
+    /// 将当前目录下的条目移动到子目录中（拖拽触发）。
+    /// 若被拖拽条目处于多选集合中，则移动整个选中集合。
+    func moveItem(named name: String, intoDirectory directory: SFTPFileItem) async {
+        guard directory.isDirectory, name != directory.name else { return }
+        let selected = items.filter { selectedItems.contains($0.id) }
+        let entries: [SFTPFileItem]
+        if selected.count > 1, selected.contains(where: { $0.name == name }) {
+            entries = selected
+        } else if let single = items.first(where: { $0.name == name }) {
+            entries = [single]
+        } else {
+            return
+        }
+        for entry in entries where entry.id != directory.id {
+            let source = currentPath + "/" + entry.name
+            let destination = currentPath + "/" + directory.name + "/" + entry.name
+            do {
+                try await SFTPService.shared.rename(connection: connection, from: source, to: destination)
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+                return
+            }
+        }
+        await MainActor.run {
+            self.selectedItems.removeAll()
+            self.refresh()
+        }
+    }
+
+    /// 将条目移动到上一级目录。
+    func moveToParent(item: SFTPFileItem) async {
+        guard let parent = parentPath else { return }
+        let source = currentPath + "/" + item.name
+        let destination = (parent as NSString).appendingPathComponent(item.name)
+        await move(from: source, to: destination)
+    }
+
+    private func move(from source: String, to destination: String) async {
+        do {
+            try await SFTPService.shared.rename(
+                connection: connection,
+                from: source,
+                to: destination
+            )
+            await MainActor.run {
+                self.selectedItems.removeAll()
+                self.refresh()
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - 拖拽
+
+    /// 生成拖拽提供者：拖出到 Finder 生成下载任务；进程内拖到目录行上执行移动。
+    /// 若被拖拽条目处于多选集合中，则拖出时下载整个选中集合。
+    func dragItemProvider(for item: SFTPFileItem) -> NSItemProvider {
+        let draggedItems: [SFTPFileItem]
+        if selectedItems.contains(item.id), selectedItems.count > 1 {
+            draggedItems = items.filter { selectedItems.contains($0.id) }
+        } else {
+            draggedItems = [item]
+        }
+        return SFTPDragProvider(
+            draggedItem: item,
+            items: draggedItems,
+            connection: connection,
+            remoteDirectory: currentPath
+        )
+    }
+
+    /// 处理从 Finder 拖入的文件/目录：为每个条目生成上传任务。
+    /// directory 为拖放落点的目录行，nil 表示上传到当前目录。
+    func uploadDroppedItems(_ urls: [URL], into directory: SFTPFileItem? = nil) {
+        let remoteDirectory = directory.map { currentPath + "/" + $0.name } ?? currentPath
+        for url in urls {
+            var isDirectory: ObjCBool = false
+            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+            if isDirectory.boolValue {
+                let task = SFTPTask(
+                    type: .upload,
+                    localPath: url.path,
+                    remotePath: remoteDirectory,
+                    title: url.lastPathComponent,
+                    connection: connection,
+                    isDirectory: true
+                )
+                SFTPTransferManager.shared.addTask(task)
+            } else {
+                let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64
+                let task = SFTPTask(
+                    type: .upload,
+                    localPath: url.path,
+                    remotePath: remoteDirectory,
+                    title: url.lastPathComponent,
+                    connection: connection,
+                    isDirectory: false,
+                    fileSize: size
+                )
+                SFTPTransferManager.shared.addTask(task)
             }
         }
     }
@@ -472,6 +580,14 @@ struct SFTPPanelView: View {
                             .contextMenu {
                                 downloadContextMenu(item: item)
                                 if viewModel.selectedItems.count <= 1 {
+                                    // 仅当上一级目录存在且当前用户可写时，才允许移动到上一级。
+                                    if viewModel.parentIsWritable, viewModel.parentPath != nil {
+                                        Button("Move to Parent Directory".localized) {
+                                            Task {
+                                                await viewModel.moveToParent(item: item)
+                                            }
+                                        }
+                                    }
                                     Button("Rename".localized) {
                                         confirmRename(item: item)
                                     }
@@ -496,6 +612,11 @@ struct SFTPPanelView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                // 从 Finder 拖入到列表空白区域：上传到当前目录。
+                .dropDestination(for: URL.self) { urls, _ in
+                    viewModel.uploadDroppedItems(urls)
+                    return true
+                }
             }
         }
     }
@@ -538,6 +659,23 @@ struct SFTPPanelView: View {
             if item.isDirectory {
                 viewModel.enterDirectory(item)
             }
+        }
+        // 拖出到 Finder 时生成下载任务；进程内拖动到目录行上松手则执行 mv 移入该目录。
+        .onDrag { viewModel.dragItemProvider(for: item) }
+        .dropDestination(for: String.self) { names, _ in
+            // 仅接受列表内部拖拽：载荷必须是当前列表中存在的条目名，
+            // 以此排除从 Finder 拖入时附带的路径文本。
+            guard item.isDirectory, let name = names.first, name != item.name,
+                  viewModel.items.contains(where: { $0.name == name }) else { return false }
+            Task {
+                await viewModel.moveItem(named: name, intoDirectory: item)
+            }
+            return true
+        }
+        // 从 Finder 拖入：落在目录行上则上传到该目录内，否则上传到当前目录。
+        .dropDestination(for: URL.self) { urls, _ in
+            viewModel.uploadDroppedItems(urls, into: item.isDirectory ? item : nil)
+            return true
         }
     }
 
