@@ -378,22 +378,32 @@ final class SFTPPanelViewModel: ObservableObject {
     /// 将当前目录下的条目移动到子目录中（拖拽触发）。
     /// 若被拖拽条目处于多选集合中，则移动整个选中集合。
     func moveItem(named name: String, intoDirectory directory: SFTPFileItem) async {
-        guard directory.isDirectory, name != directory.name else { return }
+        print("[SFTP Move] moveItem named=\(name) intoDirectory=\(directory.name) currentPath=\(currentPath)")
+        guard directory.isDirectory, name != directory.name else {
+            print("[SFTP Move] abort: not directory or same name")
+            return
+        }
         let selected = items.filter { selectedItems.contains($0.id) }
         let entries: [SFTPFileItem]
         if selected.count > 1, selected.contains(where: { $0.name == name }) {
             entries = selected
+            print("[SFTP Move] moving selected entries: \(entries.map { $0.name })")
         } else if let single = items.first(where: { $0.name == name }) {
             entries = [single]
+            print("[SFTP Move] moving single entry: \(single.name)")
         } else {
+            print("[SFTP Move] abort: entry not found for name=\(name)")
             return
         }
         for entry in entries where entry.id != directory.id {
             let source = currentPath + "/" + entry.name
             let destination = currentPath + "/" + directory.name + "/" + entry.name
+            print("[SFTP Move] rename \(source) -> \(destination)")
             do {
                 try await SFTPService.shared.rename(connection: connection, from: source, to: destination)
+                print("[SFTP Move] rename success")
             } catch {
+                print("[SFTP Move] rename error: \(error)")
                 await MainActor.run {
                     self.errorMessage = error.localizedDescription
                 }
@@ -401,6 +411,7 @@ final class SFTPPanelViewModel: ObservableObject {
             }
         }
         await MainActor.run {
+            print("[SFTP Move] refresh after move")
             self.selectedItems.removeAll()
             self.refresh()
         }
@@ -723,7 +734,7 @@ struct SFTPPanelView: View {
             }
         )
         .onDrop(
-            of: [SFTPDragSession.internalMoveUTType, .plainText, .fileURL],
+            of: [SFTPDragSession.internalMoveUTType, .fileURL],
             delegate: SFTPRowDropDelegate(item: item, viewModel: viewModel)
         )
     }
@@ -880,7 +891,9 @@ private struct SFTPRowDropDelegate: DropDelegate {
     let viewModel: SFTPPanelViewModel
 
     func validateDrop(info: DropInfo) -> Bool {
-        if isInternalMove(info) {
+        let internalMove = SFTPDragSession.currentDraggedName != nil
+        print("[SFTP Drop] validateDrop target=\(item.name) isDirectory=\(item.isDirectory) internalMove=\(internalMove)")
+        if internalMove {
             // 列表内部移动只接受目录行作为落点。
             return item.isDirectory
         }
@@ -888,43 +901,31 @@ private struct SFTPRowDropDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
-        // 列表内部移动优先。
-        if let provider = internalMoveProvider(info) {
-            guard item.isDirectory else { return false }
-            // 优先读取自定义类型；失败后回退到 .plainText。
-            _ = provider.loadDataRepresentation(forTypeIdentifier: SFTPDragSession.internalMoveType.rawValue) { data, _ in
-                let payload: String? = {
-                    if let data = data { return String(data: data, encoding: .utf8) }
-                    return nil
-                }()
-                self.handleMovePayload(payload)
-            }
-            return true
+        print("[SFTP Drop] performDrop target=\(item.name) isDirectory=\(item.isDirectory)")
+        // 列表内部移动优先：使用进程内共享状态传递被拖拽条目名称，
+        // 因为自定义 UTType 在 SwiftUI DropDelegate 的 NSItemProvider 中无法加载数据。
+        guard let draggedName = SFTPDragSession.currentDraggedName else {
+            print("[SFTP Drop] not internal move, handle file drop")
+            return handleFileDrop(info: info, into: item.isDirectory ? item : nil)
         }
-        return handleFileDrop(info: info, into: item.isDirectory ? item : nil)
-    }
-
-    private func isInternalMove(_ info: DropInfo) -> Bool {
-        if info.hasItemsConforming(to: [SFTPDragSession.internalMoveUTType]) { return true }
-        // 对 .plainText 只简单判断类型存在；具体内容在 performDrop 中校验，避免 validateDrop 阻塞主线程。
-        return info.hasItemsConforming(to: [.plainText])
-    }
-
-    private func internalMoveProvider(_ info: DropInfo) -> NSItemProvider? {
-        if let provider = info.itemProviders(for: [SFTPDragSession.internalMoveUTType]).first {
-            return provider
-        }
-        return info.itemProviders(for: [.plainText]).first
+        guard item.isDirectory else { return false }
+        print("[SFTP Drop] internal move, draggedName=\(draggedName) target directory=\(item.name)")
+        handleMovePayload("exghostty:sftp-move:\(draggedName)")
+        return true
     }
 
     private func handleMovePayload(_ payload: String?) {
-        guard let payload else { return }
+        guard let payload else {
+            print("[SFTP Drop] handleMovePayload payload is nil")
+            return
+        }
         let name: String
         if payload.hasPrefix("exghostty:sftp-move:") {
             name = String(payload.dropFirst("exghostty:sftp-move:".count))
         } else {
             name = payload
         }
+        print("[SFTP Drop] handleMovePayload payload=\(payload) parsedName=\(name)")
         Task {
             await viewModel.moveItem(named: name, intoDirectory: item)
         }

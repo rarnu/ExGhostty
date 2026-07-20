@@ -17,6 +17,9 @@ enum SFTPDragSession {
     private static var isActive = false
     /// 强引用当前会话的 source，保证回调期间不被释放。
     private static var activeSource: SFTPDraggingSource?
+    /// 当前内部移动拖拽中被拖拽条目的名称。由于自定义 UTType 在 SwiftUI DropDelegate
+    /// 的 NSItemProvider 中无法加载数据，因此用进程内共享状态传递该名称。
+    static var currentDraggedName: String?
 
     /// 从列表行启动拖拽会话。
     ///
@@ -33,6 +36,8 @@ enum SFTPDragSession {
     ) {
         guard !isActive, !items.isEmpty else { return }
         isActive = true
+        currentDraggedName = draggedItem.name
+        print("[SFTP Drag] begin drag: draggedItem=\(draggedItem.name), items=\(items.map { $0.name }), remoteDirectory=\(remoteDirectory)")
 
         let location = view.convert(event.locationInWindow, from: nil)
         let isMulti = items.count > 1
@@ -57,12 +62,12 @@ enum SFTPDragSession {
 
         // 进程内移动载荷：携带被拖拽行的条目名，目录行的 onDrop 凭此执行 mv。
         // 该 dragging item 不产生拖拽图像。
-        // 同时写入 .plainText 作为 SwiftUI DropDelegate 可识别的标准类型，避免自定义 UTType 识别失败。
-        let internalItem = NSPasteboardItem()
+        // 自定义类型 com.exghostty.sftp-move 已在 Info.plist 中注册为 exported UTType，
+        // SwiftUI DropDelegate 可以正常检测并加载该类型的数据表示。
         let movePayload = "exghostty:sftp-move:\(draggedItem.name)"
-        internalItem.setData(Data(movePayload.utf8), forType: internalMoveType)
-        internalItem.setString(movePayload, forType: NSPasteboard.PasteboardType(rawValue: UTType.plainText.identifier))
-        let internalDraggingItem = NSDraggingItem(pasteboardWriter: internalItem)
+        print("[SFTP Drag] internal move payload: \(movePayload)")
+        let internalProvider = SFTPInternalMoveProvider(payload: movePayload)
+        let internalDraggingItem = NSDraggingItem(pasteboardWriter: internalProvider)
         internalDraggingItem.draggingFrame = CGRect(x: location.x, y: location.y, width: 1, height: 1)
         internalDraggingItem.imageComponentsProvider = { [] }
         draggingItems.append(internalDraggingItem)
@@ -73,6 +78,47 @@ enum SFTPDragSession {
         }
         activeSource = source
         view.beginDraggingSession(with: draggingItems, event: event, source: source)
+    }
+}
+
+/// 内部移动载荷提供者。
+/// 同时遵循 NSPasteboardWriting（用于 NSDraggingItem）和 NSItemProviderWriting
+/// （用于 SwiftUI DropDelegate 重建 NSItemProvider 时加载数据）。
+private final class SFTPInternalMoveProvider: NSObject, NSPasteboardWriting, NSItemProviderWriting {
+    static let typeIdentifier = "com.exghostty.sftp-move"
+    private let data: Data
+
+    init(payload: String) {
+        self.data = Data(payload.utf8)
+        super.init()
+    }
+
+    // MARK: - NSPasteboardWriting
+
+    func writableTypes(for pasteboard: NSPasteboard) -> [NSPasteboard.PasteboardType] {
+        return [NSPasteboard.PasteboardType(Self.typeIdentifier)]
+    }
+
+    func pasteboardPropertyList(forType type: NSPasteboard.PasteboardType) -> Any? {
+        return data
+    }
+
+    // MARK: - NSItemProviderWriting
+
+    static var writableTypeIdentifiersForItemProvider: [String] {
+        return [typeIdentifier]
+    }
+
+    var writableTypeIdentifiersForItemProvider: [String] {
+        return Self.writableTypeIdentifiersForItemProvider
+    }
+
+    func loadData(
+        withTypeIdentifier typeIdentifier: String,
+        forItemProviderCompletionHandler completionHandler: @escaping (Data?, Error?) -> Void
+    ) -> Progress? {
+        completionHandler(data, nil)
+        return nil
     }
 }
 
@@ -89,6 +135,8 @@ private final class SFTPDraggingSource: NSObject, NSDraggingSource {
     }
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        print("[SFTP Drag] draggingSession ended, operation=\(operation)")
+        SFTPDragSession.currentDraggedName = nil
         onEnd()
     }
 }
