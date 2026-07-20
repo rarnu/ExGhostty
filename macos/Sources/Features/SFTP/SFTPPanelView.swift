@@ -539,7 +539,7 @@ struct SFTPPanelView: View {
     private var pathBar: some View {
         HStack {
             Text(viewModel.currentPath)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .truncationMode(.head)
@@ -576,12 +576,12 @@ struct SFTPPanelView: View {
         Button(action: action) {
             VStack(spacing: 1) {
                 Image(systemName: icon)
-                    .font(.system(size: 11))
+                    .font(.system(size: 13))
                 Text(label)
-                    .font(.system(size: 8))
+                    .font(.system(size: 10))
             }
             .foregroundColor(.secondary)
-            .frame(width: 38, height: 30)
+            .frame(width: 44, height: 34)
         }
         .buttonStyle(.plain)
         .help(label)
@@ -595,11 +595,11 @@ struct SFTPPanelView: View {
 
         return HStack {
             Text(L("Upload tasks: %d, Download tasks: %d", uploadCount, downloadCount))
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
             Spacer()
             Button("Details".localized) { viewModel.openTaskListWindow() }
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
                 // 增大可点击区域，让按钮更容易点中。
@@ -676,31 +676,31 @@ struct SFTPPanelView: View {
         HStack(spacing: 6) {
             Button(action: { viewModel.toggleSelection(item) }) {
                 Image(systemName: viewModel.selectedItems.contains(item.id) ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 14))
+                    .font(.system(size: 20))
                     .foregroundColor(viewModel.selectedItems.contains(item.id) ? .accentColor : .secondary)
             }
             .buttonStyle(.plain)
-            .frame(width: 18)
+            .frame(width: 24)
 
             Image(systemName: item.isDirectory ? "folder" : "doc")
-                .font(.system(size: 14))
+                .font(.system(size: 20))
                 .foregroundColor(item.isDirectory ? .accentColor : .secondary)
-                .frame(width: 18)
+                .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.name)
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
                     .lineLimit(1)
                 if let size = item.size, !item.isDirectory {
                     Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
-                        .font(.system(size: 10))
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
             }
             Spacer()
         }
-        .padding(.vertical, 2)
-        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
         .background(
             viewModel.selectedItems.contains(item.id)
                 ? Color.accentColor.opacity(0.2)
@@ -723,7 +723,7 @@ struct SFTPPanelView: View {
             }
         )
         .onDrop(
-            of: [SFTPDragSession.internalMoveUTType, .fileURL],
+            of: [SFTPDragSession.internalMoveUTType, .plainText, .fileURL],
             delegate: SFTPRowDropDelegate(item: item, viewModel: viewModel)
         )
     }
@@ -880,7 +880,7 @@ private struct SFTPRowDropDelegate: DropDelegate {
     let viewModel: SFTPPanelViewModel
 
     func validateDrop(info: DropInfo) -> Bool {
-        if info.hasItemsConforming(to: [SFTPDragSession.internalMoveUTType]) {
+        if isInternalMove(info) {
             // 列表内部移动只接受目录行作为落点。
             return item.isDirectory
         }
@@ -889,17 +889,45 @@ private struct SFTPRowDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         // 列表内部移动优先。
-        if let provider = info.itemProviders(for: [SFTPDragSession.internalMoveUTType]).first {
+        if let provider = internalMoveProvider(info) {
             guard item.isDirectory else { return false }
+            // 优先读取自定义类型；失败后回退到 .plainText。
             _ = provider.loadDataRepresentation(forTypeIdentifier: SFTPDragSession.internalMoveType.rawValue) { data, _ in
-                guard let data, let name = String(data: data, encoding: .utf8) else { return }
-                Task {
-                    await viewModel.moveItem(named: name, intoDirectory: item)
-                }
+                let payload: String? = {
+                    if let data = data { return String(data: data, encoding: .utf8) }
+                    return nil
+                }()
+                self.handleMovePayload(payload)
             }
             return true
         }
         return handleFileDrop(info: info, into: item.isDirectory ? item : nil)
+    }
+
+    private func isInternalMove(_ info: DropInfo) -> Bool {
+        if info.hasItemsConforming(to: [SFTPDragSession.internalMoveUTType]) { return true }
+        // 对 .plainText 只简单判断类型存在；具体内容在 performDrop 中校验，避免 validateDrop 阻塞主线程。
+        return info.hasItemsConforming(to: [.plainText])
+    }
+
+    private func internalMoveProvider(_ info: DropInfo) -> NSItemProvider? {
+        if let provider = info.itemProviders(for: [SFTPDragSession.internalMoveUTType]).first {
+            return provider
+        }
+        return info.itemProviders(for: [.plainText]).first
+    }
+
+    private func handleMovePayload(_ payload: String?) {
+        guard let payload else { return }
+        let name: String
+        if payload.hasPrefix("exghostty:sftp-move:") {
+            name = String(payload.dropFirst("exghostty:sftp-move:".count))
+        } else {
+            name = payload
+        }
+        Task {
+            await viewModel.moveItem(named: name, intoDirectory: item)
+        }
     }
 
     private func handleFileDrop(info: DropInfo, into directory: SFTPFileItem?) -> Bool {

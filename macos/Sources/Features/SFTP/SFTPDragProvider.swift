@@ -57,8 +57,11 @@ enum SFTPDragSession {
 
         // 进程内移动载荷：携带被拖拽行的条目名，目录行的 onDrop 凭此执行 mv。
         // 该 dragging item 不产生拖拽图像。
+        // 同时写入 .plainText 作为 SwiftUI DropDelegate 可识别的标准类型，避免自定义 UTType 识别失败。
         let internalItem = NSPasteboardItem()
-        internalItem.setData(Data(draggedItem.name.utf8), forType: internalMoveType)
+        let movePayload = "exghostty:sftp-move:\(draggedItem.name)"
+        internalItem.setData(Data(movePayload.utf8), forType: internalMoveType)
+        internalItem.setString(movePayload, forType: NSPasteboard.PasteboardType(rawValue: UTType.plainText.identifier))
         let internalDraggingItem = NSDraggingItem(pasteboardWriter: internalItem)
         internalDraggingItem.draggingFrame = CGRect(x: location.x, y: location.y, width: 1, height: 1)
         internalDraggingItem.imageComponentsProvider = { [] }
