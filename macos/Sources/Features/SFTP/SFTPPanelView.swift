@@ -581,6 +581,53 @@ final class SFTPPanelViewModel: ObservableObject {
         surface.sendKeyEvent(Ghostty.Input.KeyEvent(key: .enter, action: .press, text: "\r"))
     }
 
+    // MARK: - 图片预览
+
+    /// 将图片文件下载到临时目录，并用 Preview 打开。
+    func openImageWithPreview(item: SFTPFileItem) async {
+        guard item.isImageFile else { return }
+        let remotePath = currentPath + "/" + item.name
+        let tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("com.exghostty.sftp.preview")
+            .appendingPathComponent(UUID().uuidString)
+        let localURL = tempDirectory.appendingPathComponent(item.name)
+
+        do {
+            try FileManager.default.createDirectory(
+                at: tempDirectory,
+                withIntermediateDirectories: true
+            )
+            let task = SFTPTask(
+                type: .download,
+                localPath: tempDirectory.path,
+                remotePath: remotePath,
+                title: item.name,
+                connection: connection,
+                isDirectory: false,
+                fileSize: item.size
+            )
+            try await SFTPService.shared.downloadFile(
+                connection: connection,
+                remotePath: remotePath,
+                localDirectory: tempDirectory,
+                task: task
+            )
+            await MainActor.run {
+                let previewURL = URL(fileURLWithPath: "/System/Applications/Preview.app")
+                NSWorkspace.shared.open(
+                    [localURL],
+                    withApplicationAt: previewURL,
+                    configuration: NSWorkspace.OpenConfiguration(),
+                    completionHandler: nil
+                )
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     // MARK: - 任务窗口
 
     func openTaskListWindow() {
@@ -816,6 +863,10 @@ struct SFTPPanelView: View {
         .onTapGesture(count: 2) {
             if item.isDirectory {
                 viewModel.enterDirectory(item)
+            } else if item.isImageFile {
+                Task {
+                    await viewModel.openImageWithPreview(item: item)
+                }
             } else if item.isTextFile {
                 Task {
                     await viewModel.checkFreshAndOpen(item: item)

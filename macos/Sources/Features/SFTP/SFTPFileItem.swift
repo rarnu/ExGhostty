@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 /// 远程文件/目录项。
 struct SFTPFileItem: Identifiable, Equatable {
@@ -28,6 +29,15 @@ struct SFTPFileItem: Identifiable, Equatable {
             "exe", "dll", "so", "dylib", "app", "bin", "o", "a"
         ]
         return !binaryExtensions.contains(ext)
+    }
+
+    /// 是否为图片文件（用于双击用 Preview 预览）。
+    /// 通过 UTType（mimetype）判断，覆盖常见图片格式。
+    var isImageFile: Bool {
+        guard type == .file else { return false }
+        let ext = (name as NSString).pathExtension
+        guard let utType = UTType(filenameExtension: ext) else { return false }
+        return utType.conforms(to: .image)
     }
 }
 
