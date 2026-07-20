@@ -259,7 +259,8 @@ actor SFTPService {
             var args = ["--partial", "--progress", "-e", "ssh -S \(socket)"]
             if compress { args.append("-z") }
             args.append(localPath)
-            args.append("\(connection.host):\(remotePath)")
+            // 远程路径由远端 shell 解析，含空格时会被拆分，必须加引号。
+            args.append("\(connection.host):\(remotePath.singleQuotedShellArgument())")
             try await self.runRsync(args: args, task: task, progressOffset: progressOffset, progressScale: progressScale)
         }
     }
@@ -276,7 +277,8 @@ actor SFTPService {
         try await SSHCommandExecutor.shared.withControlChannel(connection: connection) { socket in
             var args = ["--partial", "--progress", "-e", "ssh -S \(socket)"]
             if compress { args.append("-z") }
-            args.append("\(connection.host):\(remotePath)")
+            // 远程路径由远端 shell 解析，含空格时会被拆分，必须加引号。
+            args.append("\(connection.host):\(remotePath.singleQuotedShellArgument())")
             args.append(localPath)
             try await self.runRsync(args: args, task: task, progressOffset: progressOffset, progressScale: progressScale)
         }
