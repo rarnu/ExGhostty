@@ -14,6 +14,21 @@ struct SFTPFileItem: Identifiable, Equatable {
 
     /// 是否为隐藏文件/目录。
     var isHidden: Bool { name.hasPrefix(".") }
+
+    /// 是否为文本文件（用于双击/右键使用 fresh 编辑）。
+    /// 通过扩展名排除常见二进制格式；无扩展名或未知扩展名默认视为文本。
+    var isTextFile: Bool {
+        guard type == .file else { return false }
+        let ext = (name as NSString).pathExtension.lowercased()
+        let binaryExtensions: Set<String> = [
+            "png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp", "ico", "heic", "heif",
+            "mp3", "mp4", "mov", "avi", "mkv", "flv", "wmv", "webm",
+            "zip", "tar", "gz", "bz2", "xz", "rar", "7z", "dmg", "iso", "pkg", "deb", "rpm",
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "exe", "dll", "so", "dylib", "app", "bin", "o", "a"
+        ]
+        return !binaryExtensions.contains(ext)
+    }
 }
 
 enum SFTPItemType {

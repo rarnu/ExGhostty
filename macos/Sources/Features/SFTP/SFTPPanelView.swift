@@ -183,11 +183,31 @@ final class SFTPPanelViewModel: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = error.localizedDescription
+                    if Self.isPathNotFoundError(error) {
+                        // fresh 等编辑器切换文件时可能把终端路径同步为一个文件路径或
+                        // 已不存在的路径，此时保持列表为空，不显示红字错误。
+                        self.items = []
+                        self.selectedItems = []
+                        self.parentIsWritable = false
+                    } else {
+                        self.errorMessage = error.localizedDescription
+                    }
                     self.isLoading = false
                 }
             }
         }
+    }
+
+    /// 判断错误是否为远端路径不存在或不是目录。
+    private static func isPathNotFoundError(_ error: Error) -> Bool {
+        guard let sshError = error as? SSHCommandError,
+              case .executionFailed(_, _, let stderr, _) = sshError else {
+            return false
+        }
+        let lowercased = stderr.lowercased()
+        return lowercased.contains("no such file or directory") ||
+               lowercased.contains("not a directory") ||
+               lowercased.contains("is not a directory")
     }
 
     func goUp() {
@@ -500,6 +520,67 @@ final class SFTPPanelViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Fresh
+
+    /// 等待用户确认是否安装 fresh；确认后会触发安装并继续打开目标。
+    @Published var freshInstallPendingItem: SFTPFileItem? = nil
+
+    /// 检查 fresh 是否已安装，已安装则在终端执行 fresh；未安装则弹出确认对话框。
+    func checkFreshAndOpen(item: SFTPFileItem) async {
+        do {
+            if try await isFreshInstalled() {
+                await MainActor.run {
+                    self.openWithFresh(item: item)
+                }
+            } else {
+                await MainActor.run {
+                    self.freshInstallPendingItem = item
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    /// 用户确认安装 fresh 后调用：只在终端执行安装脚本。
+    @MainActor
+    func installFreshAndOpen(item: SFTPFileItem) {
+        let installCommand = "curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh"
+        sendCommandToTerminal(installCommand)
+    }
+
+    /// 在终端中执行 "fresh <目标路径>"，用于编辑文本文件或打开目录。
+    @MainActor
+    func openWithFresh(item: SFTPFileItem) {
+        let remotePath = currentPath + "/" + item.name
+        sendCommandToTerminal("fresh \(remotePath)")
+    }
+
+    /// 检测远端是否已安装 fresh。
+    /// 通过一条静默的 SSH 命令执行 `which fresh`；真正的 fresh 命令会发送到当前终端执行。
+    private func isFreshInstalled() async throws -> Bool {
+        let output = try await SSHCommandExecutor.shared.execute(
+            remoteCommand: "which fresh 2>/dev/null || true",
+            connection: connection
+        )
+        return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// 将命令发送到关联终端的当前 surface，并尝试前置终端窗口。
+    /// 参考 Session Reuse 的做法：先发送命令文本，再模拟按下回车键。
+    @MainActor
+    private func sendCommandToTerminal(_ command: String) {
+        guard let surface = terminalController?.focusedSurface?.surfaceModel else {
+            errorMessage = "No focused terminal surface".localized
+            return
+        }
+        terminalController?.window?.makeKeyAndOrderFront(nil)
+        surface.sendText(command)
+        surface.sendKeyEvent(Ghostty.Input.KeyEvent(key: .enter, action: .press, text: "\r"))
+    }
+
     // MARK: - 任务窗口
 
     func openTaskListWindow() {
@@ -543,6 +624,19 @@ struct SFTPPanelView: View {
         // 从 Finder 拖入到列表空白区域（或面板其他非行区域）：上传到当前目录。
         // 注：直接挂在 SwiftUI List 上的 onDrop 无法覆盖空白区域，因此挂在外层容器。
         .onDrop(of: [.fileURL], delegate: SFTPListDropDelegate(viewModel: viewModel))
+        .alert("Install fresh?", isPresented: .constant(viewModel.freshInstallPendingItem != nil)) {
+            Button("Install".localized) {
+                if let item = viewModel.freshInstallPendingItem {
+                    viewModel.installFreshAndOpen(item: item)
+                    viewModel.freshInstallPendingItem = nil
+                }
+            }
+            Button("Cancel".localized, role: .cancel) {
+                viewModel.freshInstallPendingItem = nil
+            }
+        } message: {
+            Text("fresh is not installed on the remote machine. Install it now?".localized)
+        }
     }
 
     // MARK: - 路径栏
@@ -646,6 +740,7 @@ struct SFTPPanelView: View {
                             fileRow(item: item)
                                 .contextMenu {
                                     downloadContextMenu(item: item)
+                                    freshContextMenu(item: item)
                                     if viewModel.selectedItems.count <= 1 {
                                         // 仅当上一级目录存在且当前用户可写时，才允许移动到上一级。
                                         if viewModel.parentIsWritable, viewModel.parentPath != nil {
@@ -721,6 +816,10 @@ struct SFTPPanelView: View {
         .onTapGesture(count: 2) {
             if item.isDirectory {
                 viewModel.enterDirectory(item)
+            } else if item.isTextFile {
+                Task {
+                    await viewModel.checkFreshAndOpen(item: item)
+                }
             }
         }
         .onTapGesture(count: 1) {
@@ -754,6 +853,29 @@ struct SFTPPanelView: View {
             Button(item.isDirectory ? "Download This Directory".localized : "Download This File".localized) {
                 download(item: item)
                 viewModel.selectedItems.removeAll()
+            }
+        }
+    }
+
+    /// fresh 编辑/打开菜单：文本文件显示“使用 fresh 编辑”，目录显示“使用 fresh 打开目录”。
+    @ViewBuilder
+    private func freshContextMenu(item: SFTPFileItem) -> some View {
+        let selectedCount = viewModel.selectedItems.count
+        let isSelected = viewModel.selectedItems.contains(item.id)
+
+        if selectedCount <= 1 || !isSelected {
+            if item.isDirectory {
+                Button("Open Directory with fresh".localized) {
+                    Task {
+                        await viewModel.checkFreshAndOpen(item: item)
+                    }
+                }
+            } else if item.isTextFile {
+                Button("Edit with fresh".localized) {
+                    Task {
+                        await viewModel.checkFreshAndOpen(item: item)
+                    }
+                }
             }
         }
     }
