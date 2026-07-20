@@ -2248,6 +2248,17 @@ extension Ghostty.SurfaceView {
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         let pb = sender.draggingPasteboard
 
+        // 文件拖到 SSH 终端：上传到远端临时目录，然后插入远端路径。
+        let localURLs = fileURLs(from: pb)
+        if !localURLs.isEmpty,
+           let controller = self.window?.windowController as? BaseTerminalController,
+           let connection = controller.sshConnection {
+            Task {
+                await uploadAndInsertFiles(localURLs, connection: connection)
+            }
+            return true
+        }
+
         let content = pb.getOpinionatedStringContents()
 
         if let content {
@@ -2261,6 +2272,69 @@ extension Ghostty.SurfaceView {
         }
 
         return false
+    }
+
+    /// 从粘贴板中提取所有本地文件 URL。
+    private func fileURLs(from pasteboard: NSPasteboard) -> [URL] {
+        guard let items = pasteboard.pasteboardItems else { return [] }
+        return items.compactMap { item in
+            guard let plist = item.propertyList(forType: .fileURL),
+                  let fileURL = NSURL(pasteboardPropertyList: plist, ofType: .fileURL) as URL?,
+                  fileURL.isFileURL else {
+                return nil
+            }
+            return fileURL
+        }
+    }
+
+    /// 将本地文件上传到 SSH 连接的远端临时目录，然后在当前 surface 插入远端文件路径。
+    private func uploadAndInsertFiles(_ localURLs: [URL], connection: SSHConnection) async {
+        let content: String
+        do {
+            let remoteTempDir = try await SSHCommandExecutor.shared.execute(
+                remoteCommand: "mktemp -d",
+                connection: connection
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for localURL in localURLs {
+                    group.addTask {
+                        let task = SFTPTask(
+                            type: .upload,
+                            localPath: localURL.path,
+                            remotePath: remoteTempDir,
+                            title: localURL.lastPathComponent,
+                            connection: connection,
+                            isDirectory: false,
+                            fileSize: nil
+                        )
+                        try await SFTPService.shared.uploadFile(
+                            connection: connection,
+                            localURL: localURL,
+                            remoteDirectory: remoteTempDir,
+                            task: task
+                        )
+                    }
+                }
+                try await group.waitForAll()
+            }
+
+            content = localURLs
+                .map { Ghostty.Shell.escape(remoteTempDir + "/" + $0.lastPathComponent) }
+                .joined(separator: " ")
+        } catch {
+            // 上传失败时回退到本地路径。
+            content = localURLs
+                .map { Ghostty.Shell.escape($0.path) }
+                .joined(separator: " ")
+        }
+
+        await MainActor.run {
+            self.insertText(
+                content,
+                replacementRange: NSRange(location: 0, length: 0)
+            )
+        }
     }
 }
 
