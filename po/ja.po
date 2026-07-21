@@ -513,6 +513,9 @@ msgstr "新しいタブ"
 msgid "New Window"
 msgstr "新しいウィンドウ"
 
+msgid "New rmux Session"
+msgstr "新規 rmux セッション"
+
 msgid "New tmux Session"
 msgstr "新規 tmux セッション"
 
@@ -597,8 +600,8 @@ msgstr "一時停止中"
 msgid "Pending"
 msgstr "待機中"
 
-msgid "Please install tmux or zellij"
-msgstr "tmux または zellij をインストールしてください"
+msgid "Please install tmux, rmux or zellij"
+msgstr "tmux、rmux または zellij をインストールしてください"
 
 msgid "Please select a jump host"
 msgstr "ジャンプホストを選択してください"

@@ -512,6 +512,9 @@ msgstr "開新分頁"
 msgid "New Window"
 msgstr "開新視窗"
 
+msgid "New rmux Session"
+msgstr "新建 rmux 工作階段"
+
 msgid "New tmux Session"
 msgstr "新建 tmux 工作階段"
 
@@ -596,8 +599,8 @@ msgstr "已暫停"
 msgid "Pending"
 msgstr "等待中"
 
-msgid "Please install tmux or zellij"
-msgstr "請安裝 tmux 或 zellij"
+msgid "Please install tmux, rmux or zellij"
+msgstr "請安裝 tmux、rmux 或 zellij"
 
 msgid "Please select a jump host"
 msgstr "請選擇跳板主機"

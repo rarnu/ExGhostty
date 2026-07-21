@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import Combine
 
-/// 远端/本机操作系统类型，用于按平台拼接 tmux/zellij 命令。
+/// 远端/本机操作系统类型，用于按平台拼接 tmux/rmux/zellij 命令。
 enum HostOS: String, CaseIterable, Identifiable {
     case linux
     case macOS
@@ -17,9 +17,10 @@ enum HostOS: String, CaseIterable, Identifiable {
     }
 }
 
-/// 会话类型，用于区分 tmux / zellij 的通用操作。
+/// 会话类型，用于区分 tmux / rmux / zellij 的通用操作。
 enum SessionType: String, CaseIterable, Identifiable {
     case tmux
+    case rmux
     case zellij
 
     var id: String { rawValue }
@@ -27,6 +28,7 @@ enum SessionType: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .tmux: return "tmux"
+        case .rmux: return "rmux"
         case .zellij: return "zellij"
         }
     }
@@ -46,8 +48,10 @@ final class SessionReusePanelViewModel: ObservableObject {
 
     @Published var hostOS: HostOS?
     @Published var tmuxInstalled: Bool = false
+    @Published var rmuxInstalled: Bool = false
     @Published var zellijInstalled: Bool = false
     @Published var tmuxSessions: [String] = []
+    @Published var rmuxSessions: [String] = []
     @Published var zellijSessions: [String] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
@@ -82,17 +86,22 @@ final class SessionReusePanelViewModel: ObservableObject {
 
         Task {
             async let tmuxInstalledTask = checkInstalled(command: "tmux")
+            async let rmuxInstalledTask = checkInstalled(command: "rmux")
             async let zellijInstalledTask = checkInstalled(command: "zellij")
 
             let tmuxInstalled = await tmuxInstalledTask
+            let rmuxInstalled = await rmuxInstalledTask
             let zellijInstalled = await zellijInstalledTask
 
             async let tmuxSessionsTask = tmuxInstalled ? listTmuxSessions() : []
+            async let rmuxSessionsTask = rmuxInstalled ? listRmuxSessions() : []
             async let zellijSessionsTask = zellijInstalled ? listZellijSessions() : []
 
             self.tmuxInstalled = tmuxInstalled
+            self.rmuxInstalled = rmuxInstalled
             self.zellijInstalled = zellijInstalled
             self.tmuxSessions = await tmuxSessionsTask
+            self.rmuxSessions = await rmuxSessionsTask
             self.zellijSessions = await zellijSessionsTask
             self.isLoading = false
         }
@@ -207,6 +216,29 @@ final class SessionReusePanelViewModel: ObservableObject {
         }
     }
 
+    private func listRmuxSessions() async -> [String] {
+        do {
+            let executable: String
+            let output: String
+            if let connection = connection {
+                executable = await remoteExecutablePath(for: "rmux", connection: connection) ?? "rmux"
+                output = try await SSHCommandExecutor.shared.execute(
+                    remoteCommand: "\(executable.singleQuotedShellArgument()) list-sessions -F '#S'",
+                    connection: connection
+                )
+            } else {
+                executable = localExecutablePath(for: "rmux") ?? "command rmux"
+                output = try await ProcessRunner.run(shellCommand: "\(executable) list-sessions -F '#S'")
+            }
+            return output
+                .split(separator: "\n", omittingEmptySubsequences: true)
+                .map(String.init)
+        } catch {
+            // 远端 rmux 服务器未运行时返回错误，按无会话处理。
+            return []
+        }
+    }
+
     private func listZellijSessions() async -> [String] {
         do {
             let executable: String
@@ -317,6 +349,22 @@ final class SessionReusePanelViewModel: ObservableObject {
         return "tmux kill-session -t \(escaped)"
     }
 
+    // rmux 与 tmux 使用相同的命令行参数，仅可执行文件名不同。
+    private func rmuxNewSessionCommand(name: String) -> String {
+        let escaped = name.singleQuotedShellArgument()
+        return "rmux new -s \(escaped)"
+    }
+
+    private func rmuxAttachCommand(session: String) -> String {
+        let escaped = session.singleQuotedShellArgument()
+        return "if [ -n \"$TMUX$RMUX\" ]; then rmux switch-client -t \(escaped); else rmux attach-session -t \(escaped); fi"
+    }
+
+    private func rmuxKillSessionCommand(session: String) -> String {
+        let escaped = session.singleQuotedShellArgument()
+        return "rmux kill-session -t \(escaped)"
+    }
+
     private func zellijNewSessionCommand(name: String) -> String {
         let escaped = name.singleQuotedShellArgument()
         return "zellij attach --create \(escaped)"
@@ -344,7 +392,7 @@ final class SessionReusePanelViewModel: ObservableObject {
             confirmTitle: "Confirm".localized,
             cancelTitle: "Cancel".localized,
             filter: { text in
-                // tmux/zellij 会话名仅允许英文和数字。
+                // tmux/rmux/zellij 会话名仅允许英文和数字。
                 text.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
             },
             config: tc.ghostty.config,
@@ -364,6 +412,8 @@ final class SessionReusePanelViewModel: ObservableObject {
         switch type {
         case .tmux:
             sendToTerminal(tmuxNewSessionCommand(name: trimmed))
+        case .rmux:
+            sendToTerminal(rmuxNewSessionCommand(name: trimmed))
         case .zellij:
             sendToTerminal(zellijNewSessionCommand(name: trimmed))
         }
@@ -395,6 +445,22 @@ final class SessionReusePanelViewModel: ObservableObject {
     @MainActor
     func killTmux(session: String) {
         sendToTerminal(tmuxKillSessionCommand(session: session))
+    }
+
+    // rmux 的 detach 前缀与 tmux 相同（Ctrl-b d）。
+    @MainActor
+    func detachRmux() {
+        detachTmux()
+    }
+
+    @MainActor
+    func attachRmux(session: String) {
+        sendToTerminal(rmuxAttachCommand(session: session))
+    }
+
+    @MainActor
+    func killRmux(session: String) {
+        sendToTerminal(rmuxKillSessionCommand(session: session))
     }
 
     @MainActor
@@ -440,17 +506,17 @@ struct SessionReusePanelView: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.isLoading && !viewModel.tmuxInstalled && !viewModel.zellijInstalled {
+        if viewModel.isLoading && !viewModel.tmuxInstalled && !viewModel.rmuxInstalled && !viewModel.zellijInstalled {
             Spacer()
             ProgressView()
             Spacer()
-        } else if !viewModel.tmuxInstalled && !viewModel.zellijInstalled {
+        } else if !viewModel.tmuxInstalled && !viewModel.rmuxInstalled && !viewModel.zellijInstalled {
             Spacer()
             VStack(spacing: 8) {
                 Image(systemName: "doc.on.doc")
                     .font(.system(size: 32))
                     .foregroundColor(.secondary)
-                Text("Please install tmux or zellij".localized)
+                Text("Please install tmux, rmux or zellij".localized)
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
@@ -469,6 +535,25 @@ struct SessionReusePanelView: View {
                             detachAction: { viewModel.detachTmux() },
                             sessions: viewModel.tmuxSessions,
                             attachAction: { viewModel.attachTmux(session: $0) }
+                        )
+
+                        if viewModel.rmuxInstalled || viewModel.zellijInstalled {
+                            Divider()
+                                .padding(.horizontal, 8)
+                        }
+                    }
+
+                    if viewModel.rmuxInstalled {
+                        sessionSection(
+                            type: .rmux,
+                            title: "rmux",
+                            icon: "rectangle.split.2x1",
+                            newLabel: "New rmux Session".localized,
+                            newAction: { viewModel.promptNewSession(type: .rmux) },
+                            detachLabel: "Detach from Current Session".localized,
+                            detachAction: { viewModel.detachRmux() },
+                            sessions: viewModel.rmuxSessions,
+                            attachAction: { viewModel.attachRmux(session: $0) }
                         )
 
                         if viewModel.zellijInstalled {
@@ -503,6 +588,7 @@ struct SessionReusePanelView: View {
             primaryButton: .destructive(Text("Delete".localized)) {
                 switch item.type {
                 case .tmux: viewModel.killTmux(session: item.name)
+                case .rmux: viewModel.killRmux(session: item.name)
                 case .zellij: viewModel.killZellij(session: item.name)
                 }
             },
