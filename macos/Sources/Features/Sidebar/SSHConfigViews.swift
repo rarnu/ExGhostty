@@ -522,20 +522,12 @@ struct SSHConfigFormView: View {
         panel.canChooseFiles = true
         panel.isAccessoryViewDisclosed = true
 
-        // 以 sheet 形式挂在当前（SSH 配置）窗口上，避免被模态窗口挡住。
-        guard let window = NSApp.keyWindow else {
-            panel.begin { response in
-                if response == .OK, let url = panel.url {
-                    keyPath = url.path
-                }
-            }
-            return
-        }
-
-        panel.beginSheetModal(for: window) { response in
-            if response == .OK, let url = panel.url {
-                keyPath = url.path
-            }
+        // 用嵌套模态事件循环而不是 sheet：配置窗口本身处于 NSApp.runModal 会话中，
+        // beginSheetModal 在该会话里第二次调用会静默失败（第一次能弹出，之后无反应）。
+        // runModal 作为应用级模态面板会置顶显示，不会被配置窗口挡住，且可重复打开。
+        let response = panel.runModal()
+        if response == .OK, let url = panel.url {
+            keyPath = url.path
         }
     }
 
