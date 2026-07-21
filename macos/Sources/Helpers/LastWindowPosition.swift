@@ -46,6 +46,15 @@ class LastWindowPosition {
         }
 
         if restoreSize, values.count >= 4 {
+            if values[2] <= 0 || values[3] <= 0 {
+                // 保存的宽高为 0（异常数据），放弃整个恢复，
+                // 使用默认尺寸并居中显示。
+                newFrame.size = NSSize(width: 1273, height: 817)
+                newFrame.origin.x = visibleFrame.midX - newFrame.width / 2
+                newFrame.origin.y = visibleFrame.midY - newFrame.height / 2
+                window.setFrame(newFrame, display: true)
+                return true
+            }
             newFrame.size.width = min(values[2], visibleFrame.width)
             newFrame.size.height = min(values[3], visibleFrame.height)
         }

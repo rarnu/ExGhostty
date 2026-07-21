@@ -8,7 +8,7 @@ final class ICloudSyncManager: ObservableObject {
     static let shared = ICloudSyncManager()
 
     private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.mitchellh.ghostty",
+        subsystem: Bundle.main.bundleIdentifier ?? "com.xjai.exghostty",
         category: "ICloudSyncManager"
     )
 

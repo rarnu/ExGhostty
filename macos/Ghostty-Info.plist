@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac</key>
-	<true/>
-	<key>NSDockTilePlugIn</key>
-	<string>DockTilePlugin.plugin</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -59,10 +55,12 @@
 	<string>Terminal</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
+	<key>NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac</key>
+	<true/>
+	<key>NSDockTilePlugIn</key>
+	<string>DockTilePlugin.plugin</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
-	<key>OSAScriptingDefinition</key>
-	<string>Ghostty.sdef</string>
 	<key>NSServices</key>
 	<array>
 		<dict>
@@ -104,29 +102,31 @@
 			</array>
 		</dict>
 	</array>
+	<key>OSAScriptingDefinition</key>
+	<string>Ghostty.sdef</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>com.mitchellh.ghosttySurfaceId</string>
-			<key>UTTypeDescription</key>
-			<string>Ghostty Surface Identifier</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
 			</array>
+			<key>UTTypeDescription</key>
+			<string>Ghostty Surface Identifier</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.xjai.exghosttySurfaceId</string>
 			<key>UTTypeTagSpecification</key>
 			<dict/>
 		</dict>
 		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>com.exghostty.sftp-move</string>
-			<key>UTTypeDescription</key>
-			<string>SFTP Internal Move Payload</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
 			</array>
+			<key>UTTypeDescription</key>
+			<string>SFTP Internal Move Payload</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.exghostty.sftp-move</string>
 			<key>UTTypeTagSpecification</key>
 			<dict/>
 		</dict>

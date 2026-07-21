@@ -1169,6 +1169,12 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 
         super.showWindow(sender)
 
+        // 确保 App 已激活，窗口才能真正显示在前台。
+        // 首次启动时 applicationDidBecomeActive 触发 newWindow，
+        // showWindow 通过 async 延迟执行，此时 App 可能还未完全激活，
+        // 导致 makeKeyAndOrderFront 无效、窗口不可见。
+        NSApp.activate(ignoringOtherApps: true)
+
         // 窗口显示后重新应用外观（标签组可能覆盖了 isOpaque）
         let surfaceConfig = Ghostty.SurfaceView.DerivedConfig(ghostty.config)
         terminalWindow.syncAppearance(surfaceConfig)

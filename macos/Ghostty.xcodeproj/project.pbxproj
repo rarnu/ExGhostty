@@ -90,7 +90,7 @@
 		A5B30531299BEAAA0047F10C /* ExGhostty.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExGhostty.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A5B30538299BEAAB0047F10C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A5B3053D299BEAAB0047F10C /* Ghostty.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ghostty.entitlements; sourceTree = "<group>"; };
-		A5D4499D2B53AE7B000F5B83 /* Ghostty-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ghostty-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A5D4499D2B53AE7B000F5B83 /* ExGhostty-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ExGhostty-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A5D495A1299BEC7E00DD1313 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		FC5218F92D10FFC7004C93E0 /* zsh */ = {isa = PBXFileReference; lastKnownFileType = folder; name = zsh; path = "../zig-out/share/zsh"; sourceTree = "<group>"; };
 		FC9ABA9B2D0F538D0020D4C8 /* bash-completion */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "bash-completion"; path = "../zig-out/share/bash-completion"; sourceTree = "<group>"; };
@@ -243,7 +243,7 @@
 				Helpers/TabTitleEditor.swift,
 				Helpers/VibrantLayer.m,
 			);
-			target = A5D4499C2B53AE7B000F5B83 /* Ghostty-iOS */;
+			target = A5D4499C2B53AE7B000F5B83 /* ExGhostty-iOS */;
 		};
 		81F82CB12E8281F9001EDFA7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -252,7 +252,7 @@
 				"Features/Custom App Icon/DockTilePlugin.swift",
 				"Ghostty/Surface View/SurfaceView_UIKit.swift",
 			);
-			target = A5B30530299BEAAA0047F10C /* Ghostty */;
+			target = A5B30530299BEAAA0047F10C /* ExGhostty */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -354,7 +354,7 @@
 			isa = PBXGroup;
 			children = (
 				A5B30531299BEAAA0047F10C /* ExGhostty.app */,
-				A5D4499D2B53AE7B000F5B83 /* Ghostty-iOS.app */,
+				A5D4499D2B53AE7B000F5B83 /* ExGhostty-iOS.app */,
 				A54F45F32E1F047A0046BD5C /* GhosttyTests.xctest */,
 				810ACC9F2E9D3301004F8F92 /* GhosttyUITests.xctest */,
 				8193244D2F24E6C000A9ED8F /* DockTilePlugin.plugin */,
@@ -433,9 +433,9 @@
 			productReference = A54F45F32E1F047A0046BD5C /* GhosttyTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		A5B30530299BEAAA0047F10C /* Ghostty */ = {
+		A5B30530299BEAAA0047F10C /* ExGhostty */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A5B30540299BEAAB0047F10C /* Build configuration list for PBXNativeTarget "Ghostty" */;
+			buildConfigurationList = A5B30540299BEAAB0047F10C /* Build configuration list for PBXNativeTarget "ExGhostty" */;
 			buildPhases = (
 				FC501E0B2F46B410007AE49D /* Run SwiftLint */,
 				A5B3052D299BEAAA0047F10C /* Sources */,
@@ -451,14 +451,14 @@
 			fileSystemSynchronizedGroups = (
 				81F82BC72E82815D001EDFA7 /* Sources */,
 			);
-			name = Ghostty;
+			name = ExGhostty;
 			productName = Ghostty;
 			productReference = A5B30531299BEAAA0047F10C /* ExGhostty.app */;
 			productType = "com.apple.product-type.application";
 		};
-		A5D4499C2B53AE7B000F5B83 /* Ghostty-iOS */ = {
+		A5D4499C2B53AE7B000F5B83 /* ExGhostty-iOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A5D449AB2B53AE7B000F5B83 /* Build configuration list for PBXNativeTarget "Ghostty-iOS" */;
+			buildConfigurationList = A5D449AB2B53AE7B000F5B83 /* Build configuration list for PBXNativeTarget "ExGhostty-iOS" */;
 			buildPhases = (
 				A5D449992B53AE7B000F5B83 /* Sources */,
 				A5D4499A2B53AE7B000F5B83 /* Frameworks */,
@@ -471,9 +471,9 @@
 			fileSystemSynchronizedGroups = (
 				81F82BC72E82815D001EDFA7 /* Sources */,
 			);
-			name = "Ghostty-iOS";
+			name = "ExGhostty-iOS";
 			productName = "Ghostty-iOS";
-			productReference = A5D4499D2B53AE7B000F5B83 /* Ghostty-iOS.app */;
+			productReference = A5D4499D2B53AE7B000F5B83 /* ExGhostty-iOS.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -519,8 +519,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A5B30530299BEAAA0047F10C /* Ghostty */,
-				A5D4499C2B53AE7B000F5B83 /* Ghostty-iOS */,
+				A5B30530299BEAAA0047F10C /* ExGhostty */,
+				A5D4499C2B53AE7B000F5B83 /* ExGhostty-iOS */,
 				8193244C2F24E6C000A9ED8F /* DockTilePlugin */,
 				A54F45F22E1F047A0046BD5C /* GhosttyTests */,
 				810ACC9E2E9D3301004F8F92 /* GhosttyUITests */,
@@ -647,7 +647,7 @@
 /* Begin PBXTargetDependency section */
 		810ACCA62E9D3302004F8F92 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A5B30530299BEAAA0047F10C /* Ghostty */;
+			target = A5B30530299BEAAA0047F10C /* ExGhostty */;
 			targetProxy = 810ACCA52E9D3302004F8F92 /* PBXContainerItemProxy */;
 		};
 		819324682F2502FB00A9ED8F /* PBXTargetDependency */ = {
@@ -657,7 +657,7 @@
 		};
 		A54F45F82E1F047A0046BD5C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A5B30530299BEAAA0047F10C /* Ghostty */;
+			target = A5B30530299BEAAA0047F10C /* ExGhostty */;
 			targetProxy = A54F45F72E1F047A0046BD5C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -726,7 +726,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = GhosttyReleaseLocal.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -765,9 +765,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.2;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
-				PRODUCT_BUNDLE_IDENTIFIER = com.mitchellh.ghostty;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty;
 				PRODUCT_MODULE_NAME = Ghostty;
 				PRODUCT_NAME = ExGhostty;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Sources/App/macOS/ghostty-bridging-header.h";
 				SWIFT_VERSION = 5.0;
@@ -860,7 +861,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-dock-tile";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-dock-tile";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -889,7 +890,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-dock-tile";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-dock-tile";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -918,7 +919,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-dock-tile";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-dock-tile";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1137,7 +1138,7 @@
 				EXECUTABLE_NAME = ghostty;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Ghostty-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "ExGhostty[DEBUG]";
+				INFOPLIST_KEY_CFBundleDisplayName = ExGhostty;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "A program running within Ghostty would like to use AppleScript.";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "A program running within Ghostty would like to use Bluetooth.";
@@ -1163,7 +1164,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.2;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
-				PRODUCT_BUNDLE_IDENTIFIER = com.mitchellh.ghostty.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty;
 				PRODUCT_MODULE_NAME = Ghostty;
 				PRODUCT_NAME = ExGhostty;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1219,7 +1220,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.2;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
-				PRODUCT_BUNDLE_IDENTIFIER = com.mitchellh.ghostty;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty;
 				PRODUCT_MODULE_NAME = Ghostty;
 				PRODUCT_NAME = ExGhostty;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1335,7 +1336,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1.2;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-ios";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1388,7 +1389,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = ReleaseLocal;
 		};
-		A5B30540299BEAAB0047F10C /* Build configuration list for PBXNativeTarget "Ghostty" */ = {
+		A5B30540299BEAAB0047F10C /* Build configuration list for PBXNativeTarget "ExGhostty" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A5B30541299BEAAB0047F10C /* Debug */,
@@ -1398,7 +1399,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = ReleaseLocal;
 		};
-		A5D449AB2B53AE7B000F5B83 /* Build configuration list for PBXNativeTarget "Ghostty-iOS" */ = {
+		A5D449AB2B53AE7B000F5B83 /* Build configuration list for PBXNativeTarget "ExGhostty-iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A5D449A82B53AE7B000F5B83 /* Debug */,

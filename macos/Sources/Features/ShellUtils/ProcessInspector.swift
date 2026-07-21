@@ -4,7 +4,7 @@ import os
 /// 本地进程查询/结束工具。
 enum ProcessInspector {
     private static let logger = os.Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.mitchellh.ghostty",
+        subsystem: Bundle.main.bundleIdentifier ?? "com.xjai.exghostty",
         category: "ProcessInspector"
     )
 

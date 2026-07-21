@@ -12,12 +12,12 @@ import CryptoKit
 /// 注意这是防明文落盘的混淆级保护，并非高安全级别加密。
 enum PasswordCipher {
     private static let prefix = "enc:v1:"
-    private static let defaultsKey = "com.mitchellh.ghostty.password-cipher.aes-key"
+    private static let defaultsKey = "com.xjai.exghostty.password-cipher.aes-key"
     private static let defaults = UserDefaults.standard
 
     /// 固定密钥，由内置常量经 SHA-256 派生，所有机器/安装保持一致。
     private static let fixedKey: SymmetricKey = {
-        let digest = SHA256.hash(data: Data("com.mitchellh.ghostty.password-cipher.static-v1".utf8))
+        let digest = SHA256.hash(data: Data("com.xjai.exghostty.password-cipher.static-v1".utf8))
         return SymmetricKey(data: digest)
     }()
 

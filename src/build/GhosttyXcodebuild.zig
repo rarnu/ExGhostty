@@ -66,9 +66,11 @@ pub fn init(
         step.addArgs(&.{
             "xcodebuild",
             "-target",
-            "Ghostty",
+            "ExGhostty",
             "-configuration",
             xc_config,
+            "CODE_SIGN_IDENTITY=-",
+            "CODE_SIGNING_ALLOWED=NO",
         });
 
         // If we have a specific architecture, we need to pass it

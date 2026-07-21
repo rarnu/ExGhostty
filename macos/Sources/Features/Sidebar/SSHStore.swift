@@ -147,7 +147,7 @@ class PortForwardStore: ObservableObject {
     /// 记录用户主动停止的规则 ID；非主动终止的进程会在结束后自动重启。
     private var intentionallyStopped: Set<UUID> = []
     private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.mitchellh.ghostty",
+        subsystem: Bundle.main.bundleIdentifier ?? "com.xjai.exghostty",
         category: "PortForwardStore"
     )
 
