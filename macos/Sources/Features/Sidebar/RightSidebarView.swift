@@ -35,17 +35,21 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
     }
 }
 
-/// 右侧栏图标条，始终显示功能按钮；SFTP 仅在当前终端为 SSH 连接时显示。
+/// 右侧栏图标条，始终显示功能按钮；SFTP 仅在当前终端为 SSH 连接时显示；
+/// Telnet 连接仅保留 Port Forward，隐藏 SFTP / Session Reuse / System Monitor / Code Snippets / AI Assistant。
 struct RightSidebarView: View {
     let selectedFeature: RightSidebarFeature?
     let terminalController: TerminalController?
     var onSelectFeature: ((RightSidebarFeature) -> Void)?
 
     private var visibleFeatures: [RightSidebarFeature] {
-        guard terminalController?.sshConnection == nil else {
-            return RightSidebarFeature.allCases
+        guard let conn = terminalController?.sshConnection else {
+            return RightSidebarFeature.allCases.filter { $0 != .sftp }
         }
-        return RightSidebarFeature.allCases.filter { $0 != .sftp }
+        if conn.type == .telnet {
+            return [.portForward]
+        }
+        return RightSidebarFeature.allCases
     }
 
     var body: some View {
