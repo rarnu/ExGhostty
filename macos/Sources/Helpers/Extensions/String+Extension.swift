@@ -27,6 +27,20 @@ extension String {
     }
 #endif
 
+    /// Escapes the string so it can be safely inserted into a Tcl double-quoted string.
+    /// Handles backslashes, quotes, variable substitutions (`$`), command substitutions
+    /// (`[...]`), and braces (`{...}`).
+    var tclEscaped: String {
+        self
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "$", with: "\\$")
+            .replacingOccurrences(of: "[", with: "\\[")
+            .replacingOccurrences(of: "]", with: "\\]")
+            .replacingOccurrences(of: "{", with: "\\{")
+            .replacingOccurrences(of: "}", with: "\\}")
+    }
+
     /// Converts a four-character ASCII string to its `FourCharCode` (`UInt32`) value.
     var fourCharCode: UInt32 {
         assert(count <= 4, "FourCharCode string must be at most 4 characters")

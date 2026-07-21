@@ -441,6 +441,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 let logURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).log")
                 let logPath = logURL.path
+                let reconnectPrompt = "Press any key to reconnect".localized.tclEscaped
 
                 let syncPtyProc = """
                 proc sync_ssh_pty {} {
@@ -493,7 +494,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         interact
                         sshlog "interact returned"
                         puts ""
-                        puts "Press any key to reconnect".localized
+                        puts "\(reconnectPrompt)"
                         expect_user -re . {}
                         sshlog "reconnect key pressed"
                     }
@@ -522,7 +523,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                         interact
                         sshlog "interact returned"
                         puts ""
-                        puts "Press any key to reconnect".localized
+                        puts "\(reconnectPrompt)"
                         expect_user -re . {}
                         sshlog "reconnect key pressed"
                     }

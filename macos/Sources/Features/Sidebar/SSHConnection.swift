@@ -184,6 +184,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         let logURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("ghostty_ssh_\(id.uuidString).log")
         let logPath = logURL.path
+        let reconnectPrompt = "Press any key to reconnect".localized.tclEscaped
 
         let expectScript: String
         if authMode == .password, !password.isEmpty {
@@ -226,7 +227,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 interact
                 sshlog "interact returned"
                 puts ""
-                puts "Press any key to reconnect".localized
+                puts "\(reconnectPrompt)"
                 expect_user -re . {}
                 sshlog "reconnect key pressed"
             }
@@ -265,7 +266,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 interact
                 sshlog "interact returned"
                 puts ""
-                puts "Press any key to reconnect".localized
+                puts "\(reconnectPrompt)"
                 expect_user -re . {}
                 sshlog "reconnect key pressed"
             }
