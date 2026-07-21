@@ -11,8 +11,7 @@ struct SidebarView: View {
 
     var onToggleCollapse: (() -> Void)?
     var onNewLocalTerminal: (() -> Void)?
-    var onOpenSSH: ((SSHConnection) -> Void)?
-    var onAddSSH: ((SSHConnection) -> Void)?
+    var onOpenConnection: ((SSHConnection) -> Void)?
     var onAddGroup: ((SSHGroup) -> Void)?
     var onSettings: (() -> Void)?
 
@@ -104,6 +103,10 @@ struct SidebarView: View {
                     Button(action: { showAddSSHDialog() }) {
                         Image(systemName: "plus.square").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New SSH Connection".localized)
+
+                    Button(action: { showAddTelnetDialog() }) {
+                        Image(systemName: "network").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                    }.buttonStyle(.plain).sidebarTooltip("New Telnet Connection".localized)
 
                     Button(action: { showAddGroupDialog() }) {
                         Image(systemName: "folder.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
@@ -208,7 +211,10 @@ struct SidebarView: View {
         HStack(spacing: 6) {
             Image(systemName: "server.rack").font(.system(size: 12)).foregroundColor(.accentColor).frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
-                Text(conn.name).font(.system(size: 14, weight: .medium)).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(conn.name).font(.system(size: 14, weight: .medium)).lineLimit(1)
+                    connectionTypeTag(conn.type)
+                }
                 Text("\(conn.host):\(conn.port)").font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
                 if !conn.notes.isEmpty {
                     Text(conn.notes)
@@ -223,11 +229,15 @@ struct SidebarView: View {
         }
         .padding(.vertical, 3)
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) { onOpenSSH?(conn) }
+        .onTapGesture(count: 2) { onOpenConnection?(conn) }
         .contextMenu {
             Button("Edit") {
                 editingConnection = conn
-                showEditSSHDialog()
+                if conn.type == .telnet {
+                    showEditTelnetDialog()
+                } else {
+                    showEditSSHDialog()
+                }
             }
             Button(role: .destructive) {
                 showDeleteConnectionConfirmation(conn)
@@ -236,6 +246,25 @@ struct SidebarView: View {
                     .foregroundColor(.red)
             }
         }
+    }
+
+    /// 连接类型小标签：SSH 绿色，Telnet 橙色。
+    private func connectionTypeTag(_ type: RemoteConnectionType) -> some View {
+        let color: Color
+        switch type {
+        case .ssh: color = .green
+        case .telnet: color = .orange
+        }
+        return Text(type.displayName)
+            .font(.system(size: 9, weight: .medium))
+            .foregroundColor(color)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(color, lineWidth: 1)
+            )
+            .cornerRadius(3)
     }
 
     private func filtered(_ list: [SSHConnection]) -> [SSHConnection] {
@@ -341,6 +370,44 @@ struct SidebarView: View {
             let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
 
             let controller = SSHConfigWindowController(
+                mode: .edit(conn),
+                sshStore: SSHStore.shared,
+                config: config,
+                parentWindow: parent,
+                onSave: { updated in
+                    SSHStore.shared.updateConnection(updated)
+                }
+            )
+            controller.showModal()
+        }
+    }
+
+    private func showAddTelnetDialog() {
+        DispatchQueue.main.async {
+            guard let parent = NSApp.keyWindow else { return }
+            let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
+
+            let controller = TelnetConfigWindowController(
+                mode: .add,
+                sshStore: SSHStore.shared,
+                config: config,
+                parentWindow: parent,
+                onSave: { conn in
+                    SSHStore.shared.addConnection(conn)
+                }
+            )
+            controller.showModal()
+        }
+    }
+
+    private func showEditTelnetDialog() {
+        let conn = editingConnection
+        DispatchQueue.main.async {
+            guard let conn else { return }
+            guard let parent = NSApp.keyWindow else { return }
+            let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
+
+            let controller = TelnetConfigWindowController(
                 mode: .edit(conn),
                 sshStore: SSHStore.shared,
                 config: config,

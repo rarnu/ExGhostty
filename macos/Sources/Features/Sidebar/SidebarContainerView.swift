@@ -126,7 +126,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             backgroundColor: sidebarBackgroundColor,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
-            onOpenSSH: nil,
+            onOpenConnection: nil,
+            onAddGroup: nil,
             onSettings: nil
         )
         self.sidebarHostingView = NSHostingView(rootView: initialSidebar)
@@ -424,144 +425,15 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
                 guard let tc, let window = tc.window else { return }
                 _ = TerminalController.newTab(tc.ghostty, from: window)
             },
-            onOpenSSH: { [weak tc] conn in
+            onOpenConnection: { [weak tc] conn in
                 guard let tc, let window = tc.window else { return }
-                var cfg = Ghostty.SurfaceConfiguration()
-
-                // 把当前终端的真实行列数传给 expect，避免 expect 子进程读到的 stdin 尺寸错误。
-                let gridSize = self.currentTerminalGridSize(for: tc) ?? (rows: 24, cols: 80)
-                cfg.environmentVariables["GHOSTTY_ROWS"] = "\(gridSize.rows)"
-                cfg.environmentVariables["GHOSTTY_COLS"] = "\(gridSize.cols)"
-                cfg.environmentVariables["TERM"] = "xterm-256color"
-
-                let scriptURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")
-
-                let expectScript: String
-                let logURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).log")
-                let logPath = logURL.path
-                let reconnectPrompt = "Press any key to reconnect".localized.tclEscaped
-
-                let syncPtyProc = """
-                proc sync_ssh_pty {} {
-                    global spawn_out
-                    if {[catch {
-                        # 先尝试 expect 内置 stty 读当前 PTY 尺寸（iTerm2 等脚本的标准做法）。
-                        if {[catch {
-                            set rows [stty rows]
-                            set cols [stty columns]
-                        } tty_err]} {
-                            set rows $env(GHOSTTY_ROWS)
-                            set cols $env(GHOSTTY_COLS)
-                            sshlog "fallback to env size: $rows $cols"
-                        }
-                        stty rows $rows columns $cols < $spawn_out(slave,name)
-                        sshlog "set ssh pty to $rows $cols"
-                    } err]} {
-                        sshlog "sync pty failed: $err"
-                    }
-                }
-                """
-
-                if conn.authMode == .password, !conn.password.isEmpty {
-                    // 密码登录：用 expect 脚本自动输入密码，并在断开后支持按任意键重连。
-                    // 只隐藏 spawn 命令和密码提示本身的输出，登录成功后正常显示远程 shell。
-                    expectScript = """
-                    set timeout 15
-                    set password $env(SSHPASS)
-                    set logfile [open "\(logPath)" "a"]
-                    proc sshlog {msg} {
-                        global logfile
-                        puts $logfile "[clock format [clock seconds]] \\(msg)"
-                        flush $logfile
-                    }
-                    \(syncPtyProc)
-                    trap { sshlog "SIGTERM ignored" } SIGTERM
-                    trap { sshlog "SIGINT ignored" } SIGINT
-                    while {1} {
-                        sshlog "spawn ssh"
-                        log_user 0
-                        spawn /usr/bin/ssh \(conn.sshBaseArgs)
-                        sync_ssh_pty
-                        trap { sync_ssh_pty } SIGWINCH
-                        expect {
-                            -nocase "password:" { send "$password\\r" }
-                            timeout { sshlog "password timeout" }
-                            eof { sshlog "ssh eof" }
-                        }
-                        log_user 1
-                        interact
-                        sshlog "interact returned"
-                        puts ""
-                        puts "\(reconnectPrompt)"
-                        expect_user -re . {}
-                        sshlog "reconnect key pressed"
-                    }
-                    """
-                    cfg.environmentVariables["SSHPASS"] = conn.password
+                if conn.type == .telnet {
+                    self.openTelnetConnection(conn, in: tc, from: window)
                 } else {
-                    // 密钥登录：同样用 expect 包装，实现断线后按任意键重连。
-                    // 只隐藏 spawn 命令本身的输出，其余 SSH 输出保持可见。
-                    expectScript = """
-                    set logfile [open "\(logPath)" "a"]
-                    proc sshlog {msg} {
-                        global logfile
-                        puts $logfile "[clock format [clock seconds]] \\(msg)"
-                        flush $logfile
-                    }
-                    \(syncPtyProc)
-                    trap { sshlog "SIGTERM ignored" } SIGTERM
-                    trap { sshlog "SIGINT ignored" } SIGINT
-                    while {1} {
-                        sshlog "spawn ssh"
-                        log_user 0
-                        spawn /usr/bin/ssh \(conn.sshBaseArgs)
-                        sync_ssh_pty
-                        trap { sync_ssh_pty } SIGWINCH
-                        log_user 1
-                        interact
-                        sshlog "interact returned"
-                        puts ""
-                        puts "\(reconnectPrompt)"
-                        expect_user -re . {}
-                        sshlog "reconnect key pressed"
-                    }
-                    """
-                }
-
-                do {
-                    try expectScript.write(to: scriptURL, atomically: true, encoding: .utf8)
-                    cfg.command = "/usr/bin/expect \(scriptURL.path)"
-                } catch {
-                    // 写入失败时回退到普通 ssh 命令
-                    cfg.command = conn.sshCommand
-                }
-
-                // 应用终端编码环境变量
-                for (key, value) in conn.terminalEnvironment {
-                    cfg.environmentVariables[key] = value
-                }
-
-                // X11 转发需要本地 DISPLAY / XAUTHORITY / PATH 环境变量
-                if conn.x11Forwarding {
-                    for (key, value) in SSHX11Environment.current {
-                        cfg.environmentVariables[key] = value
-                    }
-                }
-
-                let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: cfg)
-                if let ctrl {
-                    ctrl.baseTitle = conn.name
-                    ctrl.titleOverride = conn.name
-                    ctrl.sshConnection = conn
-                    DispatchQueue.main.async {
-                        if let splitVC = ctrl.window?.contentViewController as? SidebarSplitViewController {
-                            splitVC.rebuildTabBar()
-                        }
-                    }
+                    self.openSSHConnection(conn, in: tc, from: window)
                 }
             },
+            onAddGroup: nil,
             onSettings: { [weak self, weak tc] in
                 guard let self, let tc, let window = self.view.window else { return }
                 SettingsWindowController.shared.show(relativeTo: window, config: tc.ghostty.config)
@@ -569,6 +441,280 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         )
         sidebarHostingView.rootView = newSidebar
         sidebarBackgroundView.backgroundColor = sidebarBackgroundColor
+    }
+
+    // MARK: - 打开连接
+
+    private func openTelnetConnection(_ conn: SSHConnection, in tc: TerminalController, from window: NSWindow) {
+        guard let telnetPath = Self.resolveTelnetExecutable() else {
+            let alert = NSAlert()
+            alert.messageText = "Telnet not found".localized
+            alert.informativeText = "The telnet command was not found on this Mac. Please install it (e.g. via Homebrew) and try again.".localized
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK".localized)
+            alert.beginSheetModal(for: window)
+            return
+        }
+
+        var cfg = Ghostty.SurfaceConfiguration()
+        cfg.environmentVariables["TERM"] = "xterm-256color"
+        let portArg = conn.port == 23 ? "" : " \(conn.port)"
+
+        let scriptURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghostty_telnet_\(conn.id.uuidString).exp")
+        let user = conn.username.tclEscaped
+        let pass = conn.password.tclEscaped
+        let hasUser = !conn.username.isEmpty
+        let hasPass = !conn.password.isEmpty
+
+        let expectScript = """
+        set timeout 10
+        proc telnetlog {msg} {
+            catch { exec logger -t ExGhostty "telnet: $msg" }
+        }
+        telnetlog "spawn telnet \(conn.host)\(portArg)"
+        spawn \(telnetPath) \(conn.host)\(portArg)
+
+        # 某些 Telnet 服务（如 Ubuntu 的 PAM）连接后会先出现一个假的 Password: 提示，
+        # 直接回车即可跳过，随后才会出现真正的 login 提示。
+        telnetlog "wait for first password prompt (PAM bug)"
+        expect {
+            -nocase "password:" {
+                telnetlog "matched first Password:, send Enter"
+                send "\\r"
+            }
+            timeout { telnetlog "timeout waiting for first password prompt" }
+            eof { telnetlog "eof"; exit }
+        }
+
+        \(hasUser ? """
+        # 真正的用户名 / login 提示
+        telnetlog "wait for real login prompt"
+        expect {
+            -nocase "username:" {
+                telnetlog "matched username prompt, send user"
+                send "\(user)\\r"
+            }
+            -nocase "login:" {
+                telnetlog "matched login prompt, send user"
+                send "\(user)\\r"
+            }
+            -nocase "user:" {
+                telnetlog "matched user prompt, send user"
+                send "\(user)\\r"
+            }
+            timeout { telnetlog "timeout waiting for login prompt" }
+            eof { telnetlog "eof"; exit }
+        }
+        sleep 0.1
+        """ : "")
+
+        # 真正的密码提示
+        telnetlog "wait for real password prompt"
+        expect {
+            -nocase "password:" {
+                telnetlog "matched real Password:, send password"
+                sleep 0.3
+                telnetlog "sending password, length=\(hasPass ? String(pass.count) : "0")"
+                \(hasPass ? "send \"\(pass)\\r\"" : "send \"\\r\"")
+            }
+            timeout { telnetlog "timeout waiting for real password prompt" }
+            eof { telnetlog "eof"; exit }
+        }
+
+        telnetlog "enter interact"
+        interact
+        """
+
+        do {
+            try expectScript.write(to: scriptURL, atomically: true, encoding: .utf8)
+            cfg.command = "/usr/bin/expect \(scriptURL.path)"
+        } catch {
+            cfg.command = "\(telnetPath) \(conn.host)\(portArg)"
+        }
+
+        let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: cfg)
+        if let ctrl {
+            ctrl.baseTitle = conn.name
+            ctrl.titleOverride = conn.name
+            ctrl.sshConnection = conn
+            DispatchQueue.main.async {
+                if let splitVC = ctrl.window?.contentViewController as? SidebarSplitViewController {
+                    splitVC.rebuildTabBar()
+                }
+            }
+        }
+    }
+
+    /// 查找本机可用的 telnet 可执行文件路径。
+    private static func resolveTelnetExecutable() -> String? {
+        let candidates = [
+            "/usr/bin/telnet",
+            "/opt/homebrew/bin/telnet",
+            "/usr/local/bin/telnet"
+        ]
+        if let found = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
+            return found
+        }
+        // 常见路径都没有时，尝试让 shell 通过 PATH 查找。
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/bash")
+        task.arguments = ["-lc", "command -v telnet"]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = FileHandle.nullDevice
+        do {
+            try task.run()
+            task.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if task.terminationStatus == 0,
+               let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !path.isEmpty,
+               FileManager.default.isExecutableFile(atPath: path) {
+                return path
+            }
+        } catch {
+            // ignore
+        }
+        return nil
+    }
+
+    private func openSSHConnection(_ conn: SSHConnection, in tc: TerminalController, from window: NSWindow) {
+        var cfg = Ghostty.SurfaceConfiguration()
+
+        // 把当前终端的真实行列数传给 expect，避免 expect 子进程读到的 stdin 尺寸错误。
+        let gridSize = self.currentTerminalGridSize(for: tc) ?? (rows: 24, cols: 80)
+        cfg.environmentVariables["GHOSTTY_ROWS"] = "\(gridSize.rows)"
+        cfg.environmentVariables["GHOSTTY_COLS"] = "\(gridSize.cols)"
+        cfg.environmentVariables["TERM"] = "xterm-256color"
+
+        let scriptURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).exp")
+
+        let expectScript: String
+        let logURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghostty_ssh_\(conn.id.uuidString).log")
+        let logPath = logURL.path
+        let reconnectPrompt = "Press any key to reconnect".localized.tclEscaped
+
+        let syncPtyProc = """
+        proc sync_ssh_pty {} {
+            global spawn_out
+            if {[catch {
+                # 先尝试 expect 内置 stty 读当前 PTY 尺寸（iTerm2 等脚本的标准做法）。
+                if {[catch {
+                    set rows [stty rows]
+                    set cols [stty columns]
+                } tty_err]} {
+                    set rows $env(GHOSTTY_ROWS)
+                    set cols $env(GHOSTTY_COLS)
+                    sshlog "fallback to env size: $rows $cols"
+                }
+                stty rows $rows columns $cols < $spawn_out(slave,name)
+                sshlog "set ssh pty to $rows $cols"
+            } err]} {
+                sshlog "sync pty failed: $err"
+            }
+        }
+        """
+
+        if conn.authMode == .password, !conn.password.isEmpty {
+            // 密码登录：用 expect 脚本自动输入密码，并在断开后支持按任意键重连。
+            // 只隐藏 spawn 命令和密码提示本身的输出，登录成功后正常显示远程 shell。
+            expectScript = """
+            set timeout 15
+            set password $env(SSHPASS)
+            set logfile [open "\(logPath)" "a"]
+            proc sshlog {msg} {
+                global logfile
+                puts $logfile "[clock format [clock seconds]] \\(msg)"
+                flush $logfile
+            }
+            \(syncPtyProc)
+            trap { sshlog "SIGTERM ignored" } SIGTERM
+            trap { sshlog "SIGINT ignored" } SIGINT
+            while {1} {
+                sshlog "spawn ssh"
+                log_user 0
+                spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                sync_ssh_pty
+                trap { sync_ssh_pty } SIGWINCH
+                expect {
+                    -nocase "password:" { send "$password\\r" }
+                    timeout { sshlog "password timeout" }
+                    eof { sshlog "ssh eof" }
+                }
+                log_user 1
+                interact
+                sshlog "interact returned"
+                puts ""
+                puts "\(reconnectPrompt)"
+                expect_user -re . {}
+                sshlog "reconnect key pressed"
+            }
+            """
+            cfg.environmentVariables["SSHPASS"] = conn.password
+        } else {
+            // 密钥登录：同样用 expect 包装，实现断线后按任意键重连。
+            // 只隐藏 spawn 命令本身的输出，其余 SSH 输出保持可见。
+            expectScript = """
+            set logfile [open "\(logPath)" "a"]
+            proc sshlog {msg} {
+                global logfile
+                puts $logfile "[clock format [clock seconds]] \\(msg)"
+                flush $logfile
+            }
+            \(syncPtyProc)
+            trap { sshlog "SIGTERM ignored" } SIGTERM
+            trap { sshlog "SIGINT ignored" } SIGINT
+            while {1} {
+                sshlog "spawn ssh"
+                log_user 0
+                spawn /usr/bin/ssh \(conn.sshBaseArgs)
+                sync_ssh_pty
+                trap { sync_ssh_pty } SIGWINCH
+                log_user 1
+                interact
+                sshlog "interact returned"
+                puts ""
+                puts "\(reconnectPrompt)"
+                expect_user -re . {}
+                sshlog "reconnect key pressed"
+            }
+            """
+        }
+
+        do {
+            try expectScript.write(to: scriptURL, atomically: true, encoding: .utf8)
+            cfg.command = "/usr/bin/expect \(scriptURL.path)"
+        } catch {
+            // 写入失败时回退到普通 ssh 命令
+            cfg.command = conn.sshCommand
+        }
+
+        // 应用终端编码环境变量
+        for (key, value) in conn.terminalEnvironment {
+            cfg.environmentVariables[key] = value
+        }
+
+        // X11 转发需要本地 DISPLAY / XAUTHORITY / PATH 环境变量
+        if conn.x11Forwarding {
+            for (key, value) in SSHX11Environment.current {
+                cfg.environmentVariables[key] = value
+            }
+        }
+
+        let ctrl = TerminalController.newTab(tc.ghostty, from: window, withBaseConfig: cfg)
+        if let ctrl {
+            ctrl.baseTitle = conn.name
+            ctrl.titleOverride = conn.name
+            ctrl.sshConnection = conn
+            DispatchQueue.main.async {
+                if let splitVC = ctrl.window?.contentViewController as? SidebarSplitViewController {
+                    splitVC.rebuildTabBar()
+                }
+            }
+        }
     }
 
     // MARK: - 右侧边栏

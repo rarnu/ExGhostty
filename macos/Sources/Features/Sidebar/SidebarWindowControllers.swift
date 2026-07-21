@@ -66,6 +66,69 @@ final class SSHConfigWindowController: ModalWindowController {
     }
 }
 
+// MARK: - Telnet 配置窗口（新建/编辑）
+
+/// 标准的 macOS 模态窗口，用于新建或编辑 Telnet 连接。
+final class TelnetConfigWindowController: ModalWindowController {
+    init(
+        mode: TelnetConfigFormView.Mode,
+        sshStore: SSHStore,
+        config: Ghostty.Config?,
+        parentWindow: NSWindow? = nil,
+        onSave: @escaping (SSHConnection) -> Void
+    ) {
+        let title: String
+        switch mode {
+        case .add: title = "Create Telnet Host".localized
+        case .edit: title = "Edit Telnet Host".localized
+        }
+
+        let window = GhosttyPanelWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 520),
+            config: config
+        )
+        window.minSize = NSSize(width: 520, height: 420)
+        window.title = title
+        window.isReleasedWhenClosed = false
+
+        super.init(window: window, parentWindow: parentWindow)
+
+        let view = TelnetConfigFormView(
+            mode: mode,
+            sshStore: sshStore,
+            onSave: { conn in
+                onSave(conn)
+                self.close()
+            },
+            onDismiss: { [weak self] in
+                self?.close()
+            }
+        )
+
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(hostingView)
+
+        NSLayoutConstraint.activate([
+            hostingView.topAnchor.constraint(equalTo: container.topAnchor),
+            hostingView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
+
+        window.contentView = container
+        window.configureBackgroundBlur(config: config, container: container)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+}
+
 // MARK: - 分组名称输入窗口
 
 /// 标准的 macOS 模态窗口，用于输入单个名称（新建分组、tmux/zellij 会话、代码片段分类等）。

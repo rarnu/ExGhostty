@@ -1315,3 +1315,39 @@ msgstr "バージョン：%@"
 
 msgid "A brand-new SSH tool based on Ghostty"
 msgstr "Ghostty をベースにした新しい SSH ツール"
+
+msgid "New Telnet Connection"
+msgstr "新規 Telnet 接続"
+
+msgid "Create Telnet Host"
+msgstr "Telnet ホストを作成"
+
+msgid "Edit Telnet Host"
+msgstr "Telnet ホストを編集"
+
+msgid "Address"
+msgstr "アドレス"
+
+msgid "Fill in the Telnet service address and port."
+msgstr "Telnet サービスのアドレスとポートを入力してください。"
+
+msgid "User"
+msgstr "ユーザー"
+
+msgid "Fill in the username and password when the device requires login."
+msgstr "デバイスにログインが必要な場合にユーザー名とパスワードを入力してください。"
+
+msgid "Telnet not found"
+msgstr "Telnet が見つかりません"
+
+msgid "The telnet command was not found on this Mac. Please install it (e.g. via Homebrew) and try again."
+msgstr "この Mac に telnet コマンドが見つかりません。Telnet をインストール（例: Homebrew）してから再度お試しください。"
+
+msgid "Connection Password"
+msgstr "接続パスワード"
+
+msgid "Connection password (optional)"
+msgstr "接続パスワード（任意）"
+
+msgid "Some devices require a connection password before login."
+msgstr "一部のデバイスでは、ログイン前に接続パスワードが必要です。"

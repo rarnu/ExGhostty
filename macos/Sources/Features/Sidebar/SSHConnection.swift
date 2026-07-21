@@ -30,6 +30,20 @@ enum SSHConnectionMethod: String, Codable, CaseIterable {
     case jumpHost = "jumpHost"
 }
 
+// MARK: - 连接协议类型
+
+enum RemoteConnectionType: String, Codable, CaseIterable {
+    case ssh = "ssh"
+    case telnet = "telnet"
+
+    var displayName: String {
+        switch self {
+        case .ssh: return "SSH"
+        case .telnet: return "Telnet"
+        }
+    }
+}
+
 // MARK: - 终端编码选项
 
 enum SSHTerminalEncoding: String, Codable, CaseIterable {
@@ -64,10 +78,15 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     var username: String
     var groupID: UUID?
 
+    /// 连接协议类型：SSH / Telnet
+    var type: RemoteConnectionType
+
     /// 认证模式：密码登录 / 密钥登录
     var authMode: SSHAuthMode
     /// 密码登录时的密码（内存中为明文；持久化时经 AES 加密存储）
     var password: String
+    /// Telnet 连接密码（部分设备在登录前先要求输入连接密码）
+    var connectionPassword: String
     /// 密钥登录时的密钥文件路径
     var keyPath: String?
 
@@ -95,8 +114,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         port: UInt16 = 22,
         username: String = "",
         groupID: UUID? = nil,
+        type: RemoteConnectionType = .ssh,
         authMode: SSHAuthMode = .password,
         password: String = "",
+        connectionPassword: String = "",
         keyPath: String? = nil,
         connectionMethod: SSHConnectionMethod = .direct,
         jumpHostID: UUID? = nil,
@@ -112,8 +133,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.port = port
         self.username = username
         self.groupID = groupID
+        self.type = type
         self.authMode = authMode
         self.password = password
+        self.connectionPassword = connectionPassword
         self.keyPath = keyPath
         self.connectionMethod = connectionMethod
         self.jumpHostID = jumpHostID
@@ -132,8 +155,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 22
         self.username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
         self.groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
+        self.type = try container.decodeIfPresent(RemoteConnectionType.self, forKey: .type) ?? .ssh
         self.authMode = try container.decodeIfPresent(SSHAuthMode.self, forKey: .authMode) ?? .password
         self.password = PasswordCipher.decrypt(try container.decodeIfPresent(String.self, forKey: .password) ?? "")
+        self.connectionPassword = PasswordCipher.decrypt(try container.decodeIfPresent(String.self, forKey: .connectionPassword) ?? "")
         self.keyPath = try container.decodeIfPresent(String.self, forKey: .keyPath)
         self.connectionMethod = {
             let raw = (try? container.decodeIfPresent(String.self, forKey: .connectionMethod)) ?? nil
@@ -155,9 +180,11 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         try container.encode(port, forKey: .port)
         try container.encode(username, forKey: .username)
         try container.encodeIfPresent(groupID, forKey: .groupID)
+        try container.encode(type, forKey: .type)
         try container.encode(authMode, forKey: .authMode)
         // 密码加密后存储，避免明文落盘。
         try container.encode(PasswordCipher.encrypt(password), forKey: .password)
+        try container.encode(PasswordCipher.encrypt(connectionPassword), forKey: .connectionPassword)
         try container.encodeIfPresent(keyPath, forKey: .keyPath)
         try container.encode(connectionMethod, forKey: .connectionMethod)
         try container.encodeIfPresent(jumpHostID, forKey: .jumpHostID)
@@ -169,8 +196,8 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, host, port, username, groupID
-        case authMode, password, keyPath, connectionMethod, jumpHostID, notes
+        case id, name, host, port, username, groupID, type
+        case authMode, password, connectionPassword, keyPath, connectionMethod, jumpHostID, notes
         case timeoutMs, heartbeatMs, encoding, x11Forwarding
     }
 
@@ -339,6 +366,14 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     /// 生成完整 SSH 命令行字符串
     var sshCommand: String {
         "ssh \(sshBaseArgs)"
+    }
+
+    /// 生成完整 Telnet 命令行字符串
+    var telnetCommand: String {
+        if port == 23 {
+            return "telnet \(host)"
+        }
+        return "telnet \(host) \(port)"
     }
 
     /// 终端环境变量（编码相关）
