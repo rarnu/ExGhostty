@@ -260,39 +260,15 @@ struct SSHConfigFormView: View {
     private var groupSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             label("Group".localized)
-            Menu {
-                Button("Ungrouped".localized) { groupID = nil }
+            Picker("", selection: $groupID) {
+                Text("Ungrouped".localized).tag(Optional<UUID>.none)
                 ForEach(sshStore.groups) { group in
-                    Button(group.name) { groupID = group.id }
+                    Text(group.name).tag(Optional(group.id))
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(groupTitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(.controlBackgroundColor))
-                .cornerRadius(8)
-                .contentShape(Rectangle())
             }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
+            .pickerStyle(.menu)
+            .labelsHidden()
         }
-    }
-
-    private var groupTitle: String {
-        guard let id = groupID, let group = sshStore.groups.first(where: { $0.id == id }) else {
-            return "Ungrouped".localized
-        }
-        return group.name
     }
 
     // MARK: - 连接方式

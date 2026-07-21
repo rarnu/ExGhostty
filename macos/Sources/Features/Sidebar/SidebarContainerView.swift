@@ -469,60 +469,38 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
 
         let expectScript = """
         set timeout 10
-        proc telnetlog {msg} {
-            catch { exec logger -t ExGhostty "telnet: $msg" }
-        }
-        telnetlog "spawn telnet \(conn.host)\(portArg)"
         spawn \(telnetPath) \(conn.host)\(portArg)
 
         # 某些 Telnet 服务（如 Ubuntu 的 PAM）连接后会先出现一个假的 Password: 提示，
         # 直接回车即可跳过，随后才会出现真正的 login 提示。
-        telnetlog "wait for first password prompt (PAM bug)"
         expect {
-            -nocase "password:" {
-                telnetlog "matched first Password:, send Enter"
-                send "\\r"
-            }
-            timeout { telnetlog "timeout waiting for first password prompt" }
-            eof { telnetlog "eof"; exit }
+            -nocase "password:" { send "\\r" }
+            timeout { }
+            eof { exit }
         }
 
         \(hasUser ? """
         # 真正的用户名 / login 提示
-        telnetlog "wait for real login prompt"
         expect {
-            -nocase "username:" {
-                telnetlog "matched username prompt, send user"
-                send "\(user)\\r"
-            }
-            -nocase "login:" {
-                telnetlog "matched login prompt, send user"
-                send "\(user)\\r"
-            }
-            -nocase "user:" {
-                telnetlog "matched user prompt, send user"
-                send "\(user)\\r"
-            }
-            timeout { telnetlog "timeout waiting for login prompt" }
-            eof { telnetlog "eof"; exit }
+            -nocase "username:" { send "\(user)\\r" }
+            -nocase "login:" { send "\(user)\\r" }
+            -nocase "user:" { send "\(user)\\r" }
+            timeout { }
+            eof { exit }
         }
         sleep 0.1
         """ : "")
 
         # 真正的密码提示
-        telnetlog "wait for real password prompt"
         expect {
             -nocase "password:" {
-                telnetlog "matched real Password:, send password"
                 sleep 0.3
-                telnetlog "sending password, length=\(hasPass ? String(pass.count) : "0")"
                 \(hasPass ? "send \"\(pass)\\r\"" : "send \"\\r\"")
             }
-            timeout { telnetlog "timeout waiting for real password prompt" }
-            eof { telnetlog "eof"; exit }
+            timeout { }
+            eof { exit }
         }
 
-        telnetlog "enter interact"
         interact
         """
 

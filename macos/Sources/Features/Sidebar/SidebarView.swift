@@ -211,10 +211,7 @@ struct SidebarView: View {
         HStack(spacing: 6) {
             Image(systemName: "server.rack").font(.system(size: 12)).foregroundColor(.accentColor).frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(conn.name).font(.system(size: 14, weight: .medium)).lineLimit(1)
-                    connectionTypeTag(conn.type)
-                }
+                Text(conn.name).font(.system(size: 14, weight: .medium)).lineLimit(1)
                 Text("\(conn.host):\(conn.port)").font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
                 if !conn.notes.isEmpty {
                     Text(conn.notes)
@@ -225,7 +222,7 @@ struct SidebarView: View {
                 }
             }
             Spacer()
-            Image(systemName: "ellipsis").font(.system(size: 10)).foregroundColor(.secondary.opacity(0.5))
+            connectionTypeTag(conn.type)
         }
         .padding(.vertical, 3)
         .contentShape(Rectangle())
