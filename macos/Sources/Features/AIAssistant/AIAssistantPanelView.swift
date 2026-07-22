@@ -23,26 +23,20 @@ final class AIAssistantPanelViewModel: ObservableObject {
     }
 
     /// 收集当前终端上下文，作为 system prompt。
-    func terminalContextString() -> String {
-        var parts: [String] = []
-
-        if let url = terminalController?.currentDirectoryURL {
-            parts.append("Current directory: \(url.path)")
-        } else {
-            parts.append("Current directory: unknown")
-        }
+    ///
+    /// 根据终端类型（本地 / SSH）在对应环境中采集 OS、Shell、
+    /// Git、语言运行时、容器、中间件及关键环境变量等信息。
+    /// 采集结果由 ``EnvironmentCollector`` 缓存（5 分钟 TTL）。
+    func terminalContextString() async -> String {
+        let cwd = terminalController?.currentDirectoryURL?.path
 
         if let ssh = terminalController?.sshConnection {
-            parts.append("SSH connection: \(ssh.name) (\(ssh.username)@\(ssh.host):\(ssh.port))")
-        } else {
-            parts.append("Connection: local terminal")
+            return await EnvironmentCollector.collectRemote(
+                connection: ssh,
+                cwd: cwd
+            )
         }
-
-        if let title = terminalController?.focusedSurfaceRawTitle, !title.isEmpty {
-            parts.append("Terminal title: \(title)")
-        }
-
-        return parts.joined(separator: "\n")
+        return await EnvironmentCollector.collectLocal(cwd: cwd)
     }
 
     /// 发送用户输入的消息。
@@ -66,7 +60,7 @@ final class AIAssistantPanelViewModel: ObservableObject {
         currentTask?.cancel()
         currentTask = Task { [weak self] in
             guard let self else { return }
-            let context = self.terminalContextString()
+            let context = await self.terminalContextString()
             let messages = self.conversation.messages
 
             do {

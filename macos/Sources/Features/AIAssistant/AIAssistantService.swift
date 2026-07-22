@@ -126,6 +126,21 @@ final class AIAssistantService: ObservableObject {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        // 将完整请求 body 保存到日志文件
+        if let jsonData = request.httpBody,
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            let logPath = NSHomeDirectory() + "/exghostty_ai_request.log"
+            let timestamp = ISO8601DateFormatter().string(from: Date())
+            let entry = "=== \(timestamp) ===\n\(jsonString)\n\n"
+            if let fh = FileHandle(forWritingAtPath: logPath) {
+                fh.seekToEndOfFile()
+                fh.write(entry.data(using: .utf8) ?? Data())
+                fh.closeFile()
+            } else {
+                try? entry.data(using: .utf8)?.write(to: URL(fileURLWithPath: logPath))
+            }
+        }
+
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
