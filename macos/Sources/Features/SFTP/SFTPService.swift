@@ -309,9 +309,11 @@ actor SFTPService {
                 let data = fh.availableData
                 guard !data.isEmpty else { return }
                 buffer.append(data)
-                while let range = buffer.range(of: Data("\n".utf8)) {
-                    let lineData = buffer.subdata(in: 0..<range.upperBound)
-                    buffer.removeSubrange(0..<range.upperBound)
+                // rsync --progress 用 \r 原地刷新进度行，只有文件传完才输出 \n，
+                // 因此 \r 和 \n 都必须视为行分隔符，否则中途的进度永远解析不到。
+                while let sep = buffer.firstIndex(where: { $0 == UInt8(ascii: "\r") || $0 == UInt8(ascii: "\n") }) {
+                    let lineData = buffer.subdata(in: 0..<sep)
+                    buffer.removeSubrange(0...sep)
                     guard let line = String(data: lineData, encoding: .utf8) else { continue }
                     if let percent = Self.parseRsyncProgress(line) {
                         let overall = progressOffset + percent * progressScale

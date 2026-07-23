@@ -48,7 +48,6 @@ struct SFTPTaskListView: View {
             .font(.system(size: 12))
             .buttonStyle(.plain)
             .foregroundColor(.accentColor)
-            .disabled(displayedTasks.allSatisfy { !$0.isCompleted })
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
