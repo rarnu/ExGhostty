@@ -411,6 +411,12 @@ class AppDelegate: NSObject,
         // 停止所有端口转发进程。
         PortForwardStore.shared.stopAll()
 
+        // 终止进行中的 SFTP 传输（rsync/ssh）与系统监控采集（xtop 流）进程，
+        // 并关闭所有 SSH ControlMaster 通道，避免退出后残留后台任务。
+        SFTPTransferManager.shared.terminateAll()
+        SystemMonitorService.stopAll()
+        SSHCommandExecutor.closeAllControlChannels()
+
         // We have no notifications we want to persist after death,
         // so remove them all now. In the future we may want to be
         // more selective and only remove surface-targeted notifications.

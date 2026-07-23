@@ -463,6 +463,13 @@ final class SFTPTransferManager: ObservableObject {
         DispatchQueue.main.async { task.state = .cancelled }
     }
 
+    /// 终止所有进行中任务的进程（供程序退出时调用，避免 rsync/ssh 残留后台）。
+    func terminateAll() {
+        for task in tasks where task.isActive {
+            task.process?.terminate()
+        }
+    }
+
     func clearCompleted(for connection: SSHConnection? = nil) {
         DispatchQueue.main.async {
             if let connection {

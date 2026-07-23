@@ -14,6 +14,17 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
     private var process: Process?
     private var lineBuffer = Data()
 
+    /// 正在采集的实例注册表（弱引用），用于程序退出时统一停止。
+    /// 只在主线程访问。
+    private static let runningInstances = NSHashTable<SystemMonitorService>.weakObjects()
+
+    /// 停止所有正在采集的实例（供程序退出时调用，避免 xtop/ssh 流进程残留后台）。
+    static func stopAll() {
+        for service in runningInstances.allObjects {
+            service.stop()
+        }
+    }
+
     /// 检查目标主机上是否存在 xtop 命令。
     static func checkXTopAvailable(connection: SSHConnection?) async -> Bool {
         if let connection {
@@ -81,7 +92,9 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
         process?.terminate()
         process = nil
         DispatchQueue.main.async { [weak self] in
-            self?.isRunning = false
+            guard let self else { return }
+            Self.runningInstances.remove(self)
+            self.isRunning = false
         }
     }
 
@@ -130,12 +143,18 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
         process.terminationHandler = { [weak self] _ in
             outHandle.readabilityHandler = nil
             DispatchQueue.main.async { [weak self] in
-                self?.isRunning = false
-                self?.process = nil
+                guard let self else { return }
+                Self.runningInstances.remove(self)
+                self.isRunning = false
+                self.process = nil
             }
         }
 
         try process.run()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            Self.runningInstances.add(self)
+        }
     }
 
     /// 从缓冲区中提取完整行并解析。

@@ -153,6 +153,25 @@ actor SSHCommandExecutor {
         process.arguments = ["-S", socket, "-O", "exit"] + connection.sshBaseArgs.split(separator: " ").map(String.init)
         try? process.run()
     }
+
+    /// 关闭所有 SSH ControlMaster 通道并清理 socket 文件。
+    ///
+    /// 供程序退出时同步调用。ControlMaster 以 `-f` 后台运行，App 退出时
+    /// `withControlChannel` 的 defer 不会执行，必须在这里兜底清理；
+    /// 同时清扫历史运行残留在 /tmp 下的 socket（对应已失控的 ssh 进程）。
+    static func closeAllControlChannels() {
+        guard let items = try? FileManager.default.contentsOfDirectory(atPath: "/tmp") else { return }
+        for item in items where item.hasPrefix("ghostty_ssh_control_") && item.hasSuffix(".sock") {
+            let socket = "/tmp/\(item)"
+            // 通过控制 socket 命令主连接退出；主机名参数仅作占位，实际由 mux master 处理。
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+            process.arguments = ["-S", socket, "-O", "exit", "localhost"]
+            try? process.run()
+            process.waitUntilExit()
+            cleanupSocket(at: socket)
+        }
+    }
 }
 
 // MARK: - Backend
