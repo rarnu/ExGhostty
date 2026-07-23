@@ -411,7 +411,14 @@ class PortForwardStore: ObservableObject {
     }
 
     private func sshArguments(rule: PortForwardRule, connection: SSHConnection) -> String {
-        let base = connection.sshOptions
+        // ssh 对同名选项取先出现的值，因此把隧道必需的参数放在最前面：
+        // - ExitOnForwardFailure：端口绑定失败时 ssh 直接退出并触发自动重启，
+        //   避免"进程还在但转发未生效"；
+        // - ServerAlive：即使连接配置关闭了心跳，隧道也强制开启保活，
+        //   连接假死（断网/休眠/NAT 超时）后最多 interval*3 秒内退出并重建。
+        let heartbeatSec = connection.heartbeatMs > 0 ? max(1, Int(connection.heartbeatMs / 1000)) : 15
+        let tunnelOpts = "-o ExitOnForwardFailure=yes -o ServerAliveInterval=\(heartbeatSec) -o ServerAliveCountMax=3 "
+        let base = tunnelOpts + connection.sshOptions
         switch rule.type {
         case .local:
             return "-L \(rule.localListenHost):\(rule.localListenPort):\(rule.remoteHost):\(rule.remotePort) \(base)\(connection.sshHostPart)"
