@@ -215,13 +215,25 @@ struct SSHConnection: Identifiable, Codable, Hashable {
 
         let expectScript: String
         if authMode == .password, !password.isEmpty {
+            // 密码通过 SSH_ASKPASS 助手提供给 ssh，而不是用 expect 匹配 "password:" 提示：
+            // 当服务器同时接受本地密钥时，密钥认证先行成功，根本不会出现密码提示，
+            // expect 会空等整个 timeout（15 秒），表现为"连接很慢"。
+            // askpass 方式下密钥/密码两种认证路径都无需等待。
+            let askpassURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ghostty_ssh_askpass.sh")
+            let askpassScript = """
+            #!/bin/bash
+            printf '%s\\n' "$GHOSTTY_ASKPASS_PASSWORD"
+            """
+            try? askpassScript.write(to: askpassURL, atomically: true, encoding: .utf8)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: askpassURL.path)
+
             expectScript = """
             set timeout 15
-            set password $env(SSHPASS)
             set logfile [open "\(logPath)" "a"]
             proc sshlog {msg} {
                 global logfile
-                puts $logfile "[clock format [clock seconds]] \\(msg)"
+                puts $logfile "[clock format [clock seconds]] $msg"
                 flush $logfile
             }
             proc sync_ssh_pty {spawn_id} {
@@ -241,16 +253,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
             trap { sshlog "SIGINT ignored" } SIGINT
             while {1} {
                 sshlog "spawn ssh"
-                log_user 0
+                log_user 1
                 spawn /usr/bin/ssh \(sshBaseArgs)
                 sync_ssh_pty $spawn_id
                 trap { sync_ssh_pty $spawn_id } SIGWINCH
-                expect {
-                    -nocase "password:" { send "$password\\r" }
-                    timeout { sshlog "password timeout" }
-                    eof { sshlog "ssh eof" }
-                }
-                log_user 1
                 interact
                 sshlog "interact returned"
                 puts ""
@@ -259,13 +265,15 @@ struct SSHConnection: Identifiable, Codable, Hashable {
                 sshlog "reconnect key pressed"
             }
             """
-            cfg.environmentVariables["SSHPASS"] = password
+            cfg.environmentVariables["SSH_ASKPASS"] = askpassURL.path
+            cfg.environmentVariables["SSH_ASKPASS_REQUIRE"] = "force"
+            cfg.environmentVariables["GHOSTTY_ASKPASS_PASSWORD"] = password
         } else {
             expectScript = """
             set logfile [open "\(logPath)" "a"]
             proc sshlog {msg} {
                 global logfile
-                puts $logfile "[clock format [clock seconds]] \\(msg)"
+                puts $logfile "[clock format [clock seconds]] $msg"
                 flush $logfile
             }
             proc sync_ssh_pty {spawn_id} {
