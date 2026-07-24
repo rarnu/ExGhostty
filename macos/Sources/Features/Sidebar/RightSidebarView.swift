@@ -4,6 +4,7 @@ import SwiftUI
 /// 右侧栏支持的功能项。
 enum RightSidebarFeature: String, CaseIterable, Identifiable {
     case portForward
+    case portUsage
     case sftp
     case sessionReuse
     case systemMonitor
@@ -15,6 +16,7 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .portForward:    return "Port Forward".localized
+        case .portUsage:      return "Port Usage".localized
         case .sftp:           return "SFTP"
         case .sessionReuse:   return "Session Reuse".localized
         case .systemMonitor:  return "System Monitor".localized
@@ -26,6 +28,7 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .portForward:    return "arrow.triangle.branch"
+        case .portUsage:      return "network"
         case .sftp:           return "folder"
         case .sessionReuse:   return "doc.on.doc"
         case .systemMonitor:  return "cpu"
@@ -36,7 +39,7 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
 }
 
 /// 右侧栏图标条，始终显示功能按钮；SFTP 仅在当前终端为 SSH 连接时显示；
-/// Telnet 连接仅保留 Port Forward，隐藏 SFTP / Session Reuse / System Monitor / Code Snippets / AI Assistant。
+/// Telnet 连接仅保留 Port Forward，隐藏 SFTP / Port Usage / Session Reuse / System Monitor / Code Snippets / AI Assistant。
 struct RightSidebarView: View {
     let selectedFeature: RightSidebarFeature?
     let terminalController: TerminalController?

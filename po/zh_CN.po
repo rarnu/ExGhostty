@@ -75,6 +75,9 @@ msgstr ""
 ""
 "%@"
 
+msgid "Are you sure you want to terminate \"%@\" (PID %d)?"
+msgstr "确定要结束 \"%@\" (PID %d) 吗？"
+
 msgid "Authentication"
 msgstr "认证方式"
 
@@ -363,6 +366,9 @@ msgstr "目录列表失败: "
 msgid "Failed to list directory: %@"
 msgstr "目录列表失败: %@"
 
+msgid "Failed to terminate %@ (PID %d)."
+msgstr "结束 %@ (PID %d) 失败。"
+
 msgid "Failed to terminate %@ (PID %d). Port forwarding could not start."
 msgstr "结束 %@ (PID %d) 失败，端口转发未能启动。"
 
@@ -443,6 +449,12 @@ msgstr "密钥文件不存在："
 
 msgid "Key file does not exist: %@"
 msgstr "密钥文件不存在：%@"
+
+msgid "Kill Process"
+msgstr "结束进程"
+
+msgid "Launch Command"
+msgstr "启动命令"
 
 msgid "Leave blank to restore the default title."
 msgstr "留空以重置至默认标题。"
@@ -546,6 +558,9 @@ msgstr "密钥为空，仅测试网络连通性"
 msgid "No key specified; using BatchMode for connectivity test"
 msgstr "未指定密钥，使用 BatchMode 进行连通性测试"
 
+msgid "No listening ports"
+msgstr "暂无正在监听的端口"
+
 msgid "No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work."
 msgstr "未检测到本地 X server。macOS 上请先安装并启动 XQuartz，否则 X11 转发不会生效。"
 
@@ -623,6 +638,9 @@ msgstr "端口转发"
 
 msgid "Port Forward Configuration"
 msgstr "端口转发配置"
+
+msgid "Port Usage"
+msgstr "端口占用管理"
 
 msgid "Press any key to reconnect"
 msgstr "按任意键进行重连"
@@ -808,6 +826,9 @@ msgstr "终端调试器"
 msgid "Terminate "
 msgstr "结束 "
 
+msgid "Terminate Process"
+msgstr "结束进程"
+
 msgid "Terminate this process and start port forwarding?"
 msgstr "是否结束该进程并启动端口转发？"
 
@@ -888,6 +909,9 @@ msgstr "使用密钥认证：%@"
 
 msgid "VRAM Usage"
 msgstr "显存占用"
+
+msgid "View Full Command"
+msgstr "查看完整命令"
 
 msgid "View Log"
 msgstr "查看日志"

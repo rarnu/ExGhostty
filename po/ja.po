@@ -75,6 +75,9 @@ msgstr ""
 ""
 "%@"
 
+msgid "Are you sure you want to terminate \"%@\" (PID %d)?"
+msgstr "\"%@\" (PID %d) を終了してもよろしいですか？"
+
 msgid "Authentication"
 msgstr "認証方式"
 
@@ -363,6 +366,9 @@ msgstr "ディレクトリ一覧に失敗: "
 msgid "Failed to list directory: %@"
 msgstr "ディレクトリ一覧に失敗: %@"
 
+msgid "Failed to terminate %@ (PID %d)."
+msgstr "%@ (PID %d) の終了に失敗しました。"
+
 msgid "Failed to terminate %@ (PID %d). Port forwarding could not start."
 msgstr "%@ (PID %d) の終了に失敗しました。ポート転送を開始できません。"
 
@@ -443,6 +449,12 @@ msgstr "キーファイルが存在しません: "
 
 msgid "Key file does not exist: %@"
 msgstr "キーファイルが存在しません: %@"
+
+msgid "Kill Process"
+msgstr "プロセスを終了"
+
+msgid "Launch Command"
+msgstr "起動コマンド"
 
 msgid "Leave blank to restore the default title."
 msgstr "空白にした場合、デフォルトのタイトルを使用します。"
@@ -546,6 +558,9 @@ msgstr "キーが空です。ネットワーク接続のみテスト"
 msgid "No key specified; using BatchMode for connectivity test"
 msgstr "キーが指定されていません。接続テストに BatchMode を使用"
 
+msgid "No listening ports"
+msgstr "リッスン中のポートがありません"
+
 msgid "No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work."
 msgstr "ローカルの X サーバーが検出されませんでした。macOS では XQuartz をインストールして起動してください。そうでない場合、X11 転送は機能しません。"
 
@@ -623,6 +638,9 @@ msgstr "ポート転送"
 
 msgid "Port Forward Configuration"
 msgstr "ポート転送設定"
+
+msgid "Port Usage"
+msgstr "ポート使用状況"
 
 msgid "Press any key to reconnect"
 msgstr "任意のキーを押して再接続"
@@ -805,6 +823,9 @@ msgstr "端末インスペクター"
 msgid "Terminate "
 msgstr "終了 "
 
+msgid "Terminate Process"
+msgstr "プロセスの終了"
+
 msgid "Terminate this process and start port forwarding?"
 msgstr "このプロセスを終了してポート転送を開始しますか？"
 
@@ -885,6 +906,9 @@ msgstr "キー認証を使用: %@"
 
 msgid "VRAM Usage"
 msgstr "VRAM 使用率"
+
+msgid "View Full Command"
+msgstr "完全なコマンドを表示"
 
 msgid "View Log"
 msgstr "ログを表示"

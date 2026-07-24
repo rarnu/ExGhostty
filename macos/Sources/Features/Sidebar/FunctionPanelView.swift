@@ -28,6 +28,8 @@ struct FunctionPanelView: View {
             }
         case .portForward:
             PortForwardListView()
+        case .portUsage:
+            PortUsagePanelView(terminalController: terminalController)
         case .sessionReuse:
             SessionReusePanelView(terminalController: terminalController)
         case .codeSnippet:

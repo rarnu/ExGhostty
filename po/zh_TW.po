@@ -74,6 +74,9 @@ msgstr ""
 ""
 "%@"
 
+msgid "Are you sure you want to terminate \"%@\" (PID %d)?"
+msgstr "確定要結束 \"%@\"（PID %d）嗎？"
+
 msgid "Authentication"
 msgstr "認證方式"
 
@@ -362,6 +365,9 @@ msgstr "目錄列表失敗："
 msgid "Failed to list directory: %@"
 msgstr "目錄列表失敗：%@"
 
+msgid "Failed to terminate %@ (PID %d)."
+msgstr "結束 %@（PID %d）失敗。"
+
 msgid "Failed to terminate %@ (PID %d). Port forwarding could not start."
 msgstr "結束 %@（PID %d）失敗，埠轉發未能啟動。"
 
@@ -442,6 +448,12 @@ msgstr "金鑰檔案不存在："
 
 msgid "Key file does not exist: %@"
 msgstr "金鑰檔案不存在：%@"
+
+msgid "Kill Process"
+msgstr "結束處理程序"
+
+msgid "Launch Command"
+msgstr "啟動命令"
 
 msgid "Leave blank to restore the default title."
 msgstr "留空即可還原為預設標題。"
@@ -545,6 +557,9 @@ msgstr "金鑰為空，僅測試網路連通性"
 msgid "No key specified; using BatchMode for connectivity test"
 msgstr "未指定金鑰，使用 BatchMode 進行連通性測試"
 
+msgid "No listening ports"
+msgstr "暫無正在監聽的埠"
+
 msgid "No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work."
 msgstr "未偵測到本機 X server。macOS 上請先安裝並啟動 XQuartz，否則 X11 轉發不會生效。"
 
@@ -622,6 +637,9 @@ msgstr "埠轉發"
 
 msgid "Port Forward Configuration"
 msgstr "埠轉發設定"
+
+msgid "Port Usage"
+msgstr "埠占用管理"
 
 msgid "Press any key to reconnect"
 msgstr "按任意鍵重新連線"
@@ -804,6 +822,9 @@ msgstr "終端機檢查工具"
 msgid "Terminate "
 msgstr "結束 "
 
+msgid "Terminate Process"
+msgstr "結束處理程序"
+
 msgid "Terminate this process and start port forwarding?"
 msgstr "是否結束該處理程序並啟動埠轉發？"
 
@@ -884,6 +905,9 @@ msgstr "使用金鑰認證：%@"
 
 msgid "VRAM Usage"
 msgstr "顯存佔用"
+
+msgid "View Full Command"
+msgstr "查看完整命令"
 
 msgid "View Log"
 msgstr "檢視日誌"
