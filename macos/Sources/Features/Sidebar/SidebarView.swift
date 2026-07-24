@@ -105,7 +105,7 @@ struct SidebarView: View {
                     }.buttonStyle(.plain).sidebarTooltip("New SSH Connection".localized)
 
                     Button(action: { showAddTelnetDialog() }) {
-                        Image(systemName: "link.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "badge.plus.radiowaves.forward").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New Telnet Connection".localized)
 
                     Button(action: { showAddGroupDialog() }) {
