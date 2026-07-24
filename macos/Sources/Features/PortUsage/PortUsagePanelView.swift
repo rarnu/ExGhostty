@@ -284,6 +284,7 @@ struct PortUsagePanelView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .sidebarTooltip("Clear Search".localized)
                 }
             }
             .padding(.horizontal, 6)
@@ -297,7 +298,7 @@ struct PortUsagePanelView: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 12, weight: .medium))
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.plain)
             .controlSize(.small)
             .help("Refresh".localized)
         }
@@ -361,7 +362,7 @@ struct PortUsagePanelView: View {
                 Button(action: { confirmKill(entry) }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.red)
+//                        .foregroundColor(.red)
                         .frame(minWidth: 44, minHeight: 32)
                         .contentShape(Rectangle())
                 }

@@ -27,12 +27,12 @@ enum RightSidebarFeature: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .portForward:    return "arrow.triangle.branch"
-        case .portUsage:      return "network"
+        case .portForward:    return "fibrechannel"
+        case .portUsage:      return "p.circle"
         case .sftp:           return "folder"
-        case .sessionReuse:   return "doc.on.doc"
+        case .sessionReuse:   return "infinity.circle"
         case .systemMonitor:  return "cpu"
-        case .codeSnippet:    return "number"
+        case .codeSnippet:    return "richtext.page"
         case .aiAssistant:    return "sparkles"
         }
     }

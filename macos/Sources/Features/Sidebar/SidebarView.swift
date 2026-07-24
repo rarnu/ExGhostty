@@ -101,11 +101,11 @@ struct SidebarView: View {
                 Spacer()
                 HStack(spacing: 2) {
                     Button(action: { showAddSSHDialog() }) {
-                        Image(systemName: "plus.square").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "link.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New SSH Connection".localized)
 
                     Button(action: { showAddTelnetDialog() }) {
-                        Image(systemName: "network").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "link.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New Telnet Connection".localized)
 
                     Button(action: { showAddGroupDialog() }) {
@@ -541,6 +541,7 @@ struct PortForwardListView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .sidebarTooltip("Clear Search".localized)
                 }
             }
             .padding(.horizontal, 6)
@@ -554,7 +555,7 @@ struct PortForwardListView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .medium))
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.plain)
             .controlSize(.small)
         }
         .padding(.horizontal, 12)

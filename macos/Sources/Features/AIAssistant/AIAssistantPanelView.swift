@@ -366,7 +366,7 @@ struct AIAssistantPanelView: View {
                     Button {
                         viewModel.sendMessage()
                     } label: {
-                        Image(systemName: "arrow.up.circle.fill")
+                        Image(systemName: "paperplane.fill")
                             .font(.system(size: 24))
                     }
                     .buttonStyle(.plain)
