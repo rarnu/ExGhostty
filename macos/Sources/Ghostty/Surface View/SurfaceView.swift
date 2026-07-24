@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 import GhosttyKit
 import System
+import Darwin
 
 extension Ghostty {
     /// Render a terminal for the active app in the environment.
@@ -677,6 +678,111 @@ extension Ghostty {
             self.context = config.context
         }
 
+        /// 保证子进程能拿到 UTF-8 locale。macOS 从 Finder 启动时 LANG 经常为空，
+        /// 子程序（vim、less、git 等）会退回到 C/POSIX，导致中文 UTF-8 内容乱码。
+        ///
+        /// 优先使用 libghostty ensureLocale 已设置到进程环境里的值；取不到时再按
+        /// 系统 locale 推导一个**真实存在**的 UTF-8 POSIX locale（避免拼出
+        /// zh_US.UTF-8 这种 macOS 不认识的字符串）。
+        ///
+        /// 同时注入 LESSCHARSET=utf-8，防止 less 把中文字节转义成 <E5><A2>... 形式。
+        private static func ensureUTF8Locale(in env: inout [String: String]) {
+            let locale: String
+            if let processLang = Self.getEnv("LANG"), !processLang.isEmpty {
+                locale = processLang
+            } else if let derived = Self.derivedUTF8Locale(), !derived.isEmpty {
+                locale = derived
+            } else {
+                locale = "en_US.UTF-8"
+            }
+
+            // 如果用户/配置完全没给任何 locale，直接用 LC_ALL 强制 UTF-8，
+            // 避免 shell profile 把 LANG 清空后 vim 等程序退回到 C。
+            let hasLocale = (env["LANG"]?.isEmpty == false)
+                || (env["LC_ALL"]?.isEmpty == false)
+                || (env["LC_CTYPE"]?.isEmpty == false)
+            if !hasLocale {
+                env["LC_ALL"] = locale
+            }
+
+            if env["LANG"] == nil || env["LANG"]?.isEmpty == true {
+                env["LANG"] = locale
+            }
+            if env["LC_CTYPE"] == nil || env["LC_CTYPE"]?.isEmpty == true {
+                env["LC_CTYPE"] = env["LANG"]
+            }
+            if env["LESSCHARSET"] == nil || env["LESSCHARSET"]?.isEmpty == true {
+                env["LESSCHARSET"] = "utf-8"
+            }
+        }
+
+        /// 补全 PATH。macOS 从 Finder 启动的 App 只有系统默认 PATH（/usr/bin:/bin:/usr/sbin:/sbin），
+        /// 经常找不到 Homebrew 等用户安装的命令，造成“command not found”。
+        /// 这里把常见路径 prepend 进去，且只在路径真实存在、尚未包含时才加。
+        private static func ensurePATH(in env: inout [String: String]) {
+            let candidates = [
+                "/opt/homebrew/bin",
+                "/opt/homebrew/sbin",
+                "/usr/local/bin",
+                "/usr/local/sbin",
+                "/opt/local/bin",
+                "~/.cargo/bin",
+                "~/.local/bin",
+            ]
+            let current = env["PATH"] ?? Self.getEnv("PATH") ?? ProcessInfo.processInfo.environment["PATH"] ?? ""
+            let existing = Set(current.split(separator: ":").map(String.init))
+            var additions: [String] = []
+            for path in candidates {
+                let expanded = path.replacingOccurrences(of: "~", with: NSHomeDirectory())
+                guard !existing.contains(expanded),
+                      FileManager.default.isExecutableFile(atPath: expanded) else { continue }
+                additions.append(expanded)
+            }
+            if additions.isEmpty { return }
+            env["PATH"] = (additions + [current]).joined(separator: ":")
+        }
+
+        private static func getEnv(_ name: String) -> String? {
+            name.withCString { ptr in
+                guard let value = getenv(ptr) else { return nil }
+                return String(cString: value)
+            }
+        }
+
+        /// 按系统语言推导一个 macOS 上真实存在的 UTF-8 POSIX locale。
+        /// 关键：不能简单把 languageCode + regionCode 拼起来（会得到 zh_US.UTF-8
+        /// 这种不存在的 locale），否则 vim 等程序会退回到 C 编码而乱码。
+        private static func derivedUTF8Locale() -> String? {
+            let locale = Locale.current
+            guard let lang = locale.languageCode?.lowercased() else { return nil }
+
+            switch lang {
+            case "zh":
+                return locale.scriptCode == "Hant" ? "zh_TW.UTF-8" : "zh_CN.UTF-8"
+            case "ja":
+                return "ja_JP.UTF-8"
+            case "ko":
+                return "ko_KR.UTF-8"
+            case "en":
+                return "en_US.UTF-8"
+            case "fr":
+                return "fr_FR.UTF-8"
+            case "de":
+                return "de_DE.UTF-8"
+            case "es":
+                return "es_ES.UTF-8"
+            case "ru":
+                return "ru_RU.UTF-8"
+            case "pt":
+                return "pt_BR.UTF-8"
+            case "it":
+                return "it_IT.UTF-8"
+            default:
+                // 其它语言直接 fallback 到 en_US.UTF-8，保证是有效的 UTF-8 locale。
+                return "en_US.UTF-8"
+            }
+        }
+
         /// Provides a C-compatible ghostty configuration within a closure. The configuration
         /// and all its string pointers are only valid within the closure.
         func withCValue<T>(view: SurfaceView, _ body: (inout ghostty_surface_config_s) throws -> T) rethrows -> T {
@@ -720,6 +826,14 @@ extension Ghostty {
 
                     return try initialInput.withCString { cInput in
                         config.initial_input = cInput
+
+                        // 保证子进程能拿到 UTF-8 locale。macOS 从 Finder 启动时 LANG 经常为空，
+                        // 子程序（vim、less、git 等）会退回到 C/POSIX，导致中文 UTF-8 内容乱码。
+                        // libghostty 的 ensureLocale 会在全局初始化时设置进程 locale，这里把
+                        // 它（或系统 locale 推导值）写进每个 surface 的环境变量里，作为最后兜底。
+                        var environmentVariables = self.environmentVariables
+                        Self.ensureUTF8Locale(in: &environmentVariables)
+                        Self.ensurePATH(in: &environmentVariables)
 
                         // Convert dictionary to arrays for easier processing
                         let keys = Array(environmentVariables.keys)
