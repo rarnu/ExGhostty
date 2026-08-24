@@ -68,8 +68,13 @@ final class SFTPViewModel: ObservableObject {
                 let client = try await SFTPClient.open(on: session)
                 try Task.checkCancellation()
                 self.client = client
-                let result = try? await session.exec("pwd")
-                let home = result?.stdout.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                // The SFTP session starts in the login user's home even when
+                // the target identity applies, so `pwd` would report the wrong
+                // directory. Read the effective user's own home from passwd
+                // instead (same trick as the Mac version). Best-effort: if
+                // the lookup itself fails, fall back to "/" and let the
+                // directory listing surface the real error.
+                let home = (try? await remoteHomeDirectory(for: session.config)) ?? "/"
                 currentPath = home.isEmpty ? "/" : home
                 try await refresh()
                 state = .loaded
@@ -314,6 +319,24 @@ final class SFTPViewModel: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    /// Reads the effective user's home directory from /etc/passwd. New SSH
+    /// child channels always start in the *login* user's home, so `pwd` is
+    /// not a substitute. Runs as the login user (execRaw) — the query must
+    /// see the target user's passwd entry, which is world-readable.
+    private func remoteHomeDirectory(for config: SSHConnectionConfig) async throws -> String {
+        let username = config.effectiveUsername
+        let command = SFTPViewModel.homeLookupCommand(for: username)
+        let result = try await session.execRaw(command)
+        return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Pure command builder for the passwd lookup; unit-testable.
+    /// The grep pattern interpolates the username (in BRE a bare name is
+    /// literal, and the `^` anchor + `:` suffix pin the entry column).
+    static func homeLookupCommand(for username: String) -> String {
+        "(getent passwd \(username) 2>/dev/null || grep -m1 '^\(username):' /etc/passwd) | cut -d: -f6"
+    }
 
     /// Runs a mutating operation with the busy flag, refreshes the listing
     /// afterwards, and surfaces failures through `errorMessage`.

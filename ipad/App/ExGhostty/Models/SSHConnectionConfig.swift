@@ -83,6 +83,17 @@ struct SSHConnectionConfig: Codable, Identifiable, Hashable {
             sudoPassword: (password?.isEmpty == false) ? password : nil
         )
     }
+
+    /// The username effective remote operations run as: the switched user
+    /// when an identity applies, otherwise the login user. Pure (no Keychain
+    /// access) so it stays unit-testable; use it instead of reading
+    /// `effectiveIdentity?.username ?? username` by hand.
+    var effectiveUsername: String {
+        if identitySwitchEnabled, !identityUsername.isEmpty, identityUsername != username {
+            return identityUsername
+        }
+        return username
+    }
 }
 
 // Custom Codable: new fields must decode from older saved JSON that lacks

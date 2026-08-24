@@ -3,8 +3,16 @@
 //  ExGhostty_iPad
 //
 //  Minimal SFTP v3 client (draft-ietf-secsh-filexfer-02) running on an
-//  NIOSSH child channel ("sftp" subsystem). Supports directory listing,
-//  stat, upload, download, remove, rename and mkdir.
+//  NIOSSH child channel. Without a User Identity it uses the standard
+//  "sftp" subsystem request (runs as the login user — with modern OpenSSH
+//  this is usually sshd's internal-sftp, which is fine). With one, the
+//  "sftp" subsystem can't be user-switched, so the client starts the
+//  standalone `sftp-server -e` binary over an EXEC child channel wrapped
+//  in `sudo -u <target>` — the password variant uses `sudo -A` with a
+//  per-connection askpass helper file deployed under the login user's
+//  home (sudo -S would steal the channel's stdin, destroying the SFTP
+//  framing). Supports directory listing, stat, upload, download, remove,
+//  rename and mkdir.
 //
 
 import Foundation
@@ -28,6 +36,14 @@ enum SFTPError: Error, LocalizedError {
     case unexpectedMessage(UInt8)
     case server(code: UInt32, message: String)
     case notConnected
+    /// With a User Identity enabled we must exec the standalone
+    /// sftp-server binary; when it can't be located anywhere on the host
+    /// the identity mode cannot work at all.
+    case sftpServerNotFound
+    /// The identity-wrapped sftp-server started but never answered the
+    /// SFTP handshake: sudo rejected the password, or NOPASSWD is not
+    /// configured for the target user.
+    case identitySwitchFailed
 
     var errorDescription: String? {
         switch self {
@@ -37,6 +53,10 @@ enum SFTPError: Error, LocalizedError {
             return message.isEmpty ? "SFTP error \(code)" : message
         case .notConnected:
             return "SFTP channel is not connected"
+        case .sftpServerNotFound:
+            return "远端找不到 sftp-server，无法以切换后的用户身份运行 SFTP"
+        case .identitySwitchFailed:
+            return "切换用户失败：sudo 密码错误或未配置 NOPASSWD"
         }
     }
 }
@@ -156,19 +176,57 @@ private final class SFTPChannelHandler: ChannelInboundHandler {
     private var pending: [UInt32: EventLoopPromise<SFTPResponse>] = [:]
     private var nextRequestID: UInt32 = 0
 
+    /// Failure reason delivered when the handshake times out (the remote
+    /// command produced no SFTP VERSION — typical when the exec'd binary is
+    /// missing or sudo rejected the password).
+    private let handshakeTimeoutError: Error
+
+    /// When set, the channel is opened with an EXEC request running this
+    /// command (`sudo ... sftp-server -e`) instead of the "sftp" subsystem,
+    /// so the server runs as the target user.
+    private let execCommand: String?
+
+    init(execCommand: String?, handshakeTimeoutError: Error = SFTPError.notConnected) {
+        self.execCommand = execCommand
+        self.handshakeTimeoutError = handshakeTimeoutError
+    }
+
     func channelActive(context: ChannelHandlerContext) {
-        let request = SSHChannelRequestEvent.SubsystemRequest(subsystem: "sftp", wantReply: false)
-        context.triggerUserOutboundEvent(request).whenComplete { result in
-            if case .failure(let error) = result {
-                self.failAll(with: error)
-                context.close(promise: nil)
+        func failAllAndClose(_ error: Error) {
+            self.failAll(with: error)
+            context.close(promise: nil)
+        }
+        // Request payloads are concrete nested structs, not enum cases.
+        if let execCommand {
+            let request = SSHChannelRequestEvent.ExecRequest(command: execCommand, wantReply: false)
+            context.triggerUserOutboundEvent(request).whenComplete { result in
+                if case .failure(let error) = result { failAllAndClose(error) }
+            }
+        } else {
+            let request = SSHChannelRequestEvent.SubsystemRequest(subsystem: "sftp", wantReply: false)
+            context.triggerUserOutboundEvent(request).whenComplete { result in
+                if case .failure(let error) = result { failAllAndClose(error) }
+            }
+        }
+        // If the SFTP VERSION never arrives within the timeout, the server
+        // never came up (missing binary / sudo auth failure / hung shell).
+        // handshake() registers its response promise under UInt32.max; the
+        // timeout failing it makes withCheckedThrowingContinuation resolve
+        // instead of hanging forever. A late VERSION is harmless: removeValue
+        // returns nil and the packet is dropped.
+        context.eventLoop.scheduleTask(in: .seconds(8)) {
+            if let handshakePromise = self.pending.removeValue(forKey: UInt32.max) {
+                handshakePromise.fail(self.handshakeTimeoutError)
             }
         }
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let payload = unwrapInboundIn(data)
-        guard case .byteBuffer(var buffer) = payload.data else { return }
+        guard payload.type == .channel, case .byteBuffer(var buffer) = payload.data else { return }
+        // exec mode runs through a real shell: sudo/sh stderr chatter
+        // (e.g. "sftp-server: command not found") arrives on .stdErr and
+        // must not desynchronize the SFTP frame stream.
         inbound.writeBuffer(&buffer)
         drainPackets()
     }
@@ -254,15 +312,117 @@ final class SFTPClient {
         self.handler = handler
     }
 
-    /// Opens an SFTP subsystem on a fresh child channel of the session.
+    /// Locate the sftp-server binary as seen by the login user. Many
+    /// distros don't put it on the default PATH (Debian: /usr/lib/openssh,
+    /// RHEL: /usr/libexec/openssh, macOS: /usr/libexec, Alpine: /usr/libexec);
+    /// the EXEC channel's shell usually can't find it bare, and after a sudo
+    /// wrap the PATH shrinks further. Pure; unit-testable.
+    static func sftpServerLocateCommand() -> String {
+        "(command -v sftp-server 2>/dev/null || ls /usr/lib/openssh/sftp-server /usr/libexec/openssh/sftp-server /usr/libexec/sftp-server /usr/libexec/ssh/sftp-server /usr/lib64/openssh/sftp-server /usr/lib/ssh/sftp-server 2>/dev/null) | head -1"
+    }
+
+    /// Pure command builder for the exec-mode SFTP channel:
+    /// no identity → the binary alone; passwordless identity → `sudo -n`;
+    /// password identity → `sudo -A` + per-connection askpass helper (the
+    /// SFTP channel's stdin carries the protocol framing, so `sudo -S`
+    /// reading the password from stdin is not an option — macOS solves the
+    /// same problem for rsync the same way). Unit-testable.
+    static func sftpServerExecCommand(
+        binaryPath: String,
+        identity: SSHIdentity.Identity?,
+        loginUsername: String,
+        connectionID: UUID?
+    ) -> String {
+        let binary = binaryPath.isEmpty ? "sftp-server" : binaryPath
+        let command = SSHIdentity.shellQuote(binary) + " -e"
+        guard let identity, identity.username != loginUsername else { return command }
+        let user = SSHIdentity.shellQuote(identity.username)
+        if let password = identity.sudoPassword, !password.isEmpty, let connectionID {
+            return "SUDO_ASKPASS=" + SSHIdentity.shellQuote(sftpAskpassPath(connectionID: connectionID)) +
+                " sudo -A -u " + user + " " + command
+        }
+        return "sudo -n -u " + user + " " + command
+    }
+
+    /// Remote askpass helper location: per-connection file under the login
+    /// user's home (owned/700 by the login user, so sudo -A can exec it).
+    static func sftpAskpassPath(connectionID: UUID) -> String {
+        "~/.exghostty/askpass_\(connectionID.uuidString)"
+    }
+
+    /// Pure script builder; unit-testable. The helper prints the sudo
+    /// password (base64 round-trip keeps it out of shell interpretation).
+    static func sftpAskpassScriptText(password: String) -> String {
+        let b64 = Data(password.utf8).base64EncodedString()
+        return "#!/bin/sh\necho " + b64 + " | base64 -d\n"
+    }
+
+    /// Deploys the askpass helper as the login user (execRaw: no identity
+    /// wrap). Returns false when the deploy failed.
+    private static func deploySftpAskpass(on session: SSHSession, password: String) async -> Bool {
+        let path = SFTPClient.sftpAskpassPath(connectionID: session.config.id)
+        let b64 = Data(SFTPClient.sftpAskpassScriptText(password: password).utf8).base64EncodedString()
+        let quote = SSHIdentity.shellQuote
+        let command = "mkdir -p " + quote("~/.exghostty") +
+            " && echo " + quote(b64) + " | base64 -d > " + quote(path) +
+            " && chmod 700 " + quote(path) + " && test -x " + quote(path)
+        let result = try? await session.execRaw(command)
+        return result?.exitStatus == 0
+    }
+
+    /// Opens an SFTP client on a fresh child channel of the session.
+    /// Without a User Identity it requests the standard "sftp" subsystem
+    /// (runs as the login user — with modern OpenSSH that's usually
+    /// sshd's internal-sftp, which is fine). With one, the subsystem
+    /// request itself can't be wrapped, so the standalone sftp-server
+    /// binary is started over an EXEC child channel under sudo and the
+    /// handshake fails after a timeout with a descriptive error.
     static func open(on session: SSHSession) async throws -> SFTPClient {
+        let identity = session.config.effectiveIdentity
+
+        execMode: do {
+            // The binary must exist for exec mode; the locate step runs as
+            // the login user (no identity wrap).
+            let located = (try? await session.execRaw(SFTPClient.sftpServerLocateCommand()))?
+                .stdout.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !located.isEmpty else { break execMode }
+
+            if let identity, let sudoPassword = identity.sudoPassword, !sudoPassword.isEmpty {
+                // Best-effort: a stale helper means the handshake times out
+                // (described as an identity failure below), not a hang.
+                _ = await SFTPClient.deploySftpAskpass(on: session, password: sudoPassword)
+            }
+            let command = SFTPClient.sftpServerExecCommand(
+                binaryPath: located,
+                identity: identity,
+                loginUsername: session.config.username,
+                connectionID: session.config.id
+            )
+            // The binary was located, so no VERSION within the timeout means
+            // sudo rejected the password (or NOPASSWD is missing).
+            let timeoutError: SFTPError = identity != nil ? .identitySwitchFailed : .sftpServerNotFound
+            return try await makeSession(clientOn: session, command: command, handshakeTimeoutError: timeoutError)
+        }
+        // No usable sftp-server (or locate itself failed): fall back to the
+        // standard subsystem, which always runs as the login user.
+        return try await makeSession(clientOn: session, command: nil, handshakeTimeoutError: SFTPError.notConnected)
+    }
+
+    private static func makeSession(
+        clientOn session: SSHSession,
+        command: String?,
+        handshakeTimeoutError: Error
+    ) async throws -> SFTPClient {
         final class Box { var handler: SFTPChannelHandler? }
         let box = Box()
 
         let channel: Channel = try await withCheckedThrowingContinuation { continuation in
             session.createChildChannel { child in
                 child.eventLoop.makeCompletedFuture {
-                    let handler = SFTPChannelHandler()
+                    let handler = SFTPChannelHandler(
+                        execCommand: command,
+                        handshakeTimeoutError: handshakeTimeoutError
+                    )
                     box.handler = handler
                     try child.pipeline.syncOperations.addHandler(handler)
                 }

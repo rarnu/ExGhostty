@@ -72,6 +72,10 @@ extension Translations {
             "The fresh editor is not installed on the remote host. Run the install script in the terminal?",
         "正在打开 SFTP 会话…": "Opening SFTP session…",
         "SFTP 打开失败": "Failed to Open SFTP",
+        "远端找不到 sftp-server，无法以切换后的用户身份运行 SFTP":
+            "sftp-server not found on the remote host; cannot run SFTP as the switched user",
+        "切换用户失败：sudo 密码错误或未配置 NOPASSWD":
+            "Failed to switch user: wrong sudo password or NOPASSWD not configured",
         "重试": "Retry",
         "上级目录": "Parent Directory",
         "刷新": "Refresh",

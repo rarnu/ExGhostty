@@ -485,6 +485,19 @@ final class SSHSession: ObservableObject {
             as: config.effectiveIdentity,
             loginUsername: config.username
         )
+        return try await runExecCommand(command)
+    }
+
+    /// Like `exec` but skips the User Identity sudo wrap, so the command runs
+    /// as the login user. Use for lookups of the target user's own info (e.g.
+    /// reading the effective user's home from /etc/passwd) and for
+    /// infrastructure that must be owned by the login user — a double sudo
+    /// wrap on those would be wrong.
+    func execRaw(_ command: String) async throws -> ExecResult {
+        try await runExecCommand(command)
+    }
+
+    private func runExecCommand(_ command: String) async throws -> ExecResult {
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ExecResult, Error>) in
             createChildChannel { channel in
                 channel.eventLoop.makeCompletedFuture {

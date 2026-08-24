@@ -167,6 +167,10 @@ extension Translations {
             "遠端未安裝 fresh 編輯器。要在終端機裡執行安裝指令碼嗎？",
         "正在打开 SFTP 会话…": "正在開啟 SFTP 工作階段…",
         "SFTP 打开失败": "SFTP 開啟失敗",
+        "远端找不到 sftp-server，无法以切换后的用户身份运行 SFTP":
+            "遠端找不到 sftp-server，無法以切換後的帳戶身分執行 SFTP",
+        "切换用户失败：sudo 密码错误或未配置 NOPASSWD":
+            "切換帳戶失敗：sudo 密碼錯誤或未設定 NOPASSWD",
         "重试": "重試",
         "上级目录": "上層目錄",
         "刷新": "重新整理",
