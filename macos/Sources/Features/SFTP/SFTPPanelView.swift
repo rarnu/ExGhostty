@@ -587,27 +587,25 @@ final class SFTPPanelViewModel: ObservableObject {
 
     // MARK: - 编辑器
 
-    /// 等待用户确认是否安装 fresh；确认后会触发安装并继续打开目标。
-    @Published var freshInstallPendingItem: SFTPFileItem? = nil
+    /// 等待用户确认是否安装当前编辑器；确认后会触发安装并继续打开目标。
+    @Published var editorInstallPendingItem: SFTPFileItem? = nil
 
-    /// 用配置的编辑器打开目标。fresh 需要先检查安装（未安装弹出确认对话框）；
-    /// 其他编辑器（vim/nano 等）通常系统自带，直接在终端执行。
+    /// 用配置的编辑器打开目标。
+    ///
+    /// 所有编辑器都先做远端安装预检查（`command -v <命令>`，一次静默 SSH）：
+    /// - 已安装 → 直接在终端执行 `<编辑器> <路径>`
+    /// - 未安装 → 弹出确认框，说明未安装并可一键安装；用户确认后在终端执行
+    ///   该编辑器的安装命令，安装完手动打开目标
     func checkEditorAndOpen(item: SFTPFileItem) async {
         let editor = SettingsTerminalEditor.current
-        if !editor.requiresInstallCheck {
-            await MainActor.run {
-                self.openWithEditor(item: item)
-            }
-            return
-        }
         do {
-            if try await isFreshInstalled() {
+            if try await isEditorInstalled(editor) {
                 await MainActor.run {
                     self.openWithEditor(item: item)
                 }
             } else {
                 await MainActor.run {
-                    self.freshInstallPendingItem = item
+                    self.editorInstallPendingItem = item
                 }
             }
         } catch {
@@ -617,10 +615,27 @@ final class SFTPPanelViewModel: ObservableObject {
         }
     }
 
-    /// 用户确认安装 fresh 后调用：只在终端执行安装脚本。
+    /// 检测远端是否已安装指定编辑器。
+    ///
+    /// 通过一条静默的 SSH 命令执行 `command -v <命令>`（输出命令路径）；
+    /// `command -v` 找不到时不报错、无输出，因此用「是否有输出」判定。
+    private func isEditorInstalled(_ editor: SettingsTerminalEditor) async throws -> Bool {
+        let output = try await SSHCommandExecutor.shared.execute(
+            remoteCommand: "command -v \(editor.rawValue) 2>/dev/null || true",
+            connection: connection
+        )
+        return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// 用户确认安装后调用：在终端执行该编辑器的安装命令（一次性，不自动打开目标）。
     @MainActor
-    func installFreshAndOpen(item: SFTPFileItem) {
-        let installCommand = "curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh"
+    func installEditor() {
+        let editor = SettingsTerminalEditor.current
+        let installCommand = editor.installCommand
+        guard !installCommand.isEmpty else {
+            errorMessage = "No install command for \(editor.rawValue)".localized
+            return
+        }
         sendCommandToTerminal(installCommand)
     }
 
@@ -629,16 +644,6 @@ final class SFTPPanelViewModel: ObservableObject {
     func openWithEditor(item: SFTPFileItem) {
         let remotePath = currentPath + "/" + item.name
         sendCommandToTerminal("\(SettingsTerminalEditor.current.rawValue) \(remotePath)")
-    }
-
-    /// 检测远端是否已安装 fresh。
-    /// 通过一条静默的 SSH 命令执行 `which fresh`；真正的 fresh 命令会发送到当前终端执行。
-    private func isFreshInstalled() async throws -> Bool {
-        let output = try await SSHCommandExecutor.shared.execute(
-            remoteCommand: "which fresh 2>/dev/null || true",
-            connection: connection
-        )
-        return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// 将命令发送到关联终端的当前 surface，并尝试前置终端窗口。
@@ -753,18 +758,24 @@ struct SFTPPanelView: View {
         // 从 Finder 拖入到列表空白区域（或面板其他非行区域）：上传到当前目录。
         // 注：直接挂在 SwiftUI List 上的 onDrop 无法覆盖空白区域，因此挂在外层容器。
         .onDrop(of: [.fileURL], delegate: SFTPListDropDelegate(viewModel: viewModel))
-        .alert("Install fresh?", isPresented: .constant(viewModel.freshInstallPendingItem != nil)) {
+        .alert("Install \(SettingsTerminalEditor.current.rawValue)?", isPresented: .constant(viewModel.editorInstallPendingItem != nil)) {
             Button("Install".localized) {
-                if let item = viewModel.freshInstallPendingItem {
-                    viewModel.installFreshAndOpen(item: item)
-                    viewModel.freshInstallPendingItem = nil
+                if viewModel.editorInstallPendingItem != nil {
+                    viewModel.installEditor()
+                    viewModel.editorInstallPendingItem = nil
                 }
             }
             Button("Cancel".localized, role: .cancel) {
-                viewModel.freshInstallPendingItem = nil
+                viewModel.editorInstallPendingItem = nil
             }
         } message: {
-            Text("fresh is not installed on the remote machine. Install it now?".localized)
+            let editor = SettingsTerminalEditor.current
+            let installCmd = editor.installCommand
+            Text(
+                installCmd.isEmpty
+                    ? "\(editor.rawValue) is not installed on the remote machine. Install it with your package manager, then open the target.".localized
+                    : "\(editor.rawValue) is not installed on the remote machine. Install it now?\n\n\(installCmd)".localized
+            )
         }
     }
 
@@ -869,7 +880,7 @@ struct SFTPPanelView: View {
                             fileRow(item: item)
                                 .contextMenu {
                                     downloadContextMenu(item: item)
-                                    freshContextMenu(item: item)
+                                    editorContextMenu(item: item)
                                     if viewModel.selectedItems.count <= 1 {
                                         // 仅当上一级目录存在且当前用户可写时，才允许移动到上一级。
                                         if viewModel.parentIsWritable, viewModel.parentPath != nil {
@@ -990,9 +1001,9 @@ struct SFTPPanelView: View {
         }
     }
 
-    /// fresh 编辑/打开菜单：文本文件显示“使用 <编辑器> 编辑”，目录显示“使用 <编辑器> 打开目录”。
+    /// 编辑/打开菜单：文本文件显示“使用 <编辑器> 编辑”，目录显示“使用 <编辑器> 打开目录”。
     @ViewBuilder
-    private func freshContextMenu(item: SFTPFileItem) -> some View {
+    private func editorContextMenu(item: SFTPFileItem) -> some View {
         let selectedCount = viewModel.selectedItems.count
         let isSelected = viewModel.selectedItems.contains(item.id)
         let editor = SettingsTerminalEditor.current.rawValue

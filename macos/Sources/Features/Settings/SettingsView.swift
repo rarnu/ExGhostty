@@ -510,10 +510,27 @@ enum SettingsTerminalEditor: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// 需要预检查远端是否安装并支持一键安装的编辑器。
-    /// 目前只有 fresh（提供官方安装脚本）；tode 等其他编辑器未安装时
-    /// 直接在终端报错，不提供安装流程。
-    var requiresInstallCheck: Bool { self == .fresh }
+    /// 远端一键安装命令（未安装时供用户确认后在终端执行）。
+    ///
+    /// 优先官方安装脚本（`curl … | sh`），回退常见包管理器；
+    /// 编辑器是包管理器二进制时，用「装好的二进制名」做安装后检查。
+    var installCommand: String {
+        switch self {
+        case .fresh:
+            return "curl -fsSL https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh"
+        case .tode:
+            return "curl -fsSL https://tode.sh/install | bash"
+        case .micro:
+            return "curl -fsSL https://get.microeditor.net | sh"
+        case .nvim:
+            return "command -v brew >/dev/null 2>&1 && brew install neovim || curl -fsSL https://raw.githubusercontent.com/neovim/gh-vim-install/refs/heads/master/install.sh | sh"
+        case .emacs:
+            return "command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y emacs-nox || command -v dnf >/dev/null 2>&1 && sudo dnf install -y emacs-nox || command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm emacs || command -v brew >/dev/null 2>&1 && brew install emacs"
+        case .vim, .nano:
+            // 基础编辑器随系统自带；缺失时按发行版提示安装
+            return "command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y \(rawValue) || command -v dnf >/dev/null 2>&1 && sudo dnf install -y \(rawValue) || command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm \(rawValue) || command -v brew >/dev/null 2>&1 && brew install \(rawValue)"
+        }
+    }
 
     /// 当前用户配置的编辑器。
     static var current: SettingsTerminalEditor {
