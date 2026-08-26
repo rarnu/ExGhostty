@@ -506,9 +506,14 @@ enum SettingsAsyncBackend: String, CaseIterable {
 /// SFTP 编辑文件/打开目录使用的终端编辑器（设置窗口 General 中配置）。
 /// 存在 UserDefaults（libghostty 不认识该配置键），默认 fresh。
 enum SettingsTerminalEditor: String, CaseIterable, Identifiable {
-    case fresh, vim, nvim, nano, emacs, micro
+    case fresh, vim, nvim, nano, emacs, micro, tode
 
     var id: String { rawValue }
+
+    /// 需要预检查远端是否安装并支持一键安装的编辑器。
+    /// 目前只有 fresh（提供官方安装脚本）；tode 等其他编辑器未安装时
+    /// 直接在终端报错，不提供安装流程。
+    var requiresInstallCheck: Bool { self == .fresh }
 
     /// 当前用户配置的编辑器。
     static var current: SettingsTerminalEditor {

@@ -594,7 +594,7 @@ final class SFTPPanelViewModel: ObservableObject {
     /// 其他编辑器（vim/nano 等）通常系统自带，直接在终端执行。
     func checkEditorAndOpen(item: SFTPFileItem) async {
         let editor = SettingsTerminalEditor.current
-        if editor != .fresh {
+        if !editor.requiresInstallCheck {
             await MainActor.run {
                 self.openWithEditor(item: item)
             }
