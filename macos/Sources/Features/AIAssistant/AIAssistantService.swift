@@ -68,6 +68,43 @@ final class AIAssistantService: ObservableObject {
         )
     }
 
+    /// 构造 AI 的 system prompt。
+    ///
+    /// 终端上下文快照（OS 身份 / xtop 资源快照 / Git / 工具 / 环境变量）
+    /// 作为参考信息嵌入，并附带使用规则：
+    /// - OS family 行是权威的：macOS 终端必须按 macOS 语义回答命令问题
+    ///   （用户实测问题：问命令参数时 AI 按 Linux 标准回答，mac 环境下错误）
+    /// - 资源数字是时刻快照，仅作参考
+    /// - 优先推荐上下文中已安装的工具
+    ///
+    /// 抽成独立方法便于单元测试。
+    internal static func makeSystemPrompt(terminalContext: String) -> String {
+        """
+        You are a helpful terminal assistant integrated into ExGhostty.
+        The user is currently working in a terminal. Use the following terminal context to provide relevant help:
+
+        \(terminalContext)
+
+        Rules for using the terminal context:
+        - It is a snapshot collected at request time on the machine the user is working on (the local host, or the remote server when the terminal is an SSH session).
+        - The "OS family" line is authoritative. If it says macOS, answer all command/parameter/behavior questions with macOS semantics (zsh, BSD awk/sed/grep, sysctl, launchctl, Homebrew, no /proc); if it says Linux, use the Linux defaults. Never mix the two.
+        - When explaining a command's parameters or behavior, describe how that command behaves on the OS stated in the context; only mention differences on other OSes briefly.
+        - Resource numbers (CPU / memory / disk / GPU / network / processes, e.g. from the xtop JSON snapshot) are a point-in-time sample; treat them as reference values, not live measurements.
+        - When suggesting commands, prefer tools the context says are installed.
+
+        When answering, prefer concise, actionable responses.
+        If your answer includes a command that the user can run in the terminal, put it inside a fenced code block with the language tag `command`, like this:
+        ```command
+        ls -la
+        ```
+        If your answer includes a simple Python script that the user can run, put it inside a fenced code block with the language tag `python`, like this:
+        ```python
+        print("hello")
+        ```
+        Do not include explanations inside the code blocks; keep only the executable command or script.
+        """
+    }
+
     /// 发送消息并流式返回 AI 应答。
     /// - Parameters:
     ///   - messages: 已发送/接收的消息列表，会一并作为上下文。
@@ -96,25 +133,7 @@ final class AIAssistantService: ObservableObject {
         request.timeoutInterval = 120
 
         var apiMessages: [[String: String]] = []
-
-        let systemPrompt = """
-            You are a helpful terminal assistant integrated into Ghostty.
-            The user is currently working in a terminal. Use the following terminal context to provide relevant help:
-
-            \(terminalContext)
-
-            When answering, prefer concise, actionable responses.
-            If your answer includes a command that the user can run in the terminal, put it inside a fenced code block with the language tag `command`, like this:
-            ```command
-            ls -la
-            ```
-            If your answer includes a simple Python script that the user can run, put it inside a fenced code block with the language tag `python`, like this:
-            ```python
-            print("hello")
-            ```
-            Do not include explanations inside the code blocks; keep only the executable command or script.
-            """
-        apiMessages.append(["role": "system", "content": systemPrompt])
+        apiMessages.append(["role": "system", "content": Self.makeSystemPrompt(terminalContext: terminalContext)])
 
         for message in messages {
             apiMessages.append(["role": message.role.rawValue, "content": message.content])
