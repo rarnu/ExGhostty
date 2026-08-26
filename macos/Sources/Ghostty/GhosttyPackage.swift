@@ -377,6 +377,10 @@ extension Notification.Name {
 
     /// Focus the search field
     static let ghosttySearchFocus = Notification.Name("com.xjai.exghostty.searchFocus")
+
+    /// Posted when a terminal window (one managed by a `TerminalController`)
+    /// has finished loading. The sending object is the window.
+    static let ghosttyTerminalWindowDidLoad = Notification.Name("com.xjai.exghostty.terminalWindowDidLoad")
 }
 
 // NOTE: I am moving all of these to Notification.Name extensions over time. This

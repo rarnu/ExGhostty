@@ -146,6 +146,16 @@ class AppDelegate: NSObject,
     /// Tracks the windows that we hid for toggleVisibility.
     private(set) var hiddenState: ToggleVisibilityState?
 
+    /// The identities of the terminal windows currently open. We track these
+    /// explicitly instead of using `NSApp.windows` or `isVisible` because
+    /// closed windows may be retained by AppKit (and linger in
+    /// `NSApp.windows`) and hidden windows report `isVisible == false`.
+    private var openTerminalWindows = Set<ObjectIdentifier>()
+
+    /// Whether we are already terminating. This prevents redundant terminate
+    /// calls from window close notifications fired during termination.
+    private var isTerminating = false
+
     /// The observer for the app appearance.
     private var appearanceObserver: NSKeyValueObservation?
 
@@ -193,6 +203,23 @@ class AppDelegate: NSObject,
             // Manual autofill via the `Edit => AutoFill` menu item still work as expected.
             "NSAutoFillHeuristicControllerEnabled": false,
         ])
+
+        // Observe terminal window lifecycle so that we can terminate the app
+        // when all tabs are closed. This must be registered before window
+        // restoration runs, which happens between this method and
+        // `applicationDidFinishLaunching`.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(terminalWindowDidLoad(_:)),
+            name: .ghosttyTerminalWindowDidLoad,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(terminalWindowWillClose(_:)),
+            name: NSWindow.willCloseNotification,
+            object: nil
+        )
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -408,6 +435,10 @@ class AppDelegate: NSObject,
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Mark that we are terminating so that window close notifications
+        // fired during termination don't issue redundant terminate calls.
+        self.isTerminating = true
+
         // 停止所有端口转发进程。
         PortForwardStore.shared.stopAll()
 
@@ -445,6 +476,30 @@ class AppDelegate: NSObject,
         // No visible windows, open a new one.
         _ = TerminalController.newWindow(ghostty)
         return false
+    }
+
+    // MARK: - Quit on All Tabs Closed
+
+    /// A terminal window finished loading. We track it so that we know when
+    /// all tabs have been closed.
+    @objc private func terminalWindowDidLoad(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        openTerminalWindows.insert(ObjectIdentifier(window))
+    }
+
+    /// A window was closed. If it was a terminal window and no terminal
+    /// windows remain open (i.e. all tabs are closed), we terminate the whole
+    /// application, just like if the user pressed Cmd+Q.
+    ///
+    /// We rely on `openTerminalWindows` rather than `NSApp.windows` or
+    /// `isVisible` because closed windows can be retained by AppKit (so they
+    /// linger in `NSApp.windows`) and hidden windows are not visible.
+    @objc private func terminalWindowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        guard openTerminalWindows.remove(ObjectIdentifier(window)) != nil else { return }
+        guard !isTerminating else { return }
+        guard openTerminalWindows.isEmpty else { return }
+        NSApp.terminate(nil)
     }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {

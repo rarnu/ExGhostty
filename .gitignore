@@ -1,6 +1,9 @@
 .DS_Store
 .idea/
 .vscode/
+.derived-data/
+.qoder/
+build/
 
 *~
 .*.swp
