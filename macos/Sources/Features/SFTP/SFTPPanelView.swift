@@ -587,15 +587,16 @@ final class SFTPPanelViewModel: ObservableObject {
 
     // MARK: - 编辑器
 
-    /// 等待用户确认是否安装当前编辑器；确认后会触发安装并继续打开目标。
-    @Published var editorInstallPendingItem: SFTPFileItem? = nil
+    /// 待展示的「编辑器未安装」提示（预检查失败后置位）。
+    /// 弹窗本身不需要记住目标条目——提示的只是命令未安装这一状态。
+    @Published var editorNotInstalledPending: Bool = false
 
     /// 用配置的编辑器打开目标。
     ///
     /// 所有编辑器都先做远端安装预检查（`command -v <命令>`，一次静默 SSH）：
     /// - 已安装 → 直接在终端执行 `<编辑器> <路径>`
-    /// - 未安装 → 弹出确认框，说明未安装并可一键安装；用户确认后在终端执行
-    ///   该编辑器的安装命令，安装完手动打开目标
+    /// - 未安装 → 弹出「XX 命令未安装」提示框（仅显示未安装，不含安装命令）；
+    ///   用户可点 "Install" 在终端执行该编辑器的安装命令，安装完手动打开目标
     func checkEditorAndOpen(item: SFTPFileItem) async {
         let editor = SettingsTerminalEditor.current
         do {
@@ -605,7 +606,7 @@ final class SFTPPanelViewModel: ObservableObject {
                 }
             } else {
                 await MainActor.run {
-                    self.editorInstallPendingItem = item
+                    self.editorNotInstalledPending = true
                 }
             }
         } catch {
@@ -758,24 +759,14 @@ struct SFTPPanelView: View {
         // 从 Finder 拖入到列表空白区域（或面板其他非行区域）：上传到当前目录。
         // 注：直接挂在 SwiftUI List 上的 onDrop 无法覆盖空白区域，因此挂在外层容器。
         .onDrop(of: [.fileURL], delegate: SFTPListDropDelegate(viewModel: viewModel))
-        .alert("Install \(SettingsTerminalEditor.current.rawValue)?", isPresented: .constant(viewModel.editorInstallPendingItem != nil)) {
+        .alert(L("%@ is not installed", SettingsTerminalEditor.current.rawValue), isPresented: $viewModel.editorNotInstalledPending) {
             Button("Install".localized) {
-                if viewModel.editorInstallPendingItem != nil {
-                    viewModel.installEditor()
-                    viewModel.editorInstallPendingItem = nil
-                }
+                viewModel.installEditor()
             }
-            Button("Cancel".localized, role: .cancel) {
-                viewModel.editorInstallPendingItem = nil
-            }
+            Button("Cancel".localized, role: .cancel) {}
         } message: {
             let editor = SettingsTerminalEditor.current
-            let installCmd = editor.installCommand
-            Text(
-                installCmd.isEmpty
-                    ? "\(editor.rawValue) is not installed on the remote machine. Install it with your package manager, then open the target.".localized
-                    : "\(editor.rawValue) is not installed on the remote machine. Install it now?\n\n\(installCmd)".localized
-            )
+            Text(L("%@ is not installed on the remote machine.", editor.rawValue))
         }
     }
 
