@@ -160,7 +160,7 @@ final class AIAssistantViewModel: ObservableObject {
 
         do {
             let result = try await session.exec(Self.probeScript)
-            let text = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = Self.stripThinkBlocks(result.stdout)
             let context = text.isEmpty ? "（环境信息采集无输出）" : text
             Self.contextCache[key] = ContextCacheEntry(text: context, timestamp: Date())
             return context
@@ -170,23 +170,126 @@ final class AIAssistantViewModel: ObservableObject {
         }
     }
 
+    /// 过滤掉文本中的 AI 思考块（某些远端服务器配置了 AI shell 插件，
+    /// 会在 shell 输出中混入思考内容，需要剥离）。
+    /// 标签以字符串拼接构造，避免字面量形式被代码处理工具误转义。
+    /// 与 Mac 版 EnvironmentCollector.stripThinkBlocks 一致。
+    static func stripThinkBlocks(_ text: String) -> String {
+        let openTag = "<" + "think"
+        let closeTag = "</" + "think" + ">"
+        guard text.contains(openTag) else {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        var result = text
+        while let start = result.range(of: openTag),
+              let end = result.range(of: closeTag) {
+            if start.lowerBound < end.lowerBound {
+                result.removeSubrange(start.lowerBound..<end.upperBound)
+            } else {
+                break
+            }
+        }
+        if let start = result.range(of: openTag) {
+            result.removeSubrange(start.lowerBound...)
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// 环境探测脚本（POSIX 兼容），整体保证以退出码 0 结束。
+    /// 与 Mac 版 EnvironmentCollector.probeScript 保持一致：
+    /// - T1: OS 身份（uname / OS family / sw_vers / 架构 / Brew / Shell / 主机名）
+    /// - T2: xtop 一次性资源快照（`xtop --all --json` 原始 JSON 直传，
+    ///   不解析；不带 --stream 单次输出即退出；未安装则整段跳过）
+    /// - T3/T4/T5: Git 上下文、开发工具版本、关键环境变量
     private static let probeScript = """
     (
-    echo "== System =="
-    uname -a
-    [ -f /etc/os-release ] && . /etc/os-release 2>/dev/null
-    [ -n "$PRETTY_NAME" ] && echo "Distro: $PRETTY_NAME"
+    # ============================================================
+    # T1: OS identity (xtop 不提供，单独采集)
+    # ============================================================
+    echo "OS: $(uname -s) $(uname -r) $(uname -m)"
+
+    # Explicit OS family so the AI never confuses macOS with Linux
+    case "$(uname -s)" in
+        Darwin)
+            echo "OS family: macOS"
+            sw_vers 2>/dev/null | awk -F' *=' '/ProductVersion/{printf "macOS version: %s\\n", $2}'
+            [ "$(uname -m)" = "arm64" ] && echo "CPU arch: Apple Silicon (arm64)" || echo "CPU arch: Intel (x86_64)"
+            command -v brew >/dev/null 2>&1 && echo "Brew: $(brew --version 2>/dev/null | head -1)"
+            ;;
+        Linux)
+            echo "OS family: Linux"
+            [ -f /etc/os-release ] && . /etc/os-release 2>/dev/null
+            [ -n "$PRETTY_NAME" ] && echo "Distro: $PRETTY_NAME"
+            ;;
+        *)
+            echo "OS family: $(uname -s)"
+            ;;
+    esac
+
     echo "Shell: ${SHELL:-unknown}"
+
     echo "Hostname: $(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null || echo unknown)"
-    echo "CPU cores: $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo unknown)"
-    free -h 2>/dev/null | awk '/^Mem:/{print "Memory: total " $2 ", used " $3 ", free " $4}'
-    echo "== Disk =="
-    df -h 2>/dev/null | awk '/^\\/dev\\//{print $NF ": " $3 "/" $2 " (" $5 " used)"}' | head -5
-    echo "== Load =="
-    cat /proc/loadavg 2>/dev/null | awk '{print "Load average: " $1 " " $2 " " $3}'
-    uptime 2>/dev/null | sed 's/^ *//'
-    ) 2>/dev/null || true
+
+    # ============================================================
+    # T2: xtop system resource snapshot (raw JSON, skip if absent)
+    # ============================================================
+    xtopbin=$(command -v xtop 2>/dev/null)
+    if [ -n "$xtopbin" ] && [ -x "$xtopbin" ]; then
+        # 不带 --stream：单次输出后即退出，不会挂起。
+        # 原始 JSON 直传给 AI，不做解析；GPU 进程列表等体积大的字段
+        # 由 AI 按需阅读（context 有 5 分钟 TTL 缓存，不会每次请求都重采）。
+        "$xtopbin" --all --json 2>/dev/null
+    fi
+
+    # ============================================================
+    # T3: Git Context (only inside a git repo)
+    # ============================================================
+    if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+        echo "Git branch: $(git branch --show-current 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)"
+        echo "Git remote: $(git remote get-url origin 2>/dev/null || echo none)"
+        if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+            echo "Git status: dirty"
+        else
+            echo "Git status: clean"
+        fi
+    fi
+
+    # ============================================================
+    # T4: Dev Tools (only installed ones)
+    # ============================================================
+    command -v python3 >/dev/null 2>&1 && echo "Python: $(python3 --version 2>&1 | head -1)"
+    command -v node >/dev/null 2>&1 && echo "Node: $(node --version 2>&1)"
+    command -v go >/dev/null 2>&1 && echo "Go: $(go version 2>&1 | head -1)"
+    command -v java >/dev/null 2>&1 && echo "Java: $(java -version 2>&1 | head -1)"
+    command -v rustc >/dev/null 2>&1 && echo "Rust: $(rustc --version 2>&1)"
+    command -v docker >/dev/null 2>&1 && echo "Docker: $(docker --version 2>&1)"
+    command -v kubectl >/dev/null 2>&1 && echo "kubectl: $(kubectl version --client 2>/dev/null | head -1)"
+    command -v npm >/dev/null 2>&1 && echo "npm: $(npm --version 2>&1)"
+    command -v git >/dev/null 2>&1 && echo "Git: $(git --version 2>&1)"
+
+    # ============================================================
+    # T5: Environment Markers
+    # ============================================================
+    [ -n "$VIRTUAL_ENV" ] && echo "VIRTUAL_ENV: $VIRTUAL_ENV"
+    [ -n "$CONDA_DEFAULT_ENV" ] && echo "CONDA_DEFAULT_ENV: $CONDA_DEFAULT_ENV"
+    [ -n "$GOPATH" ] && echo "GOPATH: $GOPATH"
+    [ -n "$JAVA_HOME" ] && echo "JAVA_HOME: $JAVA_HOME"
+    [ -n "$NVM_DIR" ] && echo "NVM_DIR: $NVM_DIR"
+
+    # Conda: search PATH then common install locations
+    condaexe=$(command -v conda 2>/dev/null)
+    if [ -z "$condaexe" ]; then
+        for p in "$HOME/miniconda3/bin/conda" "$HOME/anaconda3/bin/conda" /opt/conda/bin/conda; do
+            [ -x "$p" ] && { condaexe="$p"; break; }
+        done
+    fi
+    if [ -n "$condaexe" ] && [ -x "$condaexe" ]; then
+        echo "Conda: $("$condaexe" --version 2>&1 | head -1)"
+        envlist=$("$condaexe" env list 2>/dev/null | awk 'NR>2 && $1 !~ /^#/ { print $1 }' | head -5 | paste -sd, - 2>/dev/null)
+        [ -n "$envlist" ] && echo "Conda envs: $envlist"
+    fi
+
+    ) || true
     exit 0
     """
 

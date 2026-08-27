@@ -297,6 +297,7 @@
 				CODE_SIGN_ENTITLEMENTS = "$(PRODUCT_NAME)/ExGhostty.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = DN3HDD448D;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
@@ -309,8 +310,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				CURRENT_PROJECT_VERSION = 1;
-				MARKETING_VERSION = 0.1.11;
+				MARKETING_VERSION = 0.1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty.ipad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -330,6 +330,7 @@
 				CODE_SIGN_ENTITLEMENTS = "$(PRODUCT_NAME)/ExGhostty.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = DN3HDD448D;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
@@ -342,8 +343,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				CURRENT_PROJECT_VERSION = 1;
-				MARKETING_VERSION = 0.1.11;
+				MARKETING_VERSION = 0.1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty.ipad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

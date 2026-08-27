@@ -291,9 +291,31 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 /// SFTP「使用编辑器打开」所用的终端编辑器（与 Mac 版 SettingsTerminalEditor
 /// 保持一致）。rawValue 即远端可执行文件名，持久化在 SettingsStore。
 enum TerminalEditor: String, CaseIterable, Identifiable {
-    case vim, nvim, nano, emacs, micro, fresh
+    case vim, nvim, nano, emacs, micro, fresh, tode
 
     var id: String { rawValue }
+
+    /// 远端一键安装命令（未安装时供用户确认后在终端执行）。
+    ///
+    /// 优先官方安装脚本（`curl … | sh`），回退常见包管理器；
+    /// 与 Mac 版 SettingsTerminalEditor.installCommand 保持一致。
+    var installCommand: String {
+        switch self {
+        case .fresh:
+            return "curl -fsSL https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh"
+        case .tode:
+            return "curl -fsSL https://tode.sh/install | bash"
+        case .micro:
+            return "curl -fsSL https://get.microeditor.net | sh"
+        case .nvim:
+            return "command -v brew >/dev/null 2>&1 && brew install neovim || curl -fsSL https://raw.githubusercontent.com/neovim/gh-vim-install/refs/heads/master/install.sh | sh"
+        case .emacs:
+            return "command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y emacs-nox || command -v dnf >/dev/null 2>&1 && sudo dnf install -y emacs-nox || command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm emacs || command -v brew >/dev/null 2>&1 && brew install emacs"
+        case .vim, .nano:
+            // 基础编辑器随系统自带；缺失时按发行版提示安装
+            return "command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y \(rawValue) || command -v dnf >/dev/null 2>&1 && sudo dnf install -y \(rawValue) || command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm \(rawValue) || command -v brew >/dev/null 2>&1 && brew install \(rawValue)"
+        }
+    }
 }
 
 #Preview {

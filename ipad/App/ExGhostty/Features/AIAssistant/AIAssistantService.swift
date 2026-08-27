@@ -131,7 +131,7 @@ enum AIAssistantService {
         request.timeoutInterval = 120
 
         var apiMessages: [[String: String]] = [
-            ["role": "system", "content": systemPrompt(context: systemContext)]
+            ["role": "system", "content": makeSystemPrompt(terminalContext: systemContext)]
         ]
         for message in messages {
             apiMessages.append(["role": message.role.rawValue, "content": message.content])
@@ -181,24 +181,34 @@ enum AIAssistantService {
         return displayContent
     }
 
-    /// 构建 system prompt：要求 AI 用 ```command 代码块包裹可执行命令。
-    private static func systemPrompt(context: String) -> String {
+    /// 构造 AI 的 system prompt（与 Mac 版 makeSystemPrompt 一致）。
+    ///
+    /// 终端上下文快照（OS 身份 / xtop 资源快照 / Git / 工具 / 环境变量）
+    /// 作为参考信息嵌入，并附带使用规则：
+    /// - OS family 行是权威的：macOS 终端必须按 macOS 语义回答命令问题
+    ///   （用户实测问题：问命令参数时 AI 按 Linux 标准回答，mac 环境下错误）
+    /// - 资源数字是时刻快照，仅作参考
+    /// - 优先推荐上下文中已安装的工具
+    static func makeSystemPrompt(terminalContext: String) -> String {
         """
-        You are a helpful terminal assistant integrated into an iOS SSH terminal app. \
-        The user is working on a remote Linux server over SSH. Use the following \
-        environment information collected from the server to provide relevant help:
+        You are a helpful terminal assistant integrated into ExGhostty.
+        The user is currently working in a terminal. Use the following terminal context to provide relevant help:
 
-        \(context)
+        \(terminalContext)
 
-        When answering, prefer concise, actionable responses, and answer in the same \
-        language the user uses.
-        If your answer includes a command that the user can run in the terminal, put \
-        it inside a fenced code block with the language tag `command`, like this:
+        Rules for using the terminal context:
+        - It is a snapshot collected at request time on the machine the user is working on (the remote server the terminal is connected to over SSH).
+        - The "OS family" line is authoritative. If it says macOS, answer all command/parameter/behavior questions with macOS semantics (zsh, BSD awk/sed/grep, sysctl, launchctl, Homebrew, no /proc); if it says Linux, use the Linux defaults. Never mix the two.
+        - When explaining a command's parameters or behavior, describe how that command behaves on the OS stated in the context; only mention differences on other OSes briefly.
+        - Resource numbers (CPU / memory / disk / GPU / network / processes, e.g. from the xtop JSON snapshot) are a point-in-time sample; treat them as reference values, not live measurements.
+        - When suggesting commands, prefer tools the context says are installed.
+
+        When answering, prefer concise, actionable responses, and answer in the same language the user uses.
+        If your answer includes a command that the user can run in the terminal, put it inside a fenced code block with the language tag `command`, like this:
         ```command
         ls -la
         ```
-        Do not include explanations inside the code blocks; keep only the executable \
-        command. One code block per command or tightly related command group.
+        Do not include explanations inside the code blocks; keep only the executable command. One code block per command or tightly related command group.
         """
     }
 }

@@ -66,10 +66,10 @@ extension Translations {
         "确定删除目录 “%@” 及其全部内容吗？": "Delete the directory \"%@\" and all of its contents?",
         "确定删除文件 “%@” 吗？": "Delete the file \"%@\"?",
         "错误": "Error",
-        "安装 fresh": "Install fresh",
+        "%@ 未安装": "%@ is not installed",
         "安装": "Install",
-        "远端未安装 fresh 编辑器。要在终端里执行安装脚本吗？":
-            "The fresh editor is not installed on the remote host. Run the install script in the terminal?",
+        "远端机器未安装 %@。":
+            "%@ is not installed on the remote machine.",
         "正在打开 SFTP 会话…": "Opening SFTP session…",
         "SFTP 打开失败": "Failed to Open SFTP",
         "远端找不到 sftp-server，无法以切换后的用户身份运行 SFTP":

@@ -42,9 +42,15 @@ final class SFTPViewModel: ObservableObject {
     @Published private(set) var transfer: TransferProgress?
     @Published var errorMessage: String?
 
+    /// 待展示的「编辑器未安装」提示（预检查失败后置位，对齐 Mac 版
+    /// editorNotInstalledPending；状态放 ViewModel 而非 @State，
+    /// 避免 contextMenu 动作重复触发时 @State 读写的时序问题）。
+    @Published var editorNotInstalledPending = false
+
     private let session: SSHSession
     private var client: SFTPClient?
     private var openTask: Task<Void, Never>?
+    private var editorCheckTask: Task<Void, Never>?
 
     init(session: SSHSession) {
         self.session = session
@@ -254,11 +260,36 @@ final class SFTPViewModel: ObservableObject {
         return extractRoot.appendingPathComponent(item.name)
     }
 
-    /// True when the given editor (e.g. "fresh") is on the remote PATH.
+    /// True when the given editor (e.g. "tode") is on the remote PATH.
     /// Used before sending "<editor> <path>" to the terminal.
+    /// `command -v` 找不到时不报错、无输出，因此用「是否有输出」判定
+    ///（与 Mac 版 isEditorInstalled 一致）。
     func isEditorInstalled(_ editor: String) async -> Bool {
-        let result = try? await session.exec("which \(editor) 2>/dev/null || true")
+        let result = try? await session.exec("command -v \(editor) 2>/dev/null || true")
         return !(result?.stdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
+
+    /// 用配置的编辑器打开目标前的安装预检查（单 flight，重复触发只保留
+    /// 最后一次）。已安装 → 回调 onInstalled；未安装 → 置
+    /// editorNotInstalledPending 弹「未安装」提示。
+    ///
+    /// 注意：未安装分支在置位前先等 contextMenu 的关闭动画结束——iOS 上
+    /// 菜单还没关完就异步弹 alert 会导致 alert 被呈现两次（表现为取消
+    /// 要按两次）；本面板的「删除」弹窗是同步置位所以没这个问题。
+    func checkEditorAndOpen(_ editor: String, item: SFTPItem, onInstalled: @escaping (SFTPItem) -> Void) {
+        editorCheckTask?.cancel()
+        editorCheckTask = Task { [weak self] in
+            guard let self else { return }
+            let installed = await isEditorInstalled(editor)
+            guard !Task.isCancelled else { return }
+            if installed {
+                onInstalled(item)
+            } else {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                guard !Task.isCancelled else { return }
+                editorNotInstalledPending = true
+            }
+        }
     }
 
     /// Uploads a local file into the current directory.

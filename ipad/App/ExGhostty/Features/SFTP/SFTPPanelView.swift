@@ -31,7 +31,6 @@ struct SFTPPanelView: View {
     @State private var renamingItem: SFTPItem?
     @State private var renameText = ""
     @State private var deletingItem: SFTPItem?
-    @State private var freshInstallPendingItem: SFTPItem?
     @State private var showDocumentPicker = false
     @State private var showFolderPicker = false
     @State private var shareURL: URL?
@@ -95,14 +94,14 @@ struct SFTPPanelView: View {
         } message: {
             Text(L(viewModel.errorMessage ?? ""))
         }
-        .alert(L("安装 fresh"), isPresented: freshInstallBinding) {
-            Button(L("取消"), role: .cancel) { freshInstallPendingItem = nil }
+        .alert(L("%@ 未安装", editorName), isPresented: $viewModel.editorNotInstalledPending) {
+            Button(L("取消"), role: .cancel) { viewModel.editorNotInstalledPending = false }
             Button(L("安装")) {
-                freshInstallPendingItem = nil
-                installFresh()
+                viewModel.editorNotInstalledPending = false
+                installEditor()
             }
         } message: {
-            Text(L("远端未安装 fresh 编辑器。要在终端里执行安装脚本吗？"))
+            Text(L("远端机器未安装 %@。", editorName))
         }
         .sheet(isPresented: $showDocumentPicker) {
             DocumentPicker(contentTypes: [.item], asCopy: true) { url in
@@ -450,19 +449,15 @@ struct SFTPPanelView: View {
     }
 
     /// Opens the file / directory in the terminal with the configured editor.
-    /// fresh needs an install check first (mirrors the Mac version): if it is
-    /// missing, an alert offers to run the install script in the terminal.
+    ///
+    /// 所有编辑器都先做远端安装预检查（`command -v <命令>`，一次静默 SSH，
+    /// 与 Mac 版 checkEditorAndOpen 一致）：
+    /// - 已安装 → 直接在终端执行 `<编辑器> <路径>`
+    /// - 未安装 → 弹出「XX 未安装」提示（不含安装命令）；用户可点「安装」
+    ///   在终端执行该编辑器的安装命令，安装完手动打开目标
     private func openWithEditor(_ item: SFTPItem) {
-        guard editorName == "fresh" else {
-            sendEditorCommand(item)
-            return
-        }
-        Task {
-            if await viewModel.isEditorInstalled("fresh") {
-                sendEditorCommand(item)
-            } else {
-                freshInstallPendingItem = item
-            }
+        viewModel.checkEditorAndOpen(editorName, item: item) { [self] target in
+            sendEditorCommand(target)
         }
     }
 
@@ -477,13 +472,15 @@ struct SFTPPanelView: View {
         onOpenInTerminal()
     }
 
-    /// Runs the fresh install script in the terminal (after user confirmation).
-    private func installFresh() {
+    /// Runs the current editor's install command in the terminal (after user
+    /// confirmation). 一次性安装，不自动打开目标（与 Mac 版 installEditor 一致）。
+    private func installEditor() {
         guard let terminal = terminalBox.terminalView else {
             viewModel.errorMessage = "终端不可用"
             return
         }
-        terminal.sendText("curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh")
+        let editor = TerminalEditor(rawValue: editorName) ?? .vim
+        terminal.sendText(editor.installCommand)
         terminal.sendText("\r")
         onOpenInTerminal()
     }
@@ -536,13 +533,6 @@ struct SFTPPanelView: View {
         Binding(
             get: { deletingItem != nil },
             set: { if !$0 { deletingItem = nil } }
-        )
-    }
-
-    private var freshInstallBinding: Binding<Bool> {
-        Binding(
-            get: { freshInstallPendingItem != nil },
-            set: { if !$0 { freshInstallPendingItem = nil } }
         )
     }
 

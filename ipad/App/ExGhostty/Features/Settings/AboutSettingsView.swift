@@ -27,19 +27,6 @@ struct AboutSettingsView: View {
         AboutLink(name: "SwiftTerm", url: "https://github.com/migueldeicaza/SwiftTerm"),
     ]
 
-    /// 应用图标。App 图标编进 asset catalog 后 `UIImage(named: "AppIcon")`
-    /// 拿不到，需从 Info.plist 的 CFBundleIcons 里取实际图标文件名。
-    private var appIcon: UIImage? {
-        if let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
-           let primary = icons["CFBundlePrimaryIcon"] as? [String: Any],
-           let files = primary["CFBundleIconFiles"] as? [String] {
-            for name in files.reversed() {
-                if let image = UIImage(named: name) { return image }
-            }
-        }
-        return UIImage(named: "AppIcon")
-    }
-
     private var version: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
@@ -48,7 +35,7 @@ struct AboutSettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             // 头部：图标 + 名称 / 版本 / 简介（对齐 Mac 版布局）
             HStack(alignment: .center, spacing: 20) {
-                if let icon = appIcon {
+                if let icon = UIImage.appIcon() {
                     Image(uiImage: icon)
                         .resizable()
                         .scaledToFit()

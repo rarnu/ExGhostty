@@ -116,9 +116,17 @@ private struct IntroView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Image(systemName: "terminal.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.teal)
+                if let icon = UIImage.appIcon() {
+                    Image(uiImage: icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 84, height: 84)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                } else {
+                    Image(systemName: "terminal.fill")
+                        .font(.system(size: 56))
+                        .foregroundStyle(.teal)
+                }
                 Text("ExGhostty")
                     .font(.system(size: 28, weight: .bold))
                     .lineLimit(1)
