@@ -2,11 +2,6 @@ import AppKit
 import SwiftUI
 import Combine
 
-/// 将给定颜色调暗一点，用作左侧栏背景，使其比右侧终端区域稍深。
-private func sidebarBackgroundColor(from color: NSColor) -> NSColor {
-    color.shadow(withLevel: 0.08) ?? color
-}
-
 // MARK: - Split View
 
 /// 自定义 NSSplitView，隐藏可见分隔线但保留拖拽热区。
@@ -116,10 +111,9 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     ) {
         self.terminalController = terminalController
 
-        let config = terminalController.ghostty.config
-        let terminalBackgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
-        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+        let theme = AppThemeStore.shared.current
+        let terminalBackgroundColor = theme.backgroundNS
+        let sidebarBackgroundColor = theme.sidebarBackgroundNS
 
         let initialSidebar = SidebarView(
             collapsed: false,
@@ -258,14 +252,10 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         splitView.wantsLayer = true
         splitView.layer?.backgroundColor = NSColor.clear.cgColor
         
-        if let config = terminalController?.ghostty.config {
-            let terminalBackgroundColor = NSColor(config.backgroundColor)
-                .withAlphaComponent(config.backgroundOpacity)
-            let sidebarColor = sidebarBackgroundColor(from: terminalBackgroundColor)
-            splitView.dividerFillColor = sidebarColor
-            rightSidebarSplitView.dividerFillColor = sidebarColor
-            functionTerminalSplitView.dividerFillColor = sidebarColor
-        }
+        let theme = AppThemeStore.shared.current
+        splitView.dividerFillColor = theme.sidebarBackgroundNS
+        rightSidebarSplitView.dividerFillColor = theme.sidebarBackgroundNS
+        functionTerminalSplitView.dividerFillColor = theme.sidebarBackgroundNS
         
         functionTerminalSplitView.addArrangedSubview(rightContainer)
         functionTerminalSplitView.addArrangedSubview(functionPanelBackgroundView)
@@ -318,21 +308,20 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             window.syncAppearance(dc)
         }
         // 同步 divider 颜色，使其与左侧栏/右侧栏/功能面板背景融为一体。
-        let terminalBackgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
-        let sidebarColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+        let theme = AppThemeStore.shared.current
+        let sidebarColor = theme.sidebarBackgroundNS
         splitView.dividerFillColor = sidebarColor
         splitView.setNeedsDisplay(splitView.bounds)
         rightSidebarSplitView.dividerFillColor = sidebarColor
         rightSidebarSplitView.setNeedsDisplay(rightSidebarSplitView.bounds)
         functionTerminalSplitView.dividerFillColor = sidebarColor
         functionTerminalSplitView.setNeedsDisplay(functionTerminalSplitView.bounds)
-        
+
         rightSidebarBackgroundView.backgroundColor = sidebarColor
         functionPanelBackgroundView.backgroundColor = sidebarColor
-        
+
         // splitView.layer?.backgroundColor = NSColor.clear.cgColor
-        
+
         rebuildSidebarView()
         rebuildRightSidebarView()
         rebuildFunctionPanelView()
@@ -376,7 +365,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
 
     func rebuildTabBar() {
         guard let window = self.view.window else { return }
-        guard let config = terminalController?.ghostty.config else { return }
+        guard terminalController != nil else { return }
         tabBarViewID &+= 1
         let windows: [NSWindow]
         let selected: NSWindow?
@@ -388,8 +377,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             selected = window
         }
 
-        let terminalBackgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
+        let terminalBackgroundColor = AppThemeStore.shared.current.backgroundNS
 
         let newBar = TabBarView(
             viewID: tabBarViewID,
@@ -417,11 +405,9 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     func rebuildSidebarView() {
         guard let tc = terminalController else { return }
         let collapsed = self._collapsed
-        let config = tc.ghostty.config
 
-        let terminalBackgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
-        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+        let theme = AppThemeStore.shared.current
+        let sidebarBackgroundColor = theme.sidebarBackgroundNS
 
         let newSidebar = SidebarView(
             collapsed: collapsed,
@@ -498,11 +484,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     func rebuildRightSidebarView() {
         guard let tc = terminalController else { return }
         let selected = self.selectedFunctionFeature
-        let config = tc.ghostty.config
 
-        let terminalBackgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
-        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+        let sidebarBackgroundColor = AppThemeStore.shared.current.sidebarBackgroundNS
 
         let newRightSidebar = RightSidebarView(
             selectedFeature: selected,
@@ -527,11 +510,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     func rebuildFunctionPanelView() {
         guard let tc = terminalController else { return }
         let feature = self.selectedFunctionFeature
-        let config = tc.ghostty.config
 
-        let terminalBackgroundColor = NSColor(config.backgroundColor)
-            .withAlphaComponent(config.backgroundOpacity)
-        let sidebarBackgroundColor = sidebarBackgroundColor(from: terminalBackgroundColor)
+        let sidebarBackgroundColor = AppThemeStore.shared.current.sidebarBackgroundNS
 
         let newFunctionPanel = FunctionPanelView(
             feature: feature,

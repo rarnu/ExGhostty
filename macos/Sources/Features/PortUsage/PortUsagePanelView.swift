@@ -228,6 +228,7 @@ struct PortUsagePanelView: View {
     @StateObject private var store: PortUsageStore
     @State private var searchText: String = ""
     @State private var selectedEntry: PortUsageEntry? = nil
+    @Environment(\.appTheme) private var appTheme
 
     init(terminalController: TerminalController?) {
         _store = StateObject(wrappedValue: PortUsageStore(connection: terminalController?.sshConnection))
@@ -273,7 +274,7 @@ struct PortUsagePanelView: View {
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                 TextField("Search by keyword".localized, text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
@@ -281,7 +282,7 @@ struct PortUsagePanelView: View {
                     Button(action: { searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                     .buttonStyle(.plain)
                     .sidebarTooltip("Clear Search".localized)
@@ -289,7 +290,7 @@ struct PortUsagePanelView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .background(Color(.controlBackgroundColor).opacity(0.6))
+            .background(appTheme.controlBackground.opacity(0.6))
             .cornerRadius(6)
 
             Spacer()
@@ -325,7 +326,7 @@ struct PortUsagePanelView: View {
             } else {
                 Text("No listening ports".localized)
                     .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
             Spacer()
         }
@@ -340,17 +341,17 @@ struct PortUsagePanelView: View {
                     if entry.pid > 0 {
                         Text(verbatim: "PID \(entry.pid)")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                 }
                 Text(verbatim: "\(entry.address):\(entry.port)")
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
                 if !entry.commandLine.isEmpty {
                     Text(entry.commandLine)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }

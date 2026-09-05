@@ -481,6 +481,47 @@ extension Ghostty {
             )
         }
 
+        var foregroundColor: Color {
+            var color: ghostty_config_color_s = .init()
+            let key = "foreground"
+            if !ghostty_config_get(config, &color, key, UInt(key.lengthOfBytes(using: .utf8))) {
+#if os(macOS)
+                return Color(NSColor.labelColor)
+#elseif os(iOS)
+                return Color(UIColor.label)
+#else
+#error("unsupported")
+#endif
+            }
+
+            return .init(
+                red: Double(color.r) / 255,
+                green: Double(color.g) / 255,
+                blue: Double(color.b) / 255
+            )
+        }
+
+        /// 读取终端调色板（256 色）中指定索引的颜色；索引越界或读取失败时返回 nil。
+        /// 主题解析在 finalize 时完成，读到的是主题生效后的最终调色板。
+        func paletteColor(_ index: Int) -> Color? {
+            guard let config = self.config else { return nil }
+            guard (0..<256).contains(index) else { return nil }
+            var palette = ghostty_config_palette_s()
+            let key = "palette"
+            guard ghostty_config_get(config, &palette, key, UInt(key.lengthOfBytes(using: .utf8))) else { return nil }
+            let color = withUnsafeBytes(of: &palette.colors) { raw in
+                raw.load(
+                    fromByteOffset: index * MemoryLayout<ghostty_config_color_s>.stride,
+                    as: ghostty_config_color_s.self
+                )
+            }
+            return .init(
+                red: Double(color.r) / 255,
+                green: Double(color.g) / 255,
+                blue: Double(color.b) / 255
+            )
+        }
+
         var backgroundOpacity: Double {
             guard let config = self.config else { return 1 }
             var v: Double = 1

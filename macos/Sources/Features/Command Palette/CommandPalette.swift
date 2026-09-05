@@ -58,8 +58,9 @@ struct CommandOption: Identifiable, Hashable {
 }
 
 struct CommandPaletteView: View {
+    @Environment(\.appTheme) private var appTheme
     @Binding var isPresented: Bool
-    var backgroundColor: Color = Color(nsColor: .windowBackgroundColor)
+    var backgroundColor: Color = AppThemeStore.shared.current.background
     var options: [CommandOption]
     @State private var rawQuery = ""
     @State private var selectedIndex: UInt?
@@ -176,7 +177,7 @@ struct CommandPaletteView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(nsColor: .tertiaryLabelColor).opacity(0.75))
+                .stroke(appTheme.tertiaryForeground.opacity(0.75))
         )
         .shadow(radius: 32, x: 0, y: 12)
         .padding()
@@ -285,6 +286,7 @@ private struct CommandPaletteQuery: View {
 }
 
 private struct CommandTable: View {
+    @Environment(\.appTheme) private var appTheme
     var options: [CommandOption]
     var query: String
     @Binding var selectedIndex: UInt?
@@ -294,7 +296,7 @@ private struct CommandTable: View {
     var body: some View {
         if options.isEmpty {
             Text("No matches")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(appTheme.secondaryForeground)
                 .padding()
         } else {
             ScrollViewReader { proxy in
@@ -335,6 +337,7 @@ private struct CommandTable: View {
 
 /// A single row in the command palette.
 private struct CommandRow: View {
+    @Environment(\.appTheme) private var appTheme
     let option: CommandOption
     var query: String
     var isSelected: Bool
@@ -357,7 +360,7 @@ private struct CommandRow: View {
             let attrStart = attributed.index(attributed.startIndex, offsetByCharacters: offset)
             let attrEnd = attributed.index(attrStart, offsetByCharacters: 1)
             attributed[attrStart..<attrEnd].font = .body.bold()
-            attributed[attrStart..<attrEnd].foregroundColor = Color.accentColor
+            attributed[attrStart..<attrEnd].foregroundColor = appTheme.accent
         }
 
         return Text(attributed)
@@ -377,7 +380,7 @@ private struct CommandRow: View {
             let attrStart = attributed.index(attributed.startIndex, offsetByCharacters: offset)
             let attrEnd = attributed.index(attrStart, offsetByCharacters: 1)
             attributed[attrStart..<attrEnd].font = .caption.bold()
-            attributed[attrStart..<attrEnd].foregroundColor = Color.accentColor
+            attributed[attrStart..<attrEnd].foregroundColor = appTheme.accent
         }
 
         return Text(attributed)
@@ -394,7 +397,7 @@ private struct CommandRow: View {
 
                 if let icon = option.leadingIcon {
                     Image(systemName: icon)
-                        .foregroundStyle(option.emphasis ? Color.accentColor : .secondary)
+                        .foregroundStyle(option.emphasis ? appTheme.accent : appTheme.secondaryForeground)
                         .font(.system(size: 14, weight: .medium))
                 }
 
@@ -404,7 +407,7 @@ private struct CommandRow: View {
                     if let subtitle = option.subtitle {
                         highlightedSubtitle(subtitle)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appTheme.secondaryForeground)
                     }
                 }
 
@@ -416,28 +419,28 @@ private struct CommandRow: View {
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
                         .background(
-                            Capsule().fill(Color.accentColor.opacity(0.15))
+                            Capsule().fill(appTheme.accent.opacity(0.15))
                         )
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(appTheme.accent)
                 }
 
                 if let symbols = option.symbols {
                     ShortcutSymbolsView(symbols: symbols)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(appTheme.secondaryForeground)
                 }
             }
             .padding(8)
             .contentShape(Rectangle())
             .background(
                 isSelected
-                    ? Color.accentColor.opacity(0.2)
+                    ? appTheme.selectionBackground
                     : (hoveredID == option.id
-                       ? Color.secondary.opacity(0.2)
+                       ? appTheme.secondaryForeground.opacity(0.2)
                        : Color.clear)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(Color.accentColor.opacity(option.emphasis && !isSelected ? 0.3 : 0), lineWidth: 1.5)
+                    .strokeBorder(appTheme.accent.opacity(option.emphasis && !isSelected ? 0.3 : 0), lineWidth: 1.5)
             )
             .cornerRadius(5)
         }

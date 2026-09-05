@@ -6,6 +6,8 @@ import AppKit
 struct AboutView: View {
     var onClose: () -> Void = {}
 
+    @Environment(\.appTheme) private var appTheme
+
     private struct AboutLink: Identifiable {
         let id = UUID()
         let name: String
@@ -41,7 +43,7 @@ struct AboutView: View {
 
                     Text("A brand-new SSH tool based on Ghostty".localized)
                         .font(.system(size: 15))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
 
                 Spacer(minLength: 0)
@@ -64,12 +66,12 @@ struct AboutView: View {
                                 Text(link.url)
                                     .font(.system(size: 15))
                                     .underline()
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(appTheme.foreground)
                             }
                         } else {
                             Text(link.url)
                                 .font(.system(size: 15))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                         }
 
                         Spacer(minLength: 0)

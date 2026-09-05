@@ -3,6 +3,8 @@ import SwiftUI
 
 /// 右侧功能面板内容。
 struct FunctionPanelView: View {
+    @Environment(\.appTheme) private var appTheme
+
     let feature: RightSidebarFeature?
     let terminalController: TerminalController?
     var onClose: (() -> Void)?
@@ -50,7 +52,7 @@ struct FunctionPanelView: View {
             Spacer()
             Text(title.isEmpty ? "Choose a feature".localized : title)
                 .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Spacer()
         }
     }
@@ -59,12 +61,12 @@ struct FunctionPanelView: View {
         HStack(spacing: 0) {
             Text(feature?.title ?? "")
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Spacer()
             Button(action: { onClose?() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)

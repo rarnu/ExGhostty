@@ -4,6 +4,7 @@ import Combine
 
 /// SFTP 传输任务列表窗口内容。
 struct SFTPTaskListView: View {
+    @Environment(\.appTheme) private var appTheme
     @StateObject private var manager = SFTPTransferManager.shared
     let connection: SSHConnection?
 
@@ -26,7 +27,7 @@ struct SFTPTaskListView: View {
                 if displayedTasks.isEmpty {
                     Text("No Transfer Tasks".localized)
                         .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                         .padding(.top, 60)
                 } else {
                     ForEach(displayedTasks) { task in
@@ -47,16 +48,17 @@ struct SFTPTaskListView: View {
             }
             .font(.system(size: 12))
             .buttonStyle(.plain)
-            .foregroundColor(.accentColor)
+            .foregroundColor(appTheme.accent)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
-        .background(Color(.controlBackgroundColor).opacity(0.15))
+        .background(appTheme.controlBackground.opacity(0.15))
     }
 }
 
 /// 单个任务行。
 private struct SFTPTaskRow: View {
+    @Environment(\.appTheme) private var appTheme
     @ObservedObject var task: SFTPTask
 
     var body: some View {
@@ -76,7 +78,7 @@ private struct SFTPTaskRow: View {
                     if let size = task.fileSize {
                         Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
 
                     actionButtons
@@ -85,7 +87,7 @@ private struct SFTPTaskRow: View {
                 // 第二行：目标路径
                 Text(destinationPath)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
                     .truncationMode(.head)
                     .textSelection(.enabled)
@@ -112,7 +114,7 @@ private struct SFTPTaskRow: View {
         let icon = task.type == .upload ? "arrow.up" : "arrow.down"
         Image(systemName: icon)
             .font(.system(size: 13, weight: .medium))
-            .foregroundColor(task.type == .upload ? .orange : .accentColor)
+            .foregroundColor(task.type == .upload ? .orange : appTheme.accent)
     }
 
     @ViewBuilder
@@ -156,7 +158,7 @@ private struct SFTPTaskRow: View {
             .buttonStyle(.plain)
             .help("Delete".localized)
         }
-        .foregroundColor(.secondary)
+        .foregroundColor(appTheme.secondaryForeground)
     }
 
     /// 目标路径：上传显示远程目录，下载显示本地保存目录。
@@ -184,7 +186,7 @@ private struct SFTPTaskRow: View {
         switch task.state {
         case .failed:    return .red
         case .completed: return .green
-        default:         return .secondary
+        default:         return appTheme.secondaryForeground
         }
     }
 }

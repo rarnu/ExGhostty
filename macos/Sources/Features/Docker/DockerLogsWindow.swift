@@ -185,7 +185,7 @@ final class DockerLogsWindowController: NSWindowController, NSWindowDelegate {
             // 保持根视图背景透明，让窗口级背景/模糊效果透出来。
             .background(Color.clear)
 
-        let hostingView = NSHostingView(rootView: contentView)
+        let hostingView = NSHostingView(rootView: ThemedRoot { contentView })
         hostingView.translatesAutoresizingMaskIntoConstraints = false
 
         let containerView = NSView()

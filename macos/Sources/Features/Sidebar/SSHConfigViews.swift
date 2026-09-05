@@ -24,6 +24,8 @@ struct SSHConfigFormView: View {
     let onSave: (SSHConnection) -> Void
     let onDismiss: () -> Void
 
+    @Environment(\.appTheme) private var appTheme
+
     // MARK: - State
 
     @State private var name = ""
@@ -141,9 +143,9 @@ struct SSHConfigFormView: View {
             HStack(spacing: 8) {
                 Image(systemName: "server.rack")
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 28, height: 28)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(6)
 
                 TextField("e.g. Production Web 01".localized, text: $name)
@@ -151,7 +153,7 @@ struct SSHConfigFormView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(Color(.controlBackgroundColor))
+            .background(appTheme.controlBackground)
             .cornerRadius(8)
         }
     }
@@ -166,7 +168,7 @@ struct SSHConfigFormView: View {
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
             }
 
@@ -176,7 +178,7 @@ struct SSHConfigFormView: View {
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
                     .frame(width: 80)
             }
@@ -202,7 +204,7 @@ struct SSHConfigFormView: View {
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
             }
 
@@ -221,14 +223,14 @@ struct SSHConfigFormView: View {
                         Button(action: { isPasswordVisible.toggle() }) {
                             Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
                                 .font(.system(size: 12))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                         }
                         .buttonStyle(.plain)
                         .help(isPasswordVisible ? "Hide Password".localized : "Show Password".localized)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
                 }
             } else {
@@ -237,7 +239,7 @@ struct SSHConfigFormView: View {
                     HStack(spacing: 8) {
                         Text(keyPath.isEmpty ? "No key file selected".localized : keyPath)
                             .font(.system(size: 12))
-                            .foregroundColor(keyPath.isEmpty ? .secondary : .primary)
+                            .foregroundColor(keyPath.isEmpty ? appTheme.secondaryForeground : appTheme.foreground)
                             .lineLimit(1)
 
                         Spacer()
@@ -246,17 +248,17 @@ struct SSHConfigFormView: View {
                             selectKeyFile()
                         }
                         .buttonStyle(.plain)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(appTheme.accent)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
 
                     if keyPath.isEmpty {
                         Text("Please select a local SSH private key file (e.g. ~/.ssh/id_rsa)".localized)
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                 }
             }
@@ -315,7 +317,7 @@ struct SSHConfigFormView: View {
             if availableJumpHosts.isEmpty {
                 Text("No jump hosts available. Create another SSH connection first.".localized)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
         }
     }
@@ -363,7 +365,7 @@ struct SSHConfigFormView: View {
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 6)
-                        .background(Color(.controlBackgroundColor))
+                        .background(appTheme.controlBackground)
                         .cornerRadius(8)
                 }
 
@@ -381,20 +383,20 @@ struct SSHConfigFormView: View {
                         Button(action: { isIdentityPasswordVisible.toggle() }) {
                             Image(systemName: isIdentityPasswordVisible ? "eye.slash" : "eye")
                                 .font(.system(size: 12))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                         }
                         .buttonStyle(.plain)
                         .help(isIdentityPasswordVisible ? "Hide Password".localized : "Show Password".localized)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
                 }
 
                 Text("After login, automatically switch to the target user via sudo su. SFTP, Docker and other features will also run as this user.".localized)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -408,7 +410,7 @@ struct SSHConfigFormView: View {
             TextEditor(text: $notes)
                 .font(.system(size: 12))
                 .scrollContentBackground(.hidden)
-                .background(Color(.controlBackgroundColor))
+                .background(appTheme.controlBackground)
                 .cornerRadius(8)
                 .frame(height: 58)
         }
@@ -438,7 +440,7 @@ struct SSHConfigFormView: View {
                                 .font(.system(size: 12))
                             Text("No local X server detected. On macOS, install and start XQuartz or X11 forwarding will not work.".localized)
                                 .font(.system(size: 11))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(8)
@@ -449,7 +451,7 @@ struct SSHConfigFormView: View {
                     if heartbeatMs != "0" && (Int(heartbeatMs) ?? 0) > 0 {
                         Text(L("Heartbeat will use SSH ServerAliveInterval, sending a keepalive every %d seconds.", max(1, (Int(heartbeatMs) ?? 0) / 1000)))
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                 }
                 .padding(.vertical, 8)
@@ -490,7 +492,7 @@ struct SSHConfigFormView: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(Color(.controlBackgroundColor))
+                .background(appTheme.controlBackground)
                 .cornerRadius(8)
                 .onChange(of: value.wrappedValue) { newValue in
                     let filtered = newValue.filter { $0.isNumber }

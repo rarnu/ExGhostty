@@ -5,6 +5,7 @@ protocol ConfigurationErrorsViewModel: ObservableObject {
 }
 
 struct ConfigurationErrorsView<ViewModel: ConfigurationErrorsViewModel>: View {
+    @Environment(\.appTheme) private var appTheme
     @ObservedObject var model: ViewModel
 
     var body: some View {
@@ -36,7 +37,7 @@ struct ConfigurationErrorsView<ViewModel: ConfigurationErrorsViewModel>: View {
                     }
                     .padding(.all)
                     .frame(minHeight: geo.size.height)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                 }
             }
 

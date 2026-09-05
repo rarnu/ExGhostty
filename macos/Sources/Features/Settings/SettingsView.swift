@@ -9,8 +9,6 @@ import UniformTypeIdentifiers
 final class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
 
-    private var configObserver: NSObjectProtocol?
-
     private init() {
         super.init(window: nil)
     }
@@ -20,17 +18,7 @@ final class SettingsWindowController: NSWindowController {
         fatalError("init(coder:) is not supported")
     }
 
-    deinit {
-        if let observer = configObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
-
     func show(relativeTo parentWindow: NSWindow?, config: Ghostty.Config) {
-        if let observer = configObserver {
-            NotificationCenter.default.removeObserver(observer)
-            configObserver = nil
-        }
         window?.close()
 
         let rect = NSRect(x: 0, y: 0, width: 820, height: 620)
@@ -40,15 +28,17 @@ final class SettingsWindowController: NSWindowController {
         panel.collectionBehavior = [.canJoinAllSpaces]
 
         let model = SettingsModel(config: config)
-        let rootView = SettingsView(
-            onSave: { [weak panel] in
-                panel?.close()
-            },
-            onCancel: { [weak panel] in
-                panel?.close()
-            }
-        )
-        .environmentObject(model)
+        let rootView = ThemedRoot {
+            SettingsView(
+                onSave: { [weak panel] in
+                    panel?.close()
+                },
+                onCancel: { [weak panel] in
+                    panel?.close()
+                }
+            )
+            .environmentObject(model)
+        }
 
         let hosting = NSHostingView(rootView: rootView)
         hosting.wantsLayer = true
@@ -57,16 +47,6 @@ final class SettingsWindowController: NSWindowController {
         panel.configureBackgroundBlur(config: config, container: hosting)
 
         self.window = panel
-
-        configObserver = NotificationCenter.default.addObserver(
-            forName: .ghosttyConfigDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self, let window = self.window, let config = (NSApp.delegate as? AppDelegate)?.ghostty.config else { return }
-            (window as? GhosttyPanelWindow)?.applyBackground(config: config)
-            window.backgroundColor = (window as? GhosttyPanelWindow)?.backgroundColor ?? window.backgroundColor
-        }
 
         window?.centerRelative(to: parentWindow)
         window?.makeKeyAndOrderFront(nil)
@@ -225,6 +205,7 @@ final class SettingsModel: ObservableObject {
     // General
     @Published var language: String = "en"
     @Published var editor: SettingsTerminalEditor = .fresh
+    @Published var appThemeFollowsTerminal: Bool = true
 
     // Appearance
     @Published var theme: String = ""
@@ -401,6 +382,8 @@ final class SettingsModel: ObservableObject {
         aiModel = ud.string(forKey: "ai-model") ?? ""
         editor = SettingsTerminalEditor(rawValue: ud.string(forKey: "editor") ?? "") ?? .fresh
         // 默认开启：仅对从未设置过该开关的用户生效。
+        appThemeFollowsTerminal = ud.object(forKey: SettingsAppTheme.followsTerminalKey) as? Bool ?? true
+        // 默认开启：仅对从未设置过该开关的用户生效。
         iCloudSync = ud.object(forKey: "icloud-sync") as? Bool ?? true
     }
 
@@ -465,6 +448,7 @@ final class SettingsModel: ObservableObject {
         ud.set(aiApiKey, forKey: "ai-apikey")
         ud.set(aiModel, forKey: "ai-model")
         ud.set(editor.rawValue, forKey: "editor")
+        ud.set(appThemeFollowsTerminal, forKey: SettingsAppTheme.followsTerminalKey)
         ud.set(iCloudSync, forKey: "icloud-sync")
 
         (NSApp.delegate as? AppDelegate)?.ghostty.reloadConfig()
@@ -578,6 +562,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @EnvironmentObject private var model: SettingsModel
+    @Environment(\.appTheme) private var appTheme
 
     var onSave: () -> Void = {}
     var onCancel: () -> Void = {}
@@ -692,7 +677,7 @@ struct SettingsView: View {
 
             Text("Language changes will take effect after restarting ExGhostty.".localized)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
 
             settingsRow(label: "Editor".localized) {
                 Picker("", selection: $model.editor) {
@@ -706,7 +691,7 @@ struct SettingsView: View {
 
             Text("The editor used to edit files and open directories in SFTP.".localized)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
 
             settingsRow(label: "iCloud Sync".localized) {
                 Toggle("", isOn: $model.iCloudSync)
@@ -804,6 +789,15 @@ struct SettingsView: View {
                     .toggleStyle(.switch)
             }
 
+            settingsRow(label: "App Follows Terminal Theme".localized) {
+                Toggle("", isOn: $model.appThemeFollowsTerminal)
+                    .toggleStyle(.switch)
+            }
+
+            Text("Apply the terminal theme (background, foreground, palette) to the entire app appearance.".localized)
+                .font(.system(size: 11))
+                .foregroundColor(appTheme.secondaryForeground)
+
             settingsRow(label: "Background".localized) {
                 HStack(spacing: 8) {
                     ColorPicker("", selection: colorBinding($model.backgroundColor, use: $model.useBackgroundColor), supportsOpacity: false)
@@ -812,7 +806,7 @@ struct SettingsView: View {
                         model.backgroundColor = model.ghosttyConfig.backgroundColor
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                     .buttonStyle(.plain)
                     .help("Delete".localized)
@@ -828,7 +822,7 @@ struct SettingsView: View {
                         model.foregroundColor = Color.white
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                     .buttonStyle(.plain)
                     .help("Delete".localized)
@@ -841,7 +835,7 @@ struct SettingsView: View {
                     .frame(width: 200)
                 Text(String(format: "%.0f%%", model.backgroundOpacity * 100))
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 44, alignment: .trailing)
             }
 
@@ -868,7 +862,7 @@ struct SettingsView: View {
                     .frame(width: 200)
                 Text(String(format: "%.0f%%", model.backgroundImageOpacity * 100))
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 44, alignment: .trailing)
             }
 
@@ -891,7 +885,7 @@ struct SettingsView: View {
                     .frame(width: 200)
                 Text(String(format: "%.0f%%", model.cursorOpacity * 100))
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 44, alignment: .trailing)
             }
 
@@ -1069,7 +1063,7 @@ struct SettingsView: View {
                         Spacer()
                         Text(model.keybinds[action] ?? "None".localized)
                             .font(.system(size: 12, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                             .lineLimit(1)
                             .frame(width: 140, alignment: .trailing)
 
@@ -1083,7 +1077,7 @@ struct SettingsView: View {
                                 model.keybinds.removeValue(forKey: action)
                             } label: {
                                 Image(systemName: "xmark")
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(appTheme.secondaryForeground)
                             }
                             .buttonStyle(.plain)
                         }
@@ -1180,7 +1174,7 @@ struct SettingsView: View {
                     color.wrappedValue = defaultColor
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
                 .buttonStyle(.plain)
                 .help("Delete".localized)
@@ -1281,11 +1275,13 @@ private struct ThemeCell: View {
     let previewURL: URL?
     let isSelected: Bool
 
+    @Environment(\.appTheme) private var appTheme
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.controlBackgroundColor))
+                    .fill(isSelected ? appTheme.accent.opacity(0.12) : appTheme.controlBackground)
 
                 if let previewURL,
                    FileManager.default.fileExists(atPath: previewURL.path),
@@ -1297,31 +1293,31 @@ private struct ThemeCell: View {
                 } else {
                     VStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.secondary.opacity(0.3))
+                            .fill(appTheme.secondaryForeground.opacity(0.3))
                             .frame(width: 48, height: 24)
                         Text("No Preview".localized)
                             .font(.system(size: 10))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                 }
 
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 4 : 1)
+                    .stroke(isSelected ? appTheme.accent : appTheme.secondaryForeground.opacity(0.2), lineWidth: isSelected ? 4 : 1)
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.accentColor)
-                        .background(Circle().fill(Color(.windowBackgroundColor)))
+                        .foregroundColor(appTheme.accent)
+                        .background(Circle().fill(appTheme.controlBackground))
                         .offset(x: 6, y: -6)
                 }
             }
             .aspectRatio(2, contentMode: .fit)
-            .shadow(color: isSelected ? Color.accentColor.opacity(0.25) : Color.clear, radius: 6, x: 0, y: 2)
+            .shadow(color: isSelected ? appTheme.accent.opacity(0.25) : Color.clear, radius: 6, x: 0, y: 2)
 
             Text(name)
                 .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .accentColor : .primary)
+                .foregroundColor(isSelected ? appTheme.accent : appTheme.foreground)
                 .lineLimit(1)
         }
         .contentShape(Rectangle())
@@ -1333,6 +1329,8 @@ private struct KeybindCaptureView: View {
     var onCapture: (String?) -> Void
     var onCancel: () -> Void
 
+    @Environment(\.appTheme) private var appTheme
+
     var body: some View {
         VStack(spacing: 16) {
             Text(String(format: "Press a key combination for %@.".localized, actionTitle))
@@ -1341,13 +1339,13 @@ private struct KeybindCaptureView: View {
 
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
-                    .background(Color.secondary.opacity(0.1))
+                    .stroke(appTheme.secondaryForeground.opacity(0.4), lineWidth: 1)
+                    .background(appTheme.secondaryForeground.opacity(0.1))
                     .cornerRadius(6)
 
                 Text("Listening for shortcut...".localized)
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
 
                 ShortcutCaptureView { trigger in
                     onCapture(trigger)

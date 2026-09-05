@@ -623,21 +623,18 @@ class QuickTerminalController: BaseTerminalController {
         if !isBackgroundOpaque && (self.derivedConfig.backgroundOpacity < 1 || derivedConfig.backgroundBlur.isGlassStyle) {
             window.isOpaque = false
 
-            // Use the configured background-opacity as the window background alpha.
-            // This makes the window background respect the exact opacity value
-            // set by the user, rather than being hardcoded to near-fully transparent.
-            // We use white as the base color (matching Terminal.app behavior) and
-            // apply the configured opacity.
-            window.backgroundColor = .white.withAlphaComponent(
-                derivedConfig.backgroundOpacity.clamped(to: 0.001...1)
-            )
+            // Use the theme background as the window background. It already
+            // carries the configured background-opacity as its alpha, so the
+            // window background respects the exact opacity value set by the
+            // user; the terminal surface renders on top of it.
+            window.backgroundColor = AppThemeStore.shared.current.backgroundNS
 
             if !derivedConfig.backgroundBlur.isGlassStyle {
                 ghostty_set_window_background_blur(ghostty.app, Unmanaged.passUnretained(window).toOpaque())
             }
         } else {
             window.isOpaque = true
-            window.backgroundColor = .windowBackgroundColor
+            window.backgroundColor = AppThemeStore.shared.current.backgroundNS
         }
 
         terminalViewContainer?.ghosttyConfigDidChange(ghostty.config, preferredBackgroundColor: nil)

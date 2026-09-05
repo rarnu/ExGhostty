@@ -47,7 +47,7 @@ final class PortForwardEditWindowController: ModalWindowController {
         )
         .frame(width: 520)
 
-        let hostingView = NSHostingView(rootView: view)
+        let hostingView = NSHostingView(rootView: ThemedRoot { view })
         hostingView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()

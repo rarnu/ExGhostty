@@ -488,6 +488,8 @@ final class SessionReusePanelViewModel: ObservableObject {
 
 /// 会话复用功能面板。
 struct SessionReusePanelView: View {
+    @Environment(\.appTheme) private var appTheme
+
     @StateObject private var viewModel: SessionReusePanelViewModel
 
     init(terminalController: TerminalController?) {
@@ -515,10 +517,10 @@ struct SessionReusePanelView: View {
             VStack(spacing: 8) {
                 Image(systemName: "doc.on.doc")
                     .font(.system(size: 32))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                 Text("Please install tmux, rmux or zellij".localized)
                     .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
             Spacer()
         } else {
@@ -612,12 +614,12 @@ struct SessionReusePanelView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(appTheme.secondaryForeground)
                     .frame(width: 18)
 
                 Text(title.uppercased())
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(appTheme.foreground)
 
                 Spacer()
 
@@ -639,7 +641,7 @@ struct SessionReusePanelView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Color.secondary.opacity(0.12))
+            .background(appTheme.controlBackground)
             .cornerRadius(6)
             .padding(.horizontal, 8)
             .padding(.top, 6)
@@ -648,7 +650,7 @@ struct SessionReusePanelView: View {
                 HStack {
                     Text("No Sessions".localized)
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                     Spacer()
                 }
                 .padding(.horizontal, 8)
@@ -658,7 +660,7 @@ struct SessionReusePanelView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "rectangle.on.rectangle")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                             .frame(width: 16)
 
                         Text(session)

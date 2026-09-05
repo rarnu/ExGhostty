@@ -199,7 +199,7 @@ private struct CodeSnippetEditorView: View {
 // MARK: - 辅助
 
 private func embed(view: some View, in window: NSWindow, config: Ghostty.Config?) {
-    let hostingView = NSHostingView(rootView: view)
+    let hostingView = NSHostingView(rootView: ThemedRoot { view })
     hostingView.translatesAutoresizingMaskIntoConstraints = false
 
     let container = NSView()

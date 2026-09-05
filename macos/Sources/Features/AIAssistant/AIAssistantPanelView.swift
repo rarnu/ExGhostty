@@ -174,6 +174,7 @@ final class AIAssistantPanelViewModel: ObservableObject {
 // MARK: - Panel View
 
 struct AIAssistantPanelView: View {
+    @Environment(\.appTheme) private var appTheme
     @StateObject private var viewModel: AIAssistantPanelViewModel
     @State private var dragStartHeight: CGFloat?
 
@@ -218,7 +219,7 @@ struct AIAssistantPanelView: View {
                 Label("New Chat".localized, systemImage: "square.and.pencil")
             }
             .buttonStyle(.plain)
-            .foregroundColor(.primary)
+            .foregroundColor(appTheme.foreground)
 
             Button {
                 viewModel.showHistory = true
@@ -226,19 +227,19 @@ struct AIAssistantPanelView: View {
                 Label("History".localized, systemImage: "clock")
             }
             .buttonStyle(.plain)
-            .foregroundColor(.primary)
+            .foregroundColor(appTheme.foreground)
 
             Spacer()
 
             if AIAssistantService.shared.configuration.isValid {
                 Text(AIAssistantService.shared.configuration.model)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
             } else {
                 Text("AI not configured".localized)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
             }
         }
@@ -307,7 +308,7 @@ struct AIAssistantPanelView: View {
 
     private var dragHandle: some View {
         Rectangle()
-            .fill(Color.secondary.opacity(0.25))
+            .fill(appTheme.secondaryForeground.opacity(0.25))
             .frame(height: 1)
             .overlay(
                 Rectangle()
@@ -344,7 +345,7 @@ struct AIAssistantPanelView: View {
                     if viewModel.inputText.isEmpty {
                         Text("Type your questions.")
                             .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                             .padding(.leading, 5)
                             .padding(.top, 7)
                             .allowsHitTesting(false)
@@ -370,7 +371,7 @@ struct AIAssistantPanelView: View {
                             .font(.system(size: 24))
                     }
                     .buttonStyle(.plain)
-                    .foregroundColor(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .secondary : .accentColor)
+                    .foregroundColor(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? appTheme.secondaryForeground : appTheme.accent)
                     .disabled(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .keyboardShortcut(.return, modifiers: .command)
                     .help("Send".localized)
@@ -472,9 +473,15 @@ private final class AIInputSubmitTextView: NSTextView {
 // MARK: - Message View
 
 private struct AIAssistantMessageView: View {
+    @Environment(\.appTheme) private var appTheme
     let message: AIMessage
     var onRunCode: ((String, String) -> Void)?
     var onCopyCode: ((String) -> Void)?
+
+    /// 用户气泡文字色：按 accent 明暗取黑/白，保证对比度。
+    private var userBubbleTextColor: Color {
+        Color(nsColor: appTheme.accentNS.isLightColor ? .black : .white)
+    }
 
     var body: some View {
         HStack {
@@ -486,15 +493,15 @@ private struct AIAssistantMessageView: View {
                 if message.role == .assistant {
                     Text("AI".localized)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                         .padding(.leading, 4)
                 }
 
                 messageContent
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(message.role == .user ? Color.accentColor.opacity(0.85) : Color.secondary.opacity(0.15))
-                    .foregroundColor(message.role == .user ? .white : .primary)
+                    .background(message.role == .user ? appTheme.accent : appTheme.controlBackground)
+                    .foregroundColor(message.role == .user ? userBubbleTextColor : appTheme.foreground)
                     .cornerRadius(12)
             }
 
@@ -598,6 +605,7 @@ private func parseMessageContent(_ content: String) -> [AIMessageSegment] {
 // MARK: - Code Block View
 
 private struct AICodeBlockView: View {
+    @Environment(\.appTheme) private var appTheme
     let language: String
     let code: String
     var onRun: ((String, String) -> Void)?
@@ -612,7 +620,7 @@ private struct AICodeBlockView: View {
             HStack {
                 Text(languageLabel)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(appTheme.secondaryForeground)
                 Spacer()
                 HStack(spacing: 8) {
                     Button {
@@ -620,7 +628,7 @@ private struct AICodeBlockView: View {
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 12))
-                            .foregroundColor(.white)
+                            .foregroundColor(appTheme.foreground)
                             .frame(width: 22, height: 22)
                     }
                     .buttonStyle(.plain)
@@ -632,7 +640,7 @@ private struct AICodeBlockView: View {
                         } label: {
                             Image(systemName: "play")
                                 .font(.system(size: 12))
-                                .foregroundColor(.white)
+                                .foregroundColor(appTheme.foreground)
                                 .frame(width: 22, height: 22)
                         }
                         .buttonStyle(.plain)
@@ -645,12 +653,12 @@ private struct AICodeBlockView: View {
 
             Text(code)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(.white)
+                .foregroundColor(appTheme.foreground)
                 .textSelection(.enabled)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
         }
-        .background(Color.black.opacity(0.45))
+        .background(appTheme.controlBackground)
         .cornerRadius(8)
     }
 
@@ -667,6 +675,7 @@ private struct AICodeBlockView: View {
 // MARK: - Typing Indicator
 
 private struct AIAssistantTypingIndicator: View {
+    @Environment(\.appTheme) private var appTheme
     @State private var phase = 0
     @State private var timer: Timer?
 
@@ -676,13 +685,13 @@ private struct AIAssistantTypingIndicator: View {
                 ForEach(0..<3) { index in
                     Circle()
                         .frame(width: 6, height: 6)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                         .opacity(phase == index ? 1.0 : 0.4)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Color.secondary.opacity(0.15))
+            .background(appTheme.controlBackground)
             .cornerRadius(12)
 
             Spacer(minLength: 40)

@@ -7,6 +7,8 @@ import GhosttyKit
 /// 与主终端窗口保持一致的辅助窗口基类：/// 三色灯标题栏半透明、支持 background-opacity / background-blur、
 /// 仅关闭按钮可用（最小化/缩放按钮置灰）。
 class GhosttyPanelWindow: NSWindow {
+    private var themeObserver: NSObjectProtocol?
+
     init(
         contentRect: NSRect,
         styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable],
@@ -30,18 +32,40 @@ class GhosttyPanelWindow: NSWindow {
 
         // 根据配置设置透明/磨砂背景。
         applyBackground(config: config)
+
+        // 配置变化时重新应用主题背景与窗口外观，让已打开的窗口实时跟随主题。
+        // 上面的 applyBackground 已触发 AppThemeStore 懒初始化，其观察者先于
+        // 本窗口注册，因此通知到达时 store.current 已是新值。
+        themeObserver = NotificationCenter.default.addObserver(
+            forName: .ghosttyConfigDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            let config = (NSApp.delegate as? AppDelegate)?.ghostty.config
+            self.applyBackground(config: config?.config != nil ? config : nil)
+        }
+    }
+
+    deinit {
+        if let themeObserver {
+            NotificationCenter.default.removeObserver(themeObserver)
+        }
     }
 
     /// 应用与主窗口一致的背景透明度和磨砂效果。
+    /// 背景色与窗口外观取自 AppThemeStore，随「应用外观跟随终端主题」开关联动。
     func applyBackground(config: Ghostty.Config?) {
+        let theme = AppThemeStore.shared.current
+        self.appearance = theme.windowAppearance
+
         let opacity = config?.backgroundOpacity ?? 1
         let blur = config?.backgroundBlur ?? .disabled
         let needsTransparency = opacity < 1 || blur.isGlassStyle
         guard needsTransparency else { return }
 
         self.isOpaque = false
-        let baseColor = config.map { NSColor($0.backgroundColor) } ?? NSColor.windowBackgroundColor
-        self.backgroundColor = baseColor.withAlphaComponent(opacity.clamped(to: 0.001...1))
+        self.backgroundColor = theme.backgroundNS.withAlphaComponent(opacity.clamped(to: 0.001...1))
     }
 
     override func cancelOperation(_ sender: Any?) {
@@ -146,7 +170,8 @@ extension NSWindow {
 
         let glassView = NSGlassEffectView()
         glassView.style = style
-        glassView.tintColor = NSColor(config.backgroundColor).withAlphaComponent(config.backgroundOpacity)
+        // 颜色来源改为 AppTheme（已包含 background-opacity），玻璃效果逻辑不变。
+        glassView.tintColor = AppThemeStore.shared.current.backgroundNS
         glassView.translatesAutoresizingMaskIntoConstraints = false
 
         container.addSubview(glassView, positioned: .below, relativeTo: container.subviews.first)

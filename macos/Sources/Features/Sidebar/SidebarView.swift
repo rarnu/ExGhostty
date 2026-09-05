@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 // MARK: - SidebarView
 
 struct SidebarView: View {
+    @Environment(\.appTheme) private var appTheme
     @ObservedObject private var store = SSHStore.shared
     let collapsed: Bool
     /// 与终端保持一致的背景色（已包含 background-opacity alpha）
@@ -37,7 +38,7 @@ struct SidebarView: View {
             Button(action: { onToggleCollapse?() }) {
                 Image(systemName: "sidebar.left")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
@@ -46,7 +47,7 @@ struct SidebarView: View {
             Button(action: { onNewLocalTerminal?() }) {
                 Image(systemName: "terminal")
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
@@ -56,7 +57,7 @@ struct SidebarView: View {
             Button(action: { onSettings?() }) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
@@ -90,7 +91,7 @@ struct SidebarView: View {
             Button(action: { onToggleCollapse?() }) {
                 Image(systemName: collapsed ? "sidebar.right" : "sidebar.left")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
@@ -101,19 +102,19 @@ struct SidebarView: View {
                 Spacer()
                 HStack(spacing: 2) {
                     Button(action: { showAddSSHDialog() }) {
-                        Image(systemName: "link.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "link.badge.plus").font(.system(size: 11)).foregroundColor(appTheme.secondaryForeground).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New SSH Connection".localized)
 
                     Button(action: { showAddTelnetDialog() }) {
-                        Image(systemName: "badge.plus.radiowaves.forward").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "badge.plus.radiowaves.forward").font(.system(size: 11)).foregroundColor(appTheme.secondaryForeground).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New Telnet Connection".localized)
 
                     Button(action: { showAddGroupDialog() }) {
-                        Image(systemName: "folder.badge.plus").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "folder.badge.plus").font(.system(size: 11)).foregroundColor(appTheme.secondaryForeground).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New Group".localized)
 
                     Button(action: { onNewLocalTerminal?() }) {
-                        Image(systemName: "terminal").font(.system(size: 11)).foregroundColor(.secondary).frame(width: 22, height: 22)
+                        Image(systemName: "terminal").font(.system(size: 11)).foregroundColor(appTheme.secondaryForeground).frame(width: 22, height: 22)
                     }.buttonStyle(.plain).sidebarTooltip("New Local Terminal".localized)
                 }
                 .padding(.trailing, 4)
@@ -126,16 +127,16 @@ struct SidebarView: View {
 
     private var searchBar: some View {
         HStack(spacing: 4) {
-            Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundColor(.secondary)
+            Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundColor(appTheme.secondaryForeground)
             TextField("Search...", text: $store.searchText).textFieldStyle(.plain).font(.system(size: 12))
             if !store.searchText.isEmpty {
                 Button(action: { store.searchText = "" }) {
-                    Image(systemName: "xmark.circle.fill").font(.system(size: 11)).foregroundColor(.secondary)
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 11)).foregroundColor(appTheme.secondaryForeground)
                 }.buttonStyle(.plain).sidebarTooltip("Clear Search".localized)
             }
         }
         .padding(.horizontal, 6).padding(.vertical, 4)
-        .background(Color(.controlBackgroundColor).opacity(0.6))
+        .background(appTheme.controlBackground.opacity(0.6))
         .cornerRadius(6)
     }
 
@@ -148,7 +149,7 @@ struct SidebarView: View {
                 Text("Settings").font(.system(size: 13))
                 Spacer()
             }
-            .foregroundColor(.secondary)
+            .foregroundColor(appTheme.secondaryForeground)
             .padding(.horizontal, 12)
         }
         .buttonStyle(.plain)
@@ -166,7 +167,7 @@ struct SidebarView: View {
             let defaultCount = store.ungroupedConnections.count
             Section {
                 if defaultConns.isEmpty {
-                    Text("No connections").font(.system(size: 12)).foregroundColor(.secondary)
+                    Text("No connections").font(.system(size: 12)).foregroundColor(appTheme.secondaryForeground)
                 }
                 ForEach(defaultConns) { conn in
                     connectionRow(conn)
@@ -174,7 +175,7 @@ struct SidebarView: View {
             } header: {
                 Text("Default (\(defaultCount))")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
 
             ForEach(store.groups) { group in
@@ -182,7 +183,7 @@ struct SidebarView: View {
                 let totalCount = store.connections(for: group.id).count
                 Section {
                     if conns.isEmpty {
-                        Text("No connections").font(.system(size: 12)).foregroundColor(.secondary)
+                        Text("No connections").font(.system(size: 12)).foregroundColor(appTheme.secondaryForeground)
                     }
                     ForEach(conns) { conn in
                         connectionRow(conn)
@@ -209,14 +210,14 @@ struct SidebarView: View {
 
     private func connectionRow(_ conn: SSHConnection) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "server.rack").font(.system(size: 12)).foregroundColor(.accentColor).frame(width: 18)
+            Image(systemName: "server.rack").font(.system(size: 12)).foregroundColor(appTheme.accent).frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(conn.name).font(.system(size: 14, weight: .medium)).lineLimit(1)
-                Text("\(conn.host):\(conn.port)").font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+                Text("\(conn.host):\(conn.port)").font(.system(size: 12)).foregroundColor(appTheme.secondaryForeground).lineLimit(1)
                 if !conn.notes.isEmpty {
                     Text(conn.notes)
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
@@ -491,6 +492,8 @@ extension View {
 // MARK: - GroupHeaderView
 
 struct GroupHeaderView: View {
+    @Environment(\.appTheme) private var appTheme
+
     let name: String
     let count: Int
     var onRename: (() -> Void)?
@@ -498,7 +501,7 @@ struct GroupHeaderView: View {
 
     var body: some View {
         HStack {
-            Text("\(name) (\(count))").font(.system(size: 14, weight: .semibold)).foregroundColor(.secondary)
+            Text("\(name) (\(count))").font(.system(size: 14, weight: .semibold)).foregroundColor(appTheme.secondaryForeground)
             Spacer()
         }
         .padding(.vertical, 2)
@@ -515,6 +518,7 @@ struct GroupHeaderView: View {
 // MARK: - 端口转发管理页
 
 struct PortForwardListView: View {
+    @Environment(\.appTheme) private var appTheme
     @ObservedObject private var store = PortForwardStore.shared
     @ObservedObject private var sshStore = SSHStore.shared
     @State private var searchText: String = ""
@@ -549,7 +553,7 @@ struct PortForwardListView: View {
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                 TextField("Search by keyword".localized, text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
@@ -557,7 +561,7 @@ struct PortForwardListView: View {
                     Button(action: { searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                     .buttonStyle(.plain)
                     .sidebarTooltip("Clear Search".localized)
@@ -565,7 +569,7 @@ struct PortForwardListView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .background(Color(.controlBackgroundColor).opacity(0.6))
+            .background(appTheme.controlBackground.opacity(0.6))
             .cornerRadius(6)
 
             Spacer()
@@ -596,7 +600,7 @@ struct PortForwardListView: View {
             Spacer()
             Text("No port forwarding rules".localized)
                 .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Spacer()
         }
     }
@@ -612,7 +616,7 @@ struct PortForwardListView: View {
                 }
                 Text(rule.summaryText(using: connection))
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
             }
 
@@ -746,7 +750,7 @@ struct PortForwardListView: View {
                 .frame(width: 6, height: 6)
             Text(running ? "Running".localized : "Stopped".localized)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
         }
     }
 
@@ -787,6 +791,7 @@ struct PortForwardListView: View {
 // MARK: - 端口转发编辑页
 
 struct PortForwardEditView: View {
+    @Environment(\.appTheme) private var appTheme
     @ObservedObject private var sshStore = SSHStore.shared
     @State private var rule: PortForwardRule
     private let isNew: Bool
@@ -853,7 +858,7 @@ struct PortForwardEditView: View {
     private var descriptionText: some View {
         Text(rule.type.description)
             .font(.system(size: 12))
-            .foregroundColor(.secondary)
+            .foregroundColor(appTheme.secondaryForeground)
     }
 
     private var nameField: some View {
@@ -965,7 +970,7 @@ struct PortForwardEditView: View {
             if !hint.isEmpty {
                 Text(hint)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
         }
     }
@@ -984,7 +989,7 @@ struct PortForwardEditView: View {
             if !hint.isEmpty {
                 Text(hint)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
         }
     }

@@ -1003,6 +1003,12 @@ msgstr "フォントサイズ"
 msgid "Font Thicken"
 msgstr "フォントを太くする"
 
+msgid "App Follows Terminal Theme"
+msgstr "アプリの外観をターミナルテーマに合わせる"
+
+msgid "Apply the terminal theme (background, foreground, palette) to the entire app appearance."
+msgstr "ターミナルテーマ（背景色・前景色・パレット）をアプリ全体の外観に適用します。"
+
 msgid "Background"
 msgstr "背景色"
 

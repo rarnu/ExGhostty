@@ -42,7 +42,7 @@ final class SSHConfigWindowController: ModalWindowController {
             }
         )
 
-        let hostingView = NSHostingView(rootView: view)
+        let hostingView = NSHostingView(rootView: ThemedRoot { view })
         hostingView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
@@ -105,7 +105,7 @@ final class TelnetConfigWindowController: ModalWindowController {
             }
         )
 
-        let hostingView = NSHostingView(rootView: view)
+        let hostingView = NSHostingView(rootView: ThemedRoot { view })
         hostingView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()

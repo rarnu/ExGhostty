@@ -27,7 +27,7 @@ struct TerminalCommandPaletteView: View {
 
                         CommandPaletteView(
                             isPresented: $isPresented,
-                            backgroundColor: ghosttyConfig.backgroundColor,
+                            backgroundColor: AppThemeStore.shared.current.background,
                             options: commandOptions
                         )
                         .zIndex(1) // Ensure it's on top

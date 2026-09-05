@@ -34,9 +34,11 @@ class AboutController: NSWindowController, NSWindowDelegate {
         panel.isMovableByWindowBackground = true
         panel.delegate = self
 
-        let hosting = NSHostingView(rootView: AboutView(onClose: { [weak panel] in
-            panel?.close()
-        }))
+        let hosting = NSHostingView(rootView: ThemedRoot {
+            AboutView(onClose: { [weak panel] in
+                panel?.close()
+            })
+        })
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
         panel.contentView = hosting

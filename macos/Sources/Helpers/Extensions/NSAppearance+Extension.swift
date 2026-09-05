@@ -7,8 +7,14 @@ extension NSAppearance {
     }
 
     /// Initialize a desired NSAppearance for the Ghostty configuration.
-    /// 当前固定为深色模式，用户无法在配置中修改。
+    /// 「应用外观跟随终端主题」开启时按终端背景明暗选择外观；
+    /// 关闭时维持固定深色模式。
     convenience init?(ghosttyConfig config: Ghostty.Config) {
-        self.init(named: .darkAqua)
+        if SettingsAppTheme.followsTerminal {
+            let background = NSColor(config.backgroundColor)
+            self.init(named: background.isLightColor ? .aqua : .darkAqua)
+        } else {
+            self.init(named: .darkAqua)
+        }
     }
 }

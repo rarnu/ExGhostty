@@ -24,6 +24,8 @@ struct TelnetConfigFormView: View {
     let onSave: (SSHConnection) -> Void
     let onDismiss: () -> Void
 
+    @Environment(\.appTheme) private var appTheme
+
     // MARK: - State
 
     @State private var name = ""
@@ -98,9 +100,9 @@ struct TelnetConfigFormView: View {
             HStack(spacing: 8) {
                 Image(systemName: "server.rack")
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 28, height: 28)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(6)
 
                 TextField("e.g. H3".localized, text: $name)
@@ -108,7 +110,7 @@ struct TelnetConfigFormView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(Color(.controlBackgroundColor))
+            .background(appTheme.controlBackground)
             .cornerRadius(8)
         }
     }
@@ -140,14 +142,14 @@ struct TelnetConfigFormView: View {
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
 
                 TextField("23", text: $port)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
                     .frame(width: 80)
                     .onChange(of: port) { newValue in
@@ -160,7 +162,7 @@ struct TelnetConfigFormView: View {
 
             Text("Fill in the Telnet service address and port.".localized)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
         }
     }
 
@@ -175,7 +177,7 @@ struct TelnetConfigFormView: View {
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(.controlBackgroundColor))
+                    .background(appTheme.controlBackground)
                     .cornerRadius(8)
 
                 HStack(spacing: 4) {
@@ -190,19 +192,19 @@ struct TelnetConfigFormView: View {
                     Button(action: { isPasswordVisible.toggle() }) {
                         Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(Color(.controlBackgroundColor))
+                .background(appTheme.controlBackground)
                 .cornerRadius(8)
             }
 
             Text("Fill in the username and password when the device requires login.".localized)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
         }
     }
 
@@ -214,7 +216,7 @@ struct TelnetConfigFormView: View {
             TextEditor(text: $notes)
                 .font(.system(size: 12))
                 .scrollContentBackground(.hidden)
-                .background(Color(.controlBackgroundColor))
+                .background(appTheme.controlBackground)
                 .cornerRadius(8)
                 .frame(height: 58)
         }

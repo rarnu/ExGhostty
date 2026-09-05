@@ -2,6 +2,8 @@ import SwiftUI
 
 /// 自定义标签栏，显示在右侧终端区域顶部
 struct TabBarView: View {
+    @Environment(\.appTheme) private var appTheme
+
     /// 强制刷新 ID（每次 rebuildTabBar 递增，让 SwiftUI 重新渲染）
     let viewID: Int
 
@@ -39,13 +41,14 @@ struct TabBarView: View {
         return HStack(spacing: 4) {
             Text(title)
                 .font(.system(size: 12))
+                .foregroundColor(appTheme.foreground)
                 .lineLimit(1)
 
             if windows.count > 1 {
                 Button(action: { onCloseTab?(window) }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 8, weight: .medium))
-                        .foregroundColor(.secondary.opacity(0.6))
+                        .foregroundColor(appTheme.secondaryForeground.opacity(0.6))
                         .frame(width: 14, height: 14)
                 }
                 .buttonStyle(.plain)
@@ -54,7 +57,7 @@ struct TabBarView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
-        .background(isSelected ? Color(.selectedControlColor).opacity(0.3) : Color.clear)
+        .background(isSelected ? appTheme.selectionBackground : Color.clear)
         .cornerRadius(4)
         .contentShape(Rectangle())
         .onTapGesture {

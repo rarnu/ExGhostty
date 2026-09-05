@@ -1002,6 +1002,12 @@ msgstr "字體大小"
 msgid "Font Thicken"
 msgstr "字體加粗"
 
+msgid "App Follows Terminal Theme"
+msgstr "應用外觀跟隨終端主題"
+
+msgid "Apply the terminal theme (background, foreground, palette) to the entire app appearance."
+msgstr "將終端主題（背景色、前景色、調色板）套用到整個應用的介面外觀。"
+
 msgid "Background"
 msgstr "背景色"
 

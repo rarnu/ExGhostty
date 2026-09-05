@@ -35,6 +35,7 @@ struct DockerPanelView: View {
     @StateObject private var store: DockerService
     @State private var state: DockerPanelState = .checking
     @State private var tab: DockerTab = .containers
+    @Environment(\.appTheme) private var appTheme
 
     init(terminalController: TerminalController?) {
         self.terminalController = terminalController
@@ -97,12 +98,12 @@ struct DockerPanelView: View {
             Spacer()
             Image(systemName: "shippingbox")
                 .font(.system(size: 36))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Text("Docker not installed".localized)
                 .font(.system(size: 14, weight: .medium))
             Text("Docker Management requires the docker CLI to be installed".localized)
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .multilineTextAlignment(.center)
             Button("Go to Install".localized) {
                 if let url = URL(string: "https://www.docker.com/get-started/") {
@@ -126,23 +127,23 @@ struct DockerPanelView: View {
             Spacer()
             Image(systemName: "lock.shield")
                 .font(.system(size: 36))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Text("Docker permission denied".localized)
                 .font(.system(size: 14, weight: .medium))
             Text("The current user cannot access the Docker daemon. Add the user to the docker group (recommended over sudo):".localized)
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .multilineTextAlignment(.center)
             Text(command)
                 .font(.system(size: 12, design: .monospaced))
                 .textSelection(.enabled)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(Color(.controlBackgroundColor).opacity(0.6))
+                .background(appTheme.controlBackground.opacity(0.6))
                 .cornerRadius(6)
             Text("Then log out and log back in (or reconnect) for the change to take effect.".localized)
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .multilineTextAlignment(.center)
             HStack(spacing: 12) {
                 Button("Copy".localized) {
@@ -233,10 +234,10 @@ struct DockerPanelView: View {
             Spacer()
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 36))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Text(issueMessage)
                 .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Spacer()
         }
         .padding(.horizontal, 24)
@@ -250,12 +251,12 @@ struct DockerPanelView: View {
                 .foregroundColor(.orange)
             Text(issueMessage)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Spacer()
             Button(action: { store.dismissIssue() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
@@ -275,14 +276,14 @@ struct DockerPanelView: View {
                 .foregroundColor(.orange)
             Text(message)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .lineLimit(3)
                 .textSelection(.enabled)
             Spacer()
             Button(action: { store.dismissActionError() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
@@ -339,7 +340,7 @@ struct DockerPanelView: View {
             } else {
                 Text(text)
                     .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
             Spacer()
         }
@@ -369,11 +370,11 @@ struct DockerPanelView: View {
                     .lineLimit(1)
                 Text(container.image)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
                 Text(container.status)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
                 // 端口与挂载点一行一个完整展示，行高随数量自适应。
                 if !container.ports.isEmpty {
@@ -381,7 +382,7 @@ struct DockerPanelView: View {
                         ForEach(container.ports, id: \.self) { port in
                             Text(port)
                                 .font(.system(size: 11, design: .monospaced))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                                 .lineLimit(1)
                         }
                     }
@@ -391,7 +392,7 @@ struct DockerPanelView: View {
                         ForEach(container.mounts, id: \.self) { mount in
                             Text(mount)
                                 .font(.system(size: 11))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                                 .lineLimit(1)
                         }
                     }
@@ -504,11 +505,11 @@ struct DockerPanelView: View {
                 HStack(spacing: 8) {
                     Text(image.imageID)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                         .lineLimit(1)
                     Text(image.size)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             }
 
@@ -548,10 +549,10 @@ struct DockerPanelView: View {
                 HStack(spacing: 8) {
                     Text(volume.driver)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                     Text(volume.scope)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             }
 
@@ -582,13 +583,13 @@ struct DockerPanelView: View {
                 HStack(spacing: 8) {
                     Text(network.id)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                     Text(network.driver)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                     Text(network.scope)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             }
 
@@ -604,7 +605,7 @@ struct DockerPanelView: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .frame(width: 24, height: 24)
                 .contentShape(Rectangle())
         }

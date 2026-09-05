@@ -6,6 +6,8 @@ struct SSHTestDetailView: View {
     let config: SSHTestConfig
     let onComplete: ((Bool) -> Void)?
 
+    @Environment(\.appTheme) private var appTheme
+
     @State private var logs: [SSHTestLogItem] = []
     @State private var isFinished = false
     @State private var isSuccess = false
@@ -34,7 +36,7 @@ struct SSHTestDetailView: View {
                 .padding(.vertical, 12)
         }
         .frame(width: 680, height: 420)
-        .background(Color(.windowBackgroundColor))
+        .background(appTheme.controlBackground)
         .onAppear {
             startTest()
         }
@@ -56,14 +58,14 @@ struct SSHTestDetailView: View {
         HStack(spacing: 12) {
             Image(systemName: isFinished ? (isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill") : "bolt.horizontal.circle.fill")
                 .font(.system(size: 28))
-                .foregroundColor(isFinished ? (isSuccess ? .green : .red) : .accentColor)
+                .foregroundColor(isFinished ? (isSuccess ? .green : .red) : appTheme.accent)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Test Connection".localized)
                     .font(.system(size: 15, weight: .semibold))
                 Text(targetDescription)
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .lineLimit(1)
             }
 
@@ -98,7 +100,7 @@ struct SSHTestDetailView: View {
                 }
                 .padding(.horizontal, 4)
             }
-            .background(Color(.textBackgroundColor))
+            .background(appTheme.controlBackground)
             .cornerRadius(6)
             .onChange(of: logs.count) { _ in
                 if let last = logs.last {
@@ -116,11 +118,11 @@ struct SSHTestDetailView: View {
             case .step:
                 Image(systemName: "number")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(appTheme.accent)
                     .frame(width: 14, height: 14)
             case .log:
                 Rectangle()
-                    .fill(Color.secondary.opacity(0.4))
+                    .fill(appTheme.secondaryForeground.opacity(0.4))
                     .frame(width: 4, height: 4)
                     .cornerRadius(2)
                     .padding(.top, 5)
@@ -129,7 +131,7 @@ struct SSHTestDetailView: View {
 
             Text(item.text)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(item.kind == .step ? .primary : .secondary)
+                .foregroundColor(item.kind == .step ? appTheme.foreground : appTheme.secondaryForeground)
                 .textSelection(.enabled)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
@@ -155,7 +157,7 @@ struct SSHTestDetailView: View {
             } else {
                 Text("Testing, please wait...".localized)
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
             }
 
             Spacer()

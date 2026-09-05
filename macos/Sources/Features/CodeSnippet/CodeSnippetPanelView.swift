@@ -3,6 +3,8 @@ import SwiftUI
 
 /// 代码片段功能面板。
 struct CodeSnippetPanelView: View {
+    @Environment(\.appTheme) private var appTheme
+
     @ObservedObject private var store = CodeSnippetStore.shared
     let terminalController: TerminalController?
 
@@ -22,7 +24,7 @@ struct CodeSnippetPanelView: View {
             Button(action: { showAddSnippet() }) {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
@@ -31,7 +33,7 @@ struct CodeSnippetPanelView: View {
             Button(action: { showAddCategory() }) {
                 Image(systemName: "folder.badge.plus")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryForeground)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
@@ -53,7 +55,7 @@ struct CodeSnippetPanelView: View {
                     if items.isEmpty {
                         Text("No Snippets".localized)
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(appTheme.secondaryForeground)
                     } else {
                         ForEach(items) { snippet in
                             snippetRow(snippet)
@@ -72,12 +74,12 @@ struct CodeSnippetPanelView: View {
         HStack(spacing: 6) {
             Image(systemName: "folder")
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .frame(width: 16)
 
             Text("\(category.name) (\(store.snippets(for: category.id).count))")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
 
             Spacer()
         }
@@ -103,7 +105,7 @@ struct CodeSnippetPanelView: View {
         HStack(spacing: 6) {
             Image(systemName: iconName(for: snippet.type))
                 .font(.system(size: 11))
-                .foregroundColor(.accentColor)
+                .foregroundColor(appTheme.accent)
                 .frame(width: 16)
 
             Text(snippet.name)

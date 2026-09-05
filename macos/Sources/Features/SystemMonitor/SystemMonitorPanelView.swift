@@ -10,6 +10,8 @@ private enum SystemMonitorState {
 
 /// 右侧栏“系统监控”功能面板。
 struct SystemMonitorPanelView: View {
+    @Environment(\.appTheme) private var appTheme
+
     let terminalController: TerminalController?
 
     @StateObject private var service = SystemMonitorService()
@@ -43,12 +45,12 @@ struct SystemMonitorPanelView: View {
             Spacer()
             Image(systemName: "cpu")
                 .font(.system(size: 36))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Text("xtop not detected".localized)
                 .font(.system(size: 14, weight: .medium))
             Text("System Monitor requires xtop to be installed".localized)
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Button("Go to Install".localized) {
                 openXTopHomepage()
             }
@@ -87,20 +89,20 @@ struct SystemMonitorPanelView: View {
             if let cpu = service.latestOutput?.cpu {
                 VStack(alignment: .leading, spacing: 6) {
                     ProgressView(value: min(max(cpu.Overall / 100.0, 0), 1))
-                        .progressViewStyle(LinearProgressViewStyle(tint: .accentColor))
+                        .progressViewStyle(LinearProgressViewStyle(tint: appTheme.accent))
                     if !cpu.PerCore.isEmpty {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 28), spacing: 4), count: min(cpu.PerCore.count, 8)), spacing: 4) {
                             ForEach(Array(cpu.PerCore.enumerated()), id: \.offset) { idx, value in
                                 VStack(spacing: 2) {
                                     Text("\(idx)")
                                         .font(.system(size: 8))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(appTheme.secondaryForeground)
                                     GeometryReader { geo in
                                         ZStack(alignment: .bottom) {
                                             Rectangle()
-                                                .fill(Color.secondary.opacity(0.2))
+                                                .fill(appTheme.secondaryForeground.opacity(0.2))
                                             Rectangle()
-                                                .fill(Color.accentColor)
+                                                .fill(appTheme.accent)
                                                 .frame(height: geo.size.height * CGFloat(min(max(value / 100.0, 0), 1)))
                                         }
                                         .cornerRadius(2)
@@ -126,7 +128,7 @@ struct SystemMonitorPanelView: View {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Rectangle()
-                                .fill(Color.secondary.opacity(0.2))
+                                .fill(appTheme.secondaryForeground.opacity(0.2))
                             let usedRatio = mem.Total > 0 ? Double(mem.Used) / Double(mem.Total) : 0
                             let cachedRatio = mem.Total > 0 ? Double(mem.Cached) / Double(mem.Total) : 0
                             Rectangle()
@@ -144,7 +146,7 @@ struct SystemMonitorPanelView: View {
                     HStack(spacing: 16) {
                         MemoryLegendItem(color: .orange, label: "Used", value: mem.Used.formattedBytes())
                         MemoryLegendItem(color: .green, label: "Cached", value: mem.Cached.formattedBytes())
-                        MemoryLegendItem(color: .secondary.opacity(0.3), label: "Free", value: mem.Free.formattedBytes())
+                        MemoryLegendItem(color: appTheme.secondaryForeground.opacity(0.3), label: "Free", value: mem.Free.formattedBytes())
                     }
                 }
             } else {
@@ -170,7 +172,7 @@ struct SystemMonitorPanelView: View {
                                     .font(.system(size: 10, weight: .semibold))
                             }
                             ProgressView(value: min(max(mount.UsedPercent / 100.0, 0), 1))
-                                .progressViewStyle(LinearProgressViewStyle(tint: mount.UsedPercent > 90 ? .red : .accentColor))
+                                .progressViewStyle(LinearProgressViewStyle(tint: mount.UsedPercent > 90 ? .red : appTheme.accent))
                             HStack(spacing: 12) {
                                 Label(mount.ReadPerSec.formattedBytesPerSecond(), systemImage: "arrow.down.circle")
                                     .font(.system(size: 10))
@@ -209,11 +211,11 @@ struct SystemMonitorPanelView: View {
                                     HStack {
                                         Text("GPU Load".localized)
                                             .font(.system(size: 10))
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(appTheme.secondaryForeground)
                                         Spacer()
                                         Text(card.LoadPct.formattedPercent())
                                             .font(.system(size: 10))
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(appTheme.secondaryForeground)
                                     }
                                     ProgressView(value: min(max(card.LoadPct / 100.0, 0), 1))
                                         .progressViewStyle(LinearProgressViewStyle(tint: .purple))
@@ -223,16 +225,16 @@ struct SystemMonitorPanelView: View {
                                     HStack {
                                         Text("VRAM Usage".localized)
                                             .font(.system(size: 10))
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(appTheme.secondaryForeground)
                                         Spacer()
                                         if card.MemTotal > 0 {
                                             Text("\(gpuMemText(for: card)) (\(String(format: "%.2f", Double(card.MemUsed) / Double(card.MemTotal) * 100))%)")
                                                 .font(.system(size: 10))
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(appTheme.secondaryForeground)
                                         } else {
                                             Text(gpuMemText(for: card))
                                                 .font(.system(size: 10))
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(appTheme.secondaryForeground)
                                         }
                                     }
                                     if card.MemTotal > 0 {
@@ -244,10 +246,10 @@ struct SystemMonitorPanelView: View {
                                 HStack(spacing: 12) {
                                     Text(card.TempC.formattedCelsius())
                                         .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(appTheme.secondaryForeground)
                                     Text(card.PowerW.formattedWatts())
                                         .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(appTheme.secondaryForeground)
                                     Spacer()
                                 }
                             }
@@ -256,7 +258,7 @@ struct SystemMonitorPanelView: View {
                 } else {
                     Text(gpu.Message ?? "GPU unavailable".localized)
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             } else {
                 EmptyDataHint()
@@ -274,7 +276,7 @@ struct SystemMonitorPanelView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Upload")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                             Text(net.UploadPerSec.formattedBytesPerSecond())
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.green)
@@ -282,7 +284,7 @@ struct SystemMonitorPanelView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Download")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(appTheme.secondaryForeground)
                             Text(net.DownloadPerSec.formattedBytesPerSecond())
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.blue)
@@ -300,7 +302,7 @@ struct SystemMonitorPanelView: View {
                                     Spacer()
                                     Text("↑ \(proc.UploadPerSec.formattedBytesPerSecond())  ↓ \(proc.DownloadPerSec.formattedBytesPerSecond())")
                                         .font(.system(size: 9))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(appTheme.secondaryForeground)
                                 }
                             }
                         }
@@ -358,6 +360,8 @@ struct SystemMonitorPanelView: View {
 // MARK: - Card container
 
 private struct MonitorCard<Content: View>: View {
+    @Environment(\.appTheme) private var appTheme
+
     let title: String
     var headerValue: String?
     @ViewBuilder let content: Content
@@ -371,28 +375,32 @@ private struct MonitorCard<Content: View>: View {
                 if let headerValue {
                     Text(headerValue)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             }
             content
         }
         .padding(10)
-        .background(Color.black.opacity(0.15))
+        .background(appTheme.controlBackground)
         .cornerRadius(8)
     }
 }
 
 private struct EmptyDataHint: View {
+    @Environment(\.appTheme) private var appTheme
+
     var body: some View {
         Text("Waiting for data…".localized)
             .font(.system(size: 11))
-            .foregroundColor(.secondary)
+            .foregroundColor(appTheme.secondaryForeground)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 8)
     }
 }
 
 private struct MemoryLegendItem: View {
+    @Environment(\.appTheme) private var appTheme
+
     let color: Color
     let label: String
     let value: String
@@ -404,7 +412,7 @@ private struct MemoryLegendItem: View {
                 .frame(width: 6, height: 6)
             Text(label)
                 .font(.system(size: 10))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Text(value)
                 .font(.system(size: 10))
         }
@@ -412,6 +420,8 @@ private struct MemoryLegendItem: View {
 }
 
 private struct ProcessSection: View {
+    @Environment(\.appTheme) private var appTheme
+
     let title: String
     let procs: [XTopProcInfo]
     let valueFormatter: (XTopProcInfo) -> String
@@ -420,7 +430,7 @@ private struct ProcessSection: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             ForEach(procs.prefix(5)) { proc in
                 HStack {
                     Text(proc.Command)
@@ -429,7 +439,7 @@ private struct ProcessSection: View {
                     Spacer()
                     Text(valueFormatter(proc))
                         .font(.system(size: 9))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             }
         }

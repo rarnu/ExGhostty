@@ -730,6 +730,7 @@ final class SFTPPanelViewModel: ObservableObject {
 
 /// SFTP 功能主界面。
 struct SFTPPanelView: View {
+    @Environment(\.appTheme) private var appTheme
     @StateObject private var viewModel: SFTPPanelViewModel
 
     init(connection: SSHConnection, terminalController: TerminalController?) {
@@ -776,14 +777,14 @@ struct SFTPPanelView: View {
         HStack {
             Text(viewModel.currentPath)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
                 .lineLimit(1)
                 .truncationMode(.head)
             Spacer()
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(Color(.controlBackgroundColor).opacity(0.3))
+        .background(appTheme.controlBackground.opacity(0.3))
     }
 
     // MARK: - 工具栏
@@ -816,7 +817,7 @@ struct SFTPPanelView: View {
                 Text(label)
                     .font(.system(size: 10))
             }
-            .foregroundColor(.secondary)
+            .foregroundColor(appTheme.secondaryForeground)
             .frame(width: 44, height: 34)
         }
         .buttonStyle(.plain)
@@ -832,19 +833,19 @@ struct SFTPPanelView: View {
         return HStack {
             Text(L("Upload tasks: %d, Download tasks: %d", uploadCount, downloadCount))
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .foregroundColor(appTheme.secondaryForeground)
             Spacer()
             Button("Details".localized) { viewModel.openTaskListWindow() }
                 .font(.system(size: 12))
                 .buttonStyle(.plain)
-                .foregroundColor(.accentColor)
+                .foregroundColor(appTheme.accent)
                 // 增大可点击区域，让按钮更容易点中。
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
-        .background(Color(.controlBackgroundColor).opacity(0.2))
+        .background(appTheme.controlBackground.opacity(0.2))
     }
 
     // MARK: - 文件列表
@@ -914,14 +915,14 @@ struct SFTPPanelView: View {
             Button(action: { viewModel.toggleSelection(item) }) {
                 Image(systemName: viewModel.selectedItems.contains(item.id) ? "checkmark.square.fill" : "square")
                     .font(.system(size: 20))
-                    .foregroundColor(viewModel.selectedItems.contains(item.id) ? .accentColor : .secondary)
+                    .foregroundColor(viewModel.selectedItems.contains(item.id) ? appTheme.accent : appTheme.secondaryForeground)
             }
             .buttonStyle(.plain)
             .frame(width: 24)
 
             Image(systemName: item.isDirectory ? "folder" : "doc")
                 .font(.system(size: 20))
-                .foregroundColor(item.isDirectory ? .accentColor : .secondary)
+                .foregroundColor(item.isDirectory ? appTheme.accent : appTheme.secondaryForeground)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -931,7 +932,7 @@ struct SFTPPanelView: View {
                 if let size = item.size, !item.isDirectory {
                     Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryForeground)
                 }
             }
             Spacer()
@@ -940,7 +941,7 @@ struct SFTPPanelView: View {
         .padding(.horizontal, 8)
         .background(
             viewModel.selectedItems.contains(item.id)
-                ? Color.accentColor.opacity(0.2)
+                ? appTheme.selectionBackground
                 : Color.clear
         )
         .contentShape(Rectangle())
