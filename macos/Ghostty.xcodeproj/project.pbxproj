@@ -764,7 +764,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty;
 				PRODUCT_MODULE_NAME = Ghostty;
@@ -861,7 +861,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-dock-tile";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -890,7 +890,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-dock-tile";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -919,7 +919,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-dock-tile";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1165,7 +1165,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty;
 				PRODUCT_MODULE_NAME = Ghostty;
@@ -1222,7 +1222,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xjai.exghostty;
 				PRODUCT_MODULE_NAME = Ghostty;
@@ -1260,7 +1260,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1299,7 +1299,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1338,7 +1338,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 0.1.12;
+				MARKETING_VERSION = 0.1.13;
 				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.xjai.exghostty-ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
