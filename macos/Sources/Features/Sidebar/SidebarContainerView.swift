@@ -399,6 +399,12 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             onSelectTab: { target in
                 target.makeKeyAndOrderFront(nil)
                 if let tg = window.tabGroup { tg.selectedWindow = target }
+                // 与快捷键切换标签一致：激活窗口后还要把键盘焦点移到目标终端的
+                // surface，否则 first responder 可能不在终端上，快捷键随之失效。
+                if let controller = target.windowController as? BaseTerminalController,
+                   let surface = controller.focusedSurface {
+                    controller.focusSurface(surface)
+                }
             },
             onCloseTab: { target in target.close() }
         )

@@ -1615,6 +1615,14 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         guard finalIndex >= 0 else { return }
         let targetWindow = tabbedWindows[finalIndex]
         targetWindow.makeKeyAndOrderFront(nil)
+
+        // 把键盘焦点明确移到新标签的终端 surface：makeKeyAndOrderFront 只激活窗口，
+        // first responder 可能仍停留在旧标签的 surface（或其他视图）上，导致下一次
+        // 快捷键的按键事件到不了 libghostty，表现为"切换一次后快捷键失效"。
+        if let targetController = targetWindow.windowController as? BaseTerminalController,
+           let surface = targetController.focusedSurface {
+            targetController.focusSurface(surface)
+        }
     }
 
     @objc private func onCloseTab(notification: SwiftUI.Notification) {
