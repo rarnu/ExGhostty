@@ -209,7 +209,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
             tabBarHostingView.topAnchor.constraint(equalTo: rightContainer.topAnchor),
             tabBarHostingView.leadingAnchor.constraint(equalTo: rightContainer.leadingAnchor),
             tabBarHostingView.trailingAnchor.constraint(equalTo: rightContainer.trailingAnchor),
-            tabBarHostingView.heightAnchor.constraint(equalToConstant: 28),
+            tabBarHostingView.heightAnchor.constraint(equalToConstant: 36),
 
             terminalContentView.topAnchor.constraint(equalTo: tabBarHostingView.bottomAnchor),
             terminalContentView.leadingAnchor.constraint(equalTo: rightContainer.leadingAnchor),
