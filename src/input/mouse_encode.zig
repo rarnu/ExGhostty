@@ -162,7 +162,14 @@ pub fn encode(
         }),
 
         .sgr_pixels => {
-            const pixels = posToPixels(event.pos, opts.size);
+            const raw = posToPixels(event.pos, opts.size);
+            // Terminal-space pixel coordinates go negative when the
+            // cursor is in the padding area; clamp them like grid cell
+            // conversion does so we never emit malformed reports.
+            const pixels: PixelPoint = .{
+                .x = @max(0, raw.x),
+                .y = @max(0, raw.y),
+            };
             try writer.print("\x1B[<{d};{d};{d}{c}", .{
                 button_code,
                 pixels.x,
@@ -664,6 +671,25 @@ test "sgr pixels release keeps button identity" {
     });
 
     try testing.expectEqualStrings("\x1B[<2;10;20m", writer.buffered());
+}
+
+test "sgr pixels clamps negative terminal-space coordinates" {
+    var data: [32]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&data);
+    var last: ?point.Coordinate = null;
+    try encode(&writer, .{
+        .button = .left,
+        .action = .motion,
+        .pos = .{ .x = -1, .y = -1 },
+    }, .{
+        .event = .any,
+        .format = .sgr_pixels,
+        .size = testSize(),
+        .any_button_pressed = true,
+        .last_cell = &last,
+    });
+
+    try testing.expectEqualStrings("\x1B[<32;0;0M", writer.buffered());
 }
 
 test "position exactly at viewport boundary is encoded in final cell" {
