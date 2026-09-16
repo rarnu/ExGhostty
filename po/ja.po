@@ -1426,3 +1426,21 @@ msgstr "ログイン後、sudo su で対象ユーザーに自動的に切り替�
 
 msgid "Duplicate"
 msgstr "複製"
+
+msgid "Access as Desktop"
+msgstr "デスクトップとしてアクセス"
+
+msgid "Requires the sshdesk service installed on the target host. "
+msgstr "ターゲットホストにsshdeskサービスのインストールが必要です。"
+
+msgid "Click for details"
+msgstr "詳細はこちら"
+
+msgid "Testing desktop access (sshdesk)"
+msgstr "デスクトップアクセス（sshdesk）をテスト中"
+
+msgid "Connection and desktop access tests passed (sshdesk service available)"
+msgstr "接続とデスクトップアクセスのテストに合格しました（sshdeskサービス利用可能）"
+
+msgid "Connection test passed, but desktop access test failed: sshdesk service is not available on the target host"
+msgstr "接続テストは合格しましたが、デスクトップアクセステストに失敗しました：ターゲットホストでsshdeskサービスが利用できません"

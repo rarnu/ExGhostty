@@ -1576,3 +1576,21 @@ msgstr "使用 %@ 打开目录"
 
 msgid "Edit with %@"
 msgstr "使用 %@ 编辑"
+
+msgid "Access as Desktop"
+msgstr "作为桌面访问"
+
+msgid "Requires the sshdesk service installed on the target host. "
+msgstr "需要目标主机安装sshdesk服务，"
+
+msgid "Click for details"
+msgstr "点击查看详情"
+
+msgid "Testing desktop access (sshdesk)"
+msgstr "正在测试桌面访问（sshdesk）"
+
+msgid "Connection and desktop access tests passed (sshdesk service available)"
+msgstr "连接与桌面访问测试通过（sshdesk 服务可用）"
+
+msgid "Connection test passed, but desktop access test failed: sshdesk service is not available on the target host"
+msgstr "连接测试通过，但桌面访问测试失败：目标主机上的 sshdesk 服务不可用"

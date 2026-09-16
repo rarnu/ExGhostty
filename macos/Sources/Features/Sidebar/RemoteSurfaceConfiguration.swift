@@ -89,8 +89,13 @@ enum RemoteSurfaceConfiguration {
         // 远端命令先打印一个随机标记再 exec 登录 shell，expect 匹配到标记即表示远端 shell
         // 已就绪——避免盲发切换命令：过早发送的命令会被首次连接的主机密钥确认提示（yes/no）
         // 吞掉，导致连接中止。标记匹配超时则放弃本次自动切换，终端停留在登录用户。
-        let identity = conn.effectiveIdentity
+        // 桌面访问（sshdesk）直接进入图形会话，不经过登录 shell，身份切换不适用。
+        let identity = conn.desktopAccess ? nil : conn.effectiveIdentity
         var spawnLine = "spawn /usr/bin/ssh \(conn.sshBaseArgs)"
+        if conn.desktopAccess {
+            // sshdesk：只有精确的远端命令 `desktop` 会进入图形会话，且必须分配 PTY（-t）。
+            spawnLine = "spawn /usr/bin/ssh -t \(conn.sshBaseArgs) desktop"
+        }
         var identitySnippet = ""
         if let identity {
             let token = String((0..<8).map { _ in "abcdefghijklmnopqrstuvwxyz0123456789".randomElement()! })

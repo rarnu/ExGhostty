@@ -107,6 +107,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
     /// 是否启用 X11 转发
     var x11Forwarding: Bool
 
+    /// 作为桌面访问：连接命令变为 `ssh -t user@host desktop`，
+    /// 需要目标主机安装 sshdesk 服务（https://github.com/rarnu/sshdesk-go）。
+    var desktopAccess: Bool
+
     /// 用户身份：登录后自动 sudo su 到指定用户，后续一切远程操作
     /// （SFTP、Docker、System Monitor 等）均以该用户身份执行。
     var identitySwitchEnabled: Bool
@@ -145,6 +149,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
             heartbeatMs: heartbeatMs,
             encoding: encoding,
             x11Forwarding: x11Forwarding,
+            desktopAccess: desktopAccess,
             identitySwitchEnabled: identitySwitchEnabled,
             identityUsername: identityUsername,
             identityPassword: identityPassword
@@ -170,6 +175,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         heartbeatMs: UInt32 = 30000,
         encoding: String = SSHTerminalEncoding.utf8.rawValue,
         x11Forwarding: Bool = false,
+        desktopAccess: Bool = false,
         identitySwitchEnabled: Bool = false,
         identityUsername: String = "",
         identityPassword: String = ""
@@ -192,6 +198,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.heartbeatMs = heartbeatMs
         self.encoding = encoding
         self.x11Forwarding = x11Forwarding
+        self.desktopAccess = desktopAccess
         self.identitySwitchEnabled = identitySwitchEnabled
         self.identityUsername = identityUsername
         self.identityPassword = identityPassword
@@ -220,6 +227,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         self.heartbeatMs = try container.decodeIfPresent(UInt32.self, forKey: .heartbeatMs) ?? 30000
         self.encoding = try container.decodeIfPresent(String.self, forKey: .encoding) ?? SSHTerminalEncoding.utf8.rawValue
         self.x11Forwarding = try container.decodeIfPresent(Bool.self, forKey: .x11Forwarding) ?? false
+        self.desktopAccess = try container.decodeIfPresent(Bool.self, forKey: .desktopAccess) ?? false
         self.identitySwitchEnabled = try container.decodeIfPresent(Bool.self, forKey: .identitySwitchEnabled) ?? false
         self.identityUsername = try container.decodeIfPresent(String.self, forKey: .identityUsername) ?? ""
         self.identityPassword = PasswordCipher.decrypt(try container.decodeIfPresent(String.self, forKey: .identityPassword) ?? "")
@@ -246,6 +254,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         try container.encode(heartbeatMs, forKey: .heartbeatMs)
         try container.encode(encoding, forKey: .encoding)
         try container.encode(x11Forwarding, forKey: .x11Forwarding)
+        try container.encode(desktopAccess, forKey: .desktopAccess)
         try container.encode(identitySwitchEnabled, forKey: .identitySwitchEnabled)
         try container.encode(identityUsername, forKey: .identityUsername)
         try container.encode(PasswordCipher.encrypt(identityPassword), forKey: .identityPassword)
@@ -255,6 +264,7 @@ struct SSHConnection: Identifiable, Codable, Hashable {
         case id, name, host, port, username, groupID, type
         case authMode, password, connectionPassword, keyPath, connectionMethod, jumpHostID, notes
         case timeoutMs, heartbeatMs, encoding, x11Forwarding
+        case desktopAccess
         case identitySwitchEnabled, identityUsername, identityPassword
     }
 
@@ -303,7 +313,10 @@ struct SSHConnection: Identifiable, Codable, Hashable {
 
     /// 生成完整 SSH 命令行字符串
     var sshCommand: String {
-        "ssh \(sshBaseArgs)"
+        if desktopAccess {
+            return "ssh -t \(sshBaseArgs) desktop"
+        }
+        return "ssh \(sshBaseArgs)"
     }
 
     /// 生成完整 Telnet 命令行字符串

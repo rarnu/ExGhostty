@@ -1572,3 +1572,21 @@ msgstr "使用 %@ 開啟目錄"
 
 msgid "Edit with %@"
 msgstr "使用 %@ 編輯"
+
+msgid "Access as Desktop"
+msgstr "作為桌面存取"
+
+msgid "Requires the sshdesk service installed on the target host. "
+msgstr "需要目標主機安裝sshdesk服務，"
+
+msgid "Click for details"
+msgstr "點擊查看詳情"
+
+msgid "Testing desktop access (sshdesk)"
+msgstr "正在測試桌面存取（sshdesk）"
+
+msgid "Connection and desktop access tests passed (sshdesk service available)"
+msgstr "連線與桌面存取測試通過（sshdesk 服務可用）"
+
+msgid "Connection test passed, but desktop access test failed: sshdesk service is not available on the target host"
+msgstr "連線測試通過，但桌面存取測試失敗：目標主機上的 sshdesk 服務不可用"

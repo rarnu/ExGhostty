@@ -43,6 +43,7 @@ struct SSHConfigFormView: View {
     @State private var heartbeatMs = "30000"
     @State private var encoding: String = SSHTerminalEncoding.utf8.rawValue
     @State private var x11Forwarding = false
+    @State private var desktopAccess = false
     @State private var identitySwitchEnabled = false
     @State private var identityUsername = ""
     @State private var identityPassword = ""
@@ -83,6 +84,7 @@ struct SSHConfigFormView: View {
             _heartbeatMs = State(initialValue: String(conn.heartbeatMs))
             _encoding = State(initialValue: conn.encoding)
             _x11Forwarding = State(initialValue: conn.x11Forwarding)
+            _desktopAccess = State(initialValue: conn.desktopAccess)
             _identitySwitchEnabled = State(initialValue: conn.identitySwitchEnabled)
             _identityUsername = State(initialValue: conn.identityUsername)
             _identityPassword = State(initialValue: conn.identityPassword)
@@ -100,6 +102,7 @@ struct SSHConfigFormView: View {
                     authSection
                     groupSection
                     connectionMethodSection
+                    desktopSection
                     identitySection
                     notesSection
                     advancedSection
@@ -349,6 +352,41 @@ struct SSHConfigFormView: View {
         return false
     }
 
+    // MARK: - 桌面访问
+
+    /// 「作为桌面访问」：通过 sshdesk 把 SSH 会话当作远程桌面使用，
+    /// 连接命令变为 `ssh -t user@host desktop`。
+    private var desktopSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle("Access as Desktop".localized, isOn: $desktopAccess)
+                .font(.system(size: 12, weight: .medium))
+
+            HStack(spacing: 0) {
+                Text("Requires the sshdesk service installed on the target host. ".localized)
+                    .font(.system(size: 11))
+                    .foregroundColor(appTheme.secondaryForeground)
+
+                Button(action: {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/rarnu/sshdesk-go")!)
+                }) {
+                    Text("Click for details".localized)
+                        .font(.system(size: 11))
+                        .foregroundColor(appTheme.accent)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     // MARK: - 用户身份
 
     /// 「用户身份」设置：登录后自动 sudo su 到目标用户，
@@ -558,7 +596,7 @@ struct SSHConfigFormView: View {
     }
 
     private var testSignature: String {
-        "\(name)\(host)\(port)\(username)\(authMode.rawValue)\(password)\(keyPath)\(connectionMethod.rawValue)\(jumpHostID?.uuidString ?? "")"
+        "\(name)\(host)\(port)\(username)\(authMode.rawValue)\(password)\(keyPath)\(connectionMethod.rawValue)\(jumpHostID?.uuidString ?? "")\(desktopAccess)"
     }
 
     private func label(_ text: String) -> some View {
@@ -611,7 +649,8 @@ struct SSHConfigFormView: View {
             timeoutMs: UInt32(timeoutMs) ?? 30000,
             heartbeatMs: UInt32(heartbeatMs) ?? 0,
             encoding: encoding,
-            x11Forwarding: x11Forwarding
+            x11Forwarding: x11Forwarding,
+            desktopAccess: desktopAccess
         )
 
         let detailView = SSHTestDetailView(config: testConfig) { success in
@@ -666,6 +705,7 @@ struct SSHConfigFormView: View {
                 heartbeatMs: heartbeat,
                 encoding: encoding,
                 x11Forwarding: x11Forwarding,
+                desktopAccess: desktopAccess,
                 identitySwitchEnabled: identitySwitchEnabled,
                 identityUsername: identityUsername,
                 identityPassword: identityPassword
@@ -688,6 +728,7 @@ struct SSHConfigFormView: View {
                 heartbeatMs: heartbeat,
                 encoding: encoding,
                 x11Forwarding: x11Forwarding,
+                desktopAccess: desktopAccess,
                 identitySwitchEnabled: identitySwitchEnabled,
                 identityUsername: identityUsername,
                 identityPassword: identityPassword

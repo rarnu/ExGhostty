@@ -15,6 +15,8 @@ struct SSHTestConfig {
     let heartbeatMs: UInt32
     let encoding: String
     let x11Forwarding: Bool
+    /// 作为桌面访问（sshdesk）：连接测试通过后追加桌面可用性测试。
+    let desktopAccess: Bool
 
     var encodingEnvironment: [String: String] {
         [
@@ -118,7 +120,21 @@ enum SSHTester {
                 targetDescription = "Password empty; testing network connectivity only".localized
             } else {
                 emit(.step("Using expect to auto-enter password for authentication test".localized))
-                await testWithExpect(config: config, emit: emit)
+                let authResult = await testWithExpect(config: config, remoteCommand: "exit", emit: emit)
+                switch authResult {
+                case .success:
+                    if config.desktopAccess {
+                        await runDesktopTest(config: config, emit: emit)
+                    } else {
+                        emit(.success("Connection test passed (password authentication)".localized))
+                    }
+                case .failure(let error):
+                    if case TestError.connectionFailed(let msg) = error, msg.contains("timed out") {
+                        emit(.failure("Connection timed out. Check address, port, and jump host reachability.".localized))
+                    } else {
+                        emit(.failure(error.localizedDescription))
+                    }
+                }
                 return
             }
         case .key:
@@ -156,19 +172,74 @@ enum SSHTester {
 
         switch result {
         case .success:
-            emit(.success(L("Connection test passed (%@)", targetDescription)))
+            if config.desktopAccess {
+                await runDesktopTest(config: config, emit: emit)
+            } else {
+                emit(.success(L("Connection test passed (%@)", targetDescription)))
+            }
         case .failure(let error):
             emit(.failure(error.localizedDescription))
         }
     }
 
-    private static func testWithExpect(
+    /// 桌面访问测试：通过 `sshdesk-agent info` 探测目标主机是否安装并响应
+    /// sshdesk 服务（精确的 `desktop` 选择器会进入图形会话流，不适合测试）。
+    private static func runDesktopTest(
         config: SSHTestConfig,
         emit: @escaping (SSHTestEvent) -> Void
     ) async {
+        emit(.step("Testing desktop access (sshdesk)".localized))
+
+        let result: Result<Void, Error>
+        if config.authMode == .password && !config.password.isEmpty {
+            result = await testWithExpect(config: config, remoteCommand: "sshdesk-agent info", emit: emit)
+        } else {
+            var sshArgs: [String] = ["-o", "BatchMode=yes"]
+            sshArgs += commonSSHOptions(config: config)
+
+            if config.connectionMethod == .jumpHost, let jump = config.jumpHost {
+                let jumpUser = jump.username.isEmpty ? "" : "\(jump.username)@"
+                let jumpPort = jump.port == 22 ? "" : ":\(jump.port)"
+                sshArgs += ["-J", "\(jumpUser)\(jump.host)\(jumpPort)"]
+            }
+
+            if config.authMode == .key, let keyPath = config.keyPath {
+                sshArgs += ["-i", keyPath, "-o", "IdentitiesOnly=yes"]
+            }
+
+            let userPrefix = config.username.isEmpty ? "" : "\(config.username)@"
+            sshArgs += ["\(userPrefix)\(config.host)"]
+            if config.port != 22 {
+                sshArgs += ["-p", String(config.port)]
+            }
+            sshArgs += ["sshdesk-agent", "info"]
+
+            emit(.log("$ ssh \(sshArgs.joined(separator: " "))"))
+            result = await runProcess(
+                executable: "/usr/bin/ssh",
+                args: sshArgs,
+                env: ["SSH_AUTH_SOCK": ""].merging(config.encodingEnvironment) { $1 },
+                emit: emit
+            )
+        }
+
+        switch result {
+        case .success:
+            emit(.success("Connection and desktop access tests passed (sshdesk service available)".localized))
+        case .failure:
+            emit(.failure("Connection test passed, but desktop access test failed: sshdesk service is not available on the target host".localized))
+        }
+    }
+
+    /// 通过 expect 自动回答密码提示执行一次 SSH 远程命令。
+    /// 只投递步骤与日志事件，最终结果由调用方根据返回值投递。
+    private static func testWithExpect(
+        config: SSHTestConfig,
+        remoteCommand: String,
+        emit: @escaping (SSHTestEvent) -> Void
+    ) async -> Result<Void, Error> {
         guard FileManager.default.isExecutableFile(atPath: "/usr/bin/expect") else {
-            emit(.failure(TestError.expectNotFound.localizedDescription))
-            return
+            return .failure(TestError.expectNotFound)
         }
 
         emit(.step("Checking system expect command".localized))
@@ -187,7 +258,7 @@ enum SSHTester {
         }
 
         let userPrefix = config.username.isEmpty ? "" : "\(config.username)@"
-        sshArgs += " \(userPrefix)\(config.host) exit"
+        sshArgs += " \(userPrefix)\(config.host) \(remoteCommand)"
 
         let script = #"""
         set timeout 60
@@ -221,8 +292,7 @@ enum SSHTester {
         do {
             try script.write(to: tempURL, atomically: true, encoding: .utf8)
         } catch {
-            emit(.failure(L("Failed to write expect script: %@", error.localizedDescription)))
-            return
+            return .failure(error)
         }
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
@@ -230,23 +300,12 @@ enum SSHTester {
         emit(.log("$ ssh \(sshArgs)"))
         emit(.step("Executing expect password auto-entry test".localized))
 
-        let result = await runProcess(
+        return await runProcess(
             executable: "/usr/bin/expect",
             args: [tempURL.path],
             env: ["SSHPASS": config.password, "SSH_AUTH_SOCK": ""].merging(config.encodingEnvironment) { $1 },
             emit: emit
         )
-
-        switch result {
-        case .success:
-            emit(.success("Connection test passed (password authentication)".localized))
-        case .failure(let error):
-            if case TestError.connectionFailed(let msg) = error, msg.contains("timed out") {
-                emit(.failure("Connection timed out. Check address, port, and jump host reachability.".localized))
-            } else {
-                emit(.failure(error.localizedDescription))
-            }
-        }
     }
 
     private static func commonSSHOptions(config: SSHTestConfig) -> [String] {
