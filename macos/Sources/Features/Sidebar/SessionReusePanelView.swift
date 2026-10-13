@@ -65,7 +65,6 @@ final class SessionReusePanelViewModel: ObservableObject {
     init(terminalController: TerminalController?) {
         self.terminalController = terminalController
         self.connection = terminalController?.sshConnection
-        detectHostOS()
         Task { @MainActor in
             self.refresh()
         }
@@ -85,24 +84,19 @@ final class SessionReusePanelViewModel: ObservableObject {
         errorMessage = nil
 
         Task {
-            async let tmuxInstalledTask = checkInstalled(command: "tmux")
-            async let rmuxInstalledTask = checkInstalled(command: "rmux")
-            async let zellijInstalledTask = checkInstalled(command: "zellij")
-
-            let tmuxInstalled = await tmuxInstalledTask
-            let rmuxInstalled = await rmuxInstalledTask
-            let zellijInstalled = await zellijInstalledTask
-
-            async let tmuxSessionsTask = tmuxInstalled ? listTmuxSessions() : []
-            async let rmuxSessionsTask = rmuxInstalled ? listRmuxSessions() : []
-            async let zellijSessionsTask = zellijInstalled ? listZellijSessions() : []
-
-            self.tmuxInstalled = tmuxInstalled
-            self.rmuxInstalled = rmuxInstalled
-            self.zellijInstalled = zellijInstalled
-            self.tmuxSessions = await tmuxSessionsTask
-            self.rmuxSessions = await rmuxSessionsTask
-            self.zellijSessions = await zellijSessionsTask
+            let snapshot = await fetchSnapshot()
+            // 仅成功时覆盖状态；失败（断网/合盖唤醒瞬间）保留旧数据，避免面板闪空。
+            if let snapshot {
+                if let os = snapshot.hostOS { self.hostOS = os }
+                self.tmuxInstalled = snapshot.tmuxInstalled
+                self.rmuxInstalled = snapshot.rmuxInstalled
+                self.zellijInstalled = snapshot.zellijInstalled
+                self.tmuxSessions = snapshot.tmuxSessions
+                self.rmuxSessions = snapshot.rmuxSessions
+                self.zellijSessions = snapshot.zellijSessions
+            } else {
+                self.errorMessage = "Failed to refresh session list".localized
+            }
             self.isLoading = false
         }
     }
@@ -124,187 +118,121 @@ final class SessionReusePanelViewModel: ObservableObject {
         refreshTimer = nil
     }
 
-    // MARK: - 主机系统检测
+    // MARK: - 单次远程探测
 
-    private func detectHostOS() {
-        Task {
-            do {
-                let output: String
-                if let connection = connection {
-                    output = try await SSHCommandExecutor.shared.execute(
-                        remoteCommand: "uname -s",
-                        connection: connection
-                    )
-                } else {
-                    output = try await ProcessRunner.run(shellCommand: "uname -s")
+    /// 一次刷新所需的全部信息快照。
+    private struct Snapshot {
+        var hostOS: HostOS?
+        var tmuxPath = ""
+        var rmuxPath = ""
+        var zellijPath = ""
+        var tmuxSessions: [String] = []
+        var rmuxSessions: [String] = []
+        var zellijSessions: [String] = []
+
+        var tmuxInstalled: Bool { !tmuxPath.isEmpty }
+        var rmuxInstalled: Bool { !rmuxPath.isEmpty }
+        var zellijInstalled: Bool { !zellijPath.isEmpty }
+    }
+
+    /// 单条命令完成 OS 探测、tmux/rmux/zellij 安装探测（含可执行文件路径）与会话列举。
+    ///
+    /// 此前每次刷新要执行约 10 条命令（每个工具探测路径、登录 shell 回退、列表各一次），
+    /// 而 SSHCommandExecutor 是 actor，所有命令串行排队；控制通道失效时每条命令还要各做
+    /// 一次完整 SSH 握手，断网/合盖唤醒后一次刷新可拖到 30 秒以上。合并为单条命令后，
+    /// 每次刷新只有一次远程往返（控制通道存活时约百毫秒级）。
+    private static let probeScript = """
+    uname -s
+    probe() {
+      p=""
+      for c in "/opt/homebrew/bin/$1" "/usr/local/bin/$1" "/opt/local/bin/$1" "$HOME/.cargo/bin/$1"; do
+        if [ -x "$c" ]; then p="$c"; break; fi
+      done
+      if [ -z "$p" ]; then p=$(command -v "$1" 2>/dev/null); fi
+      if [ -z "$p" ] && [ -n "$SHELL" ]; then p=$("$SHELL" -l -c "command -v $1" 2>/dev/null | head -n 1); fi
+      printf 'PATH:%s:%s\\n' "$1" "$p"
+      if [ -n "$p" ]; then
+        printf 'BEGIN:%s\\n' "$1"
+        case "$1" in
+          tmux|rmux) "$p" list-sessions -F '#S' 2>/dev/null ;;
+          zellij) "$p" list-sessions 2>/dev/null ;;
+        esac
+        printf 'END:%s\\n' "$1"
+      fi
+    }
+    probe tmux
+    probe rmux
+    probe zellij
+    """
+
+    /// 执行探测脚本并解析结果；失败返回 nil（调用方保留旧数据）。
+    private func fetchSnapshot() async -> Snapshot? {
+        do {
+            let output: String
+            if let connection {
+                output = try await SSHCommandExecutor.shared.execute(
+                    remoteCommand: Self.probeScript,
+                    connection: connection
+                )
+            } else {
+                output = try await ProcessRunner.run(shellCommand: Self.probeScript)
+            }
+            return parseSnapshot(output)
+        } catch {
+            return nil
+        }
+    }
+
+    /// 解析探测脚本输出。只认行首标记（PATH:/BEGIN:/END:）与整行 OS 名，
+    /// 对远端 shell 在 stdout 打印的 banner 噪音有容忍度。
+    private func parseSnapshot(_ output: String) -> Snapshot {
+        var snapshot = Snapshot()
+        var section: String?
+        for line in output.components(separatedBy: "\n") {
+            let text = line.hasSuffix("\r") ? String(line.dropLast()) : line
+            if text == "Darwin" { snapshot.hostOS = .macOS; continue }
+            if text == "Linux" { snapshot.hostOS = .linux; continue }
+            if text.hasPrefix("PATH:") {
+                let parts = text.split(separator: ":", maxSplits: 2).map(String.init)
+                guard parts.count == 3 else { continue }
+                switch parts[1] {
+                case "tmux": snapshot.tmuxPath = parts[2]
+                case "rmux": snapshot.rmuxPath = parts[2]
+                case "zellij": snapshot.zellijPath = parts[2]
+                default: break
                 }
-                let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                let detected: HostOS? = switch trimmed {
-                case "Darwin": .macOS
-                case "Linux": .linux
-                default: nil
+                continue
+            }
+            if text.hasPrefix("BEGIN:") {
+                section = String(text.dropFirst(6))
+                continue
+            }
+            if text.hasPrefix("END:") {
+                section = nil
+                continue
+            }
+            guard let section, !text.isEmpty else { continue }
+            switch section {
+            case "tmux":
+                snapshot.tmuxSessions.append(text)
+            case "rmux":
+                snapshot.rmuxSessions.append(text)
+            case "zellij":
+                // zellij list-sessions 带 ANSI 颜色与附加说明，取每行首个词。
+                let cleaned = text.strippingANSISequences()
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if let first = cleaned.split(separator: " ", omittingEmptySubsequences: true).first {
+                    snapshot.zellijSessions.append(String(first))
                 }
-                await MainActor.run {
-                    self.hostOS = detected
-                }
-            } catch {
-                await MainActor.run {
-                    self.hostOS = nil
-                }
+            default:
+                break
             }
         }
+        return snapshot
     }
 
     private func currentOS() -> HostOS {
         hostOS ?? .linux
-    }
-
-    // MARK: - 工具安装检测
-
-    private func checkInstalled(command: String) async -> Bool {
-        if let connection = connection {
-            if await remoteExecutablePath(for: command, connection: connection) != nil {
-                return true
-            }
-            let fallback = """
-            if [ -n "$SHELL" ]; then "$SHELL" -l -c "command -v \(command)"; else command -v \(command); fi
-            """
-            do {
-                _ = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: fallback,
-                    connection: connection
-                )
-                return true
-            } catch {
-                return false
-            }
-        } else {
-            if localExecutablePath(for: command) != nil {
-                return true
-            }
-            do {
-                _ = try await ProcessRunner.run(shellCommand: "which \(command)")
-                return true
-            } catch {
-                return false
-            }
-        }
-    }
-
-    // MARK: - 会话列表
-
-    private func listTmuxSessions() async -> [String] {
-        do {
-            let executable: String
-            let output: String
-            if let connection = connection {
-                executable = await remoteExecutablePath(for: "tmux", connection: connection) ?? "tmux"
-                output = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "\(executable.singleQuotedShellArgument()) list-sessions -F '#S'",
-                    connection: connection
-                )
-            } else {
-                executable = localExecutablePath(for: "tmux") ?? "command tmux"
-                output = try await ProcessRunner.run(shellCommand: "\(executable) list-sessions -F '#S'")
-            }
-            return output
-                .split(separator: "\n", omittingEmptySubsequences: true)
-                .map(String.init)
-        } catch {
-            // 远端 tmux 服务器未运行时返回错误，按无会话处理。
-            return []
-        }
-    }
-
-    private func listRmuxSessions() async -> [String] {
-        do {
-            let executable: String
-            let output: String
-            if let connection = connection {
-                executable = await remoteExecutablePath(for: "rmux", connection: connection) ?? "rmux"
-                output = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "\(executable.singleQuotedShellArgument()) list-sessions -F '#S'",
-                    connection: connection
-                )
-            } else {
-                executable = localExecutablePath(for: "rmux") ?? "command rmux"
-                output = try await ProcessRunner.run(shellCommand: "\(executable) list-sessions -F '#S'")
-            }
-            return output
-                .split(separator: "\n", omittingEmptySubsequences: true)
-                .map(String.init)
-        } catch {
-            // 远端 rmux 服务器未运行时返回错误，按无会话处理。
-            return []
-        }
-    }
-
-    private func listZellijSessions() async -> [String] {
-        do {
-            let executable: String
-            let output: String
-            if let connection = connection {
-                executable = await remoteExecutablePath(for: "zellij", connection: connection) ?? "zellij"
-                output = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "\(executable.singleQuotedShellArgument()) list-sessions",
-                    connection: connection
-                )
-            } else {
-                executable = localExecutablePath(for: "zellij") ?? "zellij"
-                output = try await ProcessRunner.run(shellCommand: "\(executable) list-sessions")
-            }
-            return output
-                .split(separator: "\n", omittingEmptySubsequences: true)
-                .compactMap { line in
-                    let cleaned = String(line).strippingANSISequences()
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !cleaned.isEmpty else { return nil }
-                    let first = cleaned.split(separator: " ", omittingEmptySubsequences: true).first
-                    return first.map(String.init)
-                }
-        } catch {
-            return []
-        }
-    }
-
-    // MARK: - 可执行文件定位
-
-    /// macOS 上常见安装路径（Homebrew Apple/Intel、MacPorts、cargo）。
-    private func candidatePaths(for command: String) -> [String] {
-        [
-            "/opt/homebrew/bin/\(command)",
-            "/usr/local/bin/\(command)",
-            "/opt/local/bin/\(command)",
-            "~/.cargo/bin/\(command)",
-        ]
-    }
-
-    private func localExecutablePath(for command: String) -> String? {
-        for path in candidatePaths(for: command) {
-            let expanded = path.replacingOccurrences(of: "~", with: NSHomeDirectory())
-            if FileManager.default.isExecutableFile(atPath: expanded) {
-                return expanded
-            }
-        }
-        return nil
-    }
-
-    private func remoteExecutablePath(for command: String, connection: SSHConnection) async -> String? {
-        let tests = candidatePaths(for: command)
-            .map { "test -x \($0) && echo \($0)" }
-            .joined(separator: " || ")
-        do {
-            let output = try await SSHCommandExecutor.shared.execute(
-                remoteCommand: tests,
-                connection: connection
-            )
-            let path = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                .components(separatedBy: .newlines)
-                .first
-            return path?.isEmpty == false ? path : nil
-        } catch {
-            return nil
-        }
     }
 
     // MARK: - 发送到终端

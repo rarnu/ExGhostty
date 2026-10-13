@@ -168,8 +168,10 @@ class PortForwardStore: ObservableObject {
 
     /// 自动重连的固定间隔（不做指数退避）。
     private let reconnectDelay: TimeInterval = 3
-    /// 连续失败达到此次数后停止重连并弹窗通知用户。
+    /// 连续失败达到此次数后转入慢速静默重试（不弹窗、不打扰用户）。
     private let maxConsecutiveFailures = 5
+    /// 慢速静默重试的间隔（应对合盖唤醒/断网后的长时间不可用）。
+    private let slowReconnectDelay: TimeInterval = 15
     /// 进程存活超过该时长视为已稳定，之后的断开属于正常保活重连，不计入失败次数。
     private let stabilityThreshold: TimeInterval = 15
     /// 健康检查间隔与启动宽限期（宽限期内不判定端口状态）。
@@ -404,20 +406,22 @@ class PortForwardStore: ObservableObject {
         } else {
             let failures = (consecutiveFailures[id] ?? 0) + 1
             consecutiveFailures[id] = failures
-            if failures >= maxConsecutiveFailures {
-                logger.error("""
-                    Port forward \"\(ruleName)\" failed to reconnect \(failures) times, giving up.
+            // 连续失败达到阈值后不再弹窗打扰用户（睡眠唤醒/断网是常态），
+            // 转入慢速静默重试：每 slowReconnectDelay 秒重连一次，直到网络恢复、
+            // 隧道重新进入稳定状态（届时失败计数会被上方稳定路径清零）。
+            if failures == maxConsecutiveFailures {
+                logger.warning("""
+                    Port forward "\(ruleName)" failed to reconnect \(failures) times; \
+                    switching to silent slow retry.
                     """)
-                // 重置计数，用户手动重试或点击弹窗"重试"时从零重新计数。
-                consecutiveFailures[id] = 0
-                notifyReconnectFailed(ruleID: id, ruleName: ruleName)
-                return
             }
         }
 
-        // 固定间隔重连，不做指数退避。
-        logger.info("Restarting port forward \"\(ruleName)\" in \(Int(self.reconnectDelay)) seconds...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + reconnectDelay) { [weak self] in
+        // 快速重试阶段固定 reconnectDelay；连续失败达到阈值后转入慢速静默重试。
+        let failures = consecutiveFailures[id] ?? 0
+        let delay = failures >= maxConsecutiveFailures ? slowReconnectDelay : reconnectDelay
+        logger.info("Restarting port forward \"\(ruleName)\" in \(Int(delay)) seconds...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self else { return }
             guard self.rules.first(where: { $0.id == id }) != nil else { return }
             // 如果用户在等待期间点了停止，则不再重启。
@@ -598,32 +602,6 @@ class PortForwardStore: ObservableObject {
         }
         try? stdinPipe.fileHandleForWriting.close()
         return process.terminationStatus == 0 ? .ok : .refused
-    }
-
-    // MARK: - 失败通知
-
-    /// 连续重连失败后弹窗通知用户，可选择立即重试。
-    private func notifyReconnectFailed(ruleID: UUID, ruleName: String) {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = "Port Forwarding Failed".localized
-        alert.informativeText = L(
-            "Port forward \"%@\" disconnected and %d reconnection attempts all failed. Please check the network, server and port availability.\n\nLast log:\n%@",
-            ruleName,
-            maxConsecutiveFailures,
-            lastLogLines(path: logPath(for: ruleID), count: 8)
-        )
-        alert.addButton(withTitle: "Retry".localized)
-        alert.addButton(withTitle: "OK".localized)
-
-        let retry = { [weak self] in self?.startRule(ruleID) }
-        if let win = NSApp.keyWindow {
-            alert.beginSheetModal(for: win) { resp in
-                if resp == .alertFirstButtonReturn { retry() }
-            }
-        } else if alert.runModal() == .alertFirstButtonReturn {
-            retry()
-        }
     }
 
     // MARK: - Expect 脚本

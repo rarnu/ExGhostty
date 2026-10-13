@@ -21,6 +21,15 @@ final class ICloudSyncManager: ObservableObject {
     private var isSyncing = false
     private(set) var isImporting = false
 
+    /// 所有 iCloud Drive 文件操作在此串行队列执行。
+    ///
+    /// Mobile Documents 上的 fileExists / 属性读取 / Data(contentsOf:) 都可能
+    /// 触发 iCloud 守护进程通信甚至网络下载，耗时可达数秒——这些操作曾在
+    /// 主线程执行（30 秒轮询 + 配置变更触发），表现为鼠标变"等待"样式、
+    /// 切换标签时界面短暂消失。真正的同步逻辑一律在后台跑，主线程只做
+    /// store 数据快照与导入落库。
+    private let syncQueue = DispatchQueue(label: "com.xjai.exghostty.icloud-sync", qos: .utility)
+
     /// 每类配置的本地最后修改时间（真实修改时间，关闭同步期间也会记录）。
     private var lastLocalChange: [SyncCategory: Date] = [:]
 
@@ -120,8 +129,19 @@ final class ICloudSyncManager: ObservableObject {
     // MARK: - 公开接口
 
     /// 立即执行一次完整同步。
+    ///
+    /// 主线程上只做状态检查与派发，真正的文件操作在 syncQueue 上执行
+    /// （见 syncQueue 的注释）。
     @MainActor func sync() {
-        guard isEnabled, !isSyncing else { return }
+        guard isEnabled else { return }
+        syncQueue.async { [weak self] in
+            self?.performSync()
+        }
+    }
+
+    /// 同步主体，必须在 syncQueue 上调用。
+    private func performSync() {
+        guard !isSyncing else { return }
         guard iCloudDriveAvailable() else {
             logger.info("iCloud Drive is not available, skipping sync")
             return
@@ -144,10 +164,14 @@ final class ICloudSyncManager: ObservableObject {
     /// 无论同步是否开启，都会记录该类的本地最后修改时间，
     /// 以便之后开启同步时能按真实修改时间比较新旧。
     @MainActor func localDidChange(category: SyncCategory) {
-        lastLocalChange[category] = Date()
-        persistLastLocalChange()
-        guard isEnabled else { return }
-        sync()
+        let enabled = isEnabled
+        // lastLocalChange 与同步主体共享 syncQueue 线程域，避免主线程/后台竞争。
+        syncQueue.async { [weak self] in
+            guard let self else { return }
+            self.lastLocalChange[category] = Date()
+            self.persistLastLocalChange()
+            if enabled { self.performSync() }
+        }
     }
 
     // MARK: - 文件路径
@@ -252,57 +276,82 @@ final class ICloudSyncManager: ObservableObject {
         case .config:
             // 配置文件本身即为本地镜像。
             break
-        case .ssh:
-            let payload = SSHSyncPayload(
-                connections: SSHStore.shared.connections,
-                groups: SSHStore.shared.groups
+        case .ssh, .portForward, .codeSnippet:
+            // store 是供 SwiftUI 使用的主线程对象：先在主线程快照并编码出 Data，
+            // 再在当前（后台）队列写文件。
+            let data: Data = try DispatchQueue.main.sync {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                encoder.dateEncodingStrategy = .iso8601
+                switch category {
+                case .config:
+                    return Data()
+                case .ssh:
+                    return try encoder.encode(SSHSyncPayload(
+                        connections: SSHStore.shared.connections,
+                        groups: SSHStore.shared.groups
+                    ))
+                case .portForward:
+                    return try encoder.encode(PortForwardStore.shared.rules)
+                case .codeSnippet:
+                    return try encoder.encode(CodeSnippetSyncPayload(
+                        categories: CodeSnippetStore.shared.categories,
+                        snippets: CodeSnippetStore.shared.snippets
+                    ))
+                }
+            }
+            try data.write(
+                to: localSyncDirectoryURL.appendingPathComponent(category.fileName),
+                options: .atomic
             )
-            try writeJSON(payload, to: localSyncDirectoryURL.appendingPathComponent(category.fileName))
-        case .portForward:
-            let payload = PortForwardStore.shared.rules
-            try writeJSON(payload, to: localSyncDirectoryURL.appendingPathComponent(category.fileName))
-        case .codeSnippet:
-            let payload = CodeSnippetSyncPayload(
-                categories: CodeSnippetStore.shared.categories,
-                snippets: CodeSnippetStore.shared.snippets
-            )
-            try writeJSON(payload, to: localSyncDirectoryURL.appendingPathComponent(category.fileName))
         }
     }
 
     // MARK: - 导入本地镜像
 
     private func importFromLocal(category: SyncCategory, sourceURL: URL) throws {
-        guard !isImporting else { return }
-        isImporting = true
-        defer { isImporting = false }
+        // 文件读取与 JSON 解码在当前（后台）队列执行——iCloud 占位文件的读取
+        // 可能触发网络下载；store 变更则回到主线程，并用 isImporting 阻断
+        // "导入 → save() → localDidChange → 再同步" 的回环。
+        let data = try Data(contentsOf: sourceURL)
 
         switch category {
         case .config:
-            (NSApp.delegate as? AppDelegate)?.ghostty.reloadConfig()
-        case .ssh:
-            let data = try Data(contentsOf: sourceURL)
-            let payload = try JSONDecoder().decode(SSHSyncPayload.self, from: data)
-            SSHStore.shared.connections = payload.connections
-            SSHStore.shared.groups = payload.groups
-            SSHStore.shared.save()
-        case .portForward:
-            let data = try Data(contentsOf: sourceURL)
-            let rules = try JSONDecoder().decode([PortForwardRule].self, from: data)
-            PortForwardStore.shared.rules = rules
-            PortForwardStore.shared.save()
-        case .codeSnippet:
-            let data = try Data(contentsOf: sourceURL)
-            let payload = try JSONDecoder().decode(CodeSnippetSyncPayload.self, from: data)
-            CodeSnippetStore.shared.categories = payload.categories
-            CodeSnippetStore.shared.snippets = payload.snippets
-
-            // 保证默认分类始终存在。
-            if !CodeSnippetStore.shared.categories.contains(where: { $0.name == "Default" }) {
-                CodeSnippetStore.shared.categories.insert(CodeSnippetCategory(name: "Default"), at: 0)
+            DispatchQueue.main.sync {
+                (NSApp.delegate as? AppDelegate)?.ghostty.reloadConfig()
             }
+        case .ssh:
+            let payload = try JSONDecoder().decode(SSHSyncPayload.self, from: data)
+            DispatchQueue.main.sync {
+                self.isImporting = true
+                defer { self.isImporting = false }
+                SSHStore.shared.connections = payload.connections
+                SSHStore.shared.groups = payload.groups
+                SSHStore.shared.save()
+            }
+        case .portForward:
+            let rules = try JSONDecoder().decode([PortForwardRule].self, from: data)
+            DispatchQueue.main.sync {
+                self.isImporting = true
+                defer { self.isImporting = false }
+                PortForwardStore.shared.rules = rules
+                PortForwardStore.shared.save()
+            }
+        case .codeSnippet:
+            let payload = try JSONDecoder().decode(CodeSnippetSyncPayload.self, from: data)
+            DispatchQueue.main.sync {
+                self.isImporting = true
+                defer { self.isImporting = false }
+                CodeSnippetStore.shared.categories = payload.categories
+                CodeSnippetStore.shared.snippets = payload.snippets
 
-            CodeSnippetStore.shared.save()
+                // 保证默认分类始终存在。
+                if !CodeSnippetStore.shared.categories.contains(where: { $0.name == "Default" }) {
+                    CodeSnippetStore.shared.categories.insert(CodeSnippetCategory(name: "Default"), at: 0)
+                }
+
+                CodeSnippetStore.shared.save()
+            }
         }
     }
 
@@ -336,14 +385,6 @@ final class ICloudSyncManager: ObservableObject {
             try FileManager.default.removeItem(at: destination)
         }
         try FileManager.default.copyItem(at: source, to: destination)
-    }
-
-    private func writeJSON<T: Encodable>(_ value: T, to url: URL) throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(value)
-        try data.write(to: url, options: .atomic)
     }
 
     private func parseBool(_ value: String?) -> Bool? {
