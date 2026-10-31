@@ -63,20 +63,99 @@ final class PortUsageStore: ObservableObject {
     }
 
     /// 结束占用进程：本地直接 kill，远程通过 SSH 执行 kill。
-    func kill(pid: Int32) async -> Bool {
+    ///
+    /// kill 前先校验 PID 对应的进程身份（命令行/进程名）与扫描时一致：
+    /// 面板有 5 秒自动刷新间隔，从扫描到用户确认执行的窗口期内，目标进程可能
+    /// 已退出且 PID 被系统复用，不校验会直接杀错进程（复用者可以是任意进程）。
+    /// 进程已退出视为成功（目标已达成）；身份不一致则放弃并返回失败。
+    func kill(entry: PortUsageEntry) async -> Bool {
+        let pid = entry.pid
         guard pid > 0 else { return false }
         if let connection {
             do {
                 _ = try await SSHCommandExecutor.shared.execute(
-                    remoteCommand: "kill -9 \(pid)",
+                    remoteCommand: Self.remoteVerifyAndKillScript(entry: entry),
                     connection: connection
                 )
                 return true
+            } catch let error as SSHCommandError {
+                // 退出码 3：进程在 kill 前已自行退出，视为成功。
+                if case .executionFailed(_, _, _, let status) = error, status == 3 {
+                    return true
+                }
+                return false
             } catch {
                 return false
             }
         }
-        return ProcessInspector.killProcess(pid: pid)
+        switch verifyLocalIdentity(of: entry) {
+        case .match:
+            return ProcessInspector.killProcess(pid: pid)
+        case .gone:
+            return true
+        case .mismatch:
+            return false
+        }
+    }
+
+    /// 进程身份校验结果。
+    private enum IdentityCheck {
+        case match, mismatch, gone
+    }
+
+    /// 远程「校验后 kill」脚本。退出码：0=已 kill；1=身份不一致，未执行 kill；
+    /// 3=进程已不存在。身份比对：命令行完全匹配优先（与扫描同源，均为 ps args），
+    /// 不匹配时回退进程名比对——容忍 lsof（约 9 字符）与 ps comm（约 15 字符）
+    /// 的截断差异，并覆盖 postgres 等运行期重写 argv 的进程。
+    private static func remoteVerifyAndKillScript(entry: PortUsageEntry) -> String {
+        let pid = entry.pid
+        let expectedArgs = entry.commandLine
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .singleQuotedShellArgument()
+        let expectedName = entry.processName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .singleQuotedShellArgument()
+        return """
+        p=\(pid)
+        ps -p "$p" >/dev/null 2>&1 || exit 3
+        a=$(ps -p "$p" -o args= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        ea=\(expectedArgs)
+        if [ -n "$ea" ] && [ "$a" = "$ea" ]; then kill -9 "$p"; exit $?; fi
+        c=$(ps -p "$p" -o comm= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        en=\(expectedName)
+        if [ -n "$c" ] && [ -n "$en" ]; then
+          [ "$c" = "$en" ] && { kill -9 "$p"; exit $?; }
+          case "$c" in "$en"*) kill -9 "$p"; exit $?;; esac
+          case "$en" in "$c"*) kill -9 "$p"; exit $?;; esac
+        fi
+        exit 1
+        """
+    }
+
+    /// 本地 kill 前的进程身份校验（与远程同一策略，本机直接跑 ps）。
+    private func verifyLocalIdentity(of entry: PortUsageEntry) -> IdentityCheck {
+        let pid = entry.pid
+        guard let args = Self.runProcess(
+            executable: "/bin/ps",
+            arguments: ["-p", "\(pid)", "-o", "args="]
+        ) else {
+            // ps 失败按进程已不存在处理不成立（可能是 ps 自身问题），保守放弃。
+            return .mismatch
+        }
+        let currentArgs = args.trimmingCharacters(in: .whitespacesAndNewlines)
+        if currentArgs.isEmpty { return .gone }
+        let expectedArgs = entry.commandLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !expectedArgs.isEmpty, currentArgs == expectedArgs { return .match }
+        let comm = (Self.runProcess(
+            executable: "/bin/ps",
+            arguments: ["-p", "\(pid)", "-o", "comm="]
+        ) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let expectedName = entry.processName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !comm.isEmpty, !expectedName.isEmpty,
+           comm == expectedName || comm.hasPrefix(expectedName) || expectedName.hasPrefix(comm) {
+            return .match
+        }
+        return .mismatch
     }
 
     // MARK: - 扫描
@@ -403,7 +482,7 @@ struct PortUsagePanelView: View {
 
             let proceed = {
                 Task {
-                    let killed = await self.store.kill(pid: entry.pid)
+                    let killed = await self.store.kill(entry: entry)
                     if !killed {
                         self.showKillFailedAlert(entry)
                     }

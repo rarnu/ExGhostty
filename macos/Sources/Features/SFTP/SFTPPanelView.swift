@@ -16,6 +16,26 @@ final class SFTPPanelViewModel: ObservableObject {
     @Published var selectedItems: Set<UUID> = []
     @Published var activeUploadCount: Int = 0
     @Published var activeDownloadCount: Int = 0
+    /// 文件名模糊过滤输入；空串表示不过滤。
+    @Published var filterText: String = ""
+
+    /// 按 filterText 模糊过滤后的条目；过滤只影响展示，不影响选中集合。
+    var filteredItems: [SFTPFileItem] {
+        let query = filterText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return items }
+        return items.filter { Self.fuzzyMatch(query: query, name: $0.name) }
+    }
+
+    /// 模糊匹配：query 的全部字符按顺序出现在 name 中即命中（大小写不敏感），
+    /// 例如 "fb" 可匹配 "fooBar.txt"。
+    static func fuzzyMatch(query: String, name: String) -> Bool {
+        let q = Array(query.lowercased())
+        var i = 0
+        for c in name.lowercased() where i < q.count {
+            if c == q[i] { i += 1 }
+        }
+        return i == q.count
+    }
     /// 上一级目录对当前用户是否可写，决定是否显示"移动到上一级"菜单项。
     @Published var parentIsWritable: Bool = false
     weak var taskListWindowController: SFTPTaskListWindowController?
@@ -367,10 +387,11 @@ final class SFTPPanelViewModel: ObservableObject {
             }
         } else if modifiers.contains(.shift),
                   let anchor = lastSelectedID,
-                  let anchorIndex = items.firstIndex(where: { $0.id == anchor }),
-                  let targetIndex = items.firstIndex(where: { $0.id == item.id }) {
+                  let anchorIndex = filteredItems.firstIndex(where: { $0.id == anchor }),
+                  let targetIndex = filteredItems.firstIndex(where: { $0.id == item.id }) {
+            // 范围选择以当前可见（过滤后）列表为准，避免把被过滤隐藏的条目选进来。
             let range = min(anchorIndex, targetIndex)...max(anchorIndex, targetIndex)
-            selectedItems = Set(items[range].map { $0.id })
+            selectedItems = Set(filteredItems[range].map { $0.id })
         } else {
             selectedItems = [item.id]
         }
@@ -782,6 +803,7 @@ struct SFTPPanelView: View {
         VStack(spacing: 0) {
             pathBar
             toolbar
+            filterBar
             taskStatusBar
             fileList
         }
@@ -863,6 +885,35 @@ struct SFTPPanelView: View {
         .help(label)
     }
 
+    // MARK: - 过滤输入框
+
+    /// 文件名模糊过滤框：输入时实时过滤文件列表，右侧按钮一键清空。
+    private var filterBar: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11))
+                .foregroundColor(appTheme.secondaryForeground)
+            TextField("Search by keyword".localized, text: $viewModel.filterText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+            if !viewModel.filterText.isEmpty {
+                Button(action: { viewModel.filterText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(appTheme.secondaryForeground)
+                }
+                .buttonStyle(.plain)
+                .help("Clear Search".localized)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(appTheme.controlBackground.opacity(0.6))
+        .cornerRadius(6)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+
     // MARK: - 任务状态栏
 
     private var taskStatusBar: some View {
@@ -907,7 +958,7 @@ struct SFTPPanelView: View {
                 // 选择逻辑由 handleRowClick 手动实现。
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(viewModel.items) { item in
+                        ForEach(viewModel.filteredItems) { item in
                             fileRow(item: item)
                                 .contextMenu {
                                     downloadContextMenu(item: item)

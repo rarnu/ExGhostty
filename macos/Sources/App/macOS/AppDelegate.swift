@@ -499,7 +499,14 @@ class AppDelegate: NSObject,
         guard openTerminalWindows.remove(ObjectIdentifier(window)) != nil else { return }
         guard !isTerminating else { return }
         guard openTerminalWindows.isEmpty else { return }
-        NSApp.terminate(nil)
+        // 竞态防护：新终端窗口可能正在创建中（ghosttyTerminalWindowDidLoad 尚未发出），
+        // 立即 terminate 会把正在加载的窗口连同所有会话一起杀掉（表现为"闪退"）。
+        // 延迟到下一事件循环再确认；期间若有新窗口完成加载（集合重新非空）则放弃退出。
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isTerminating else { return }
+            guard self.openTerminalWindows.isEmpty else { return }
+            NSApp.terminate(nil)
+        }
     }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {

@@ -616,6 +616,12 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
 
     /// 窗口整体 resize 时保持固定宽度区域不变，只调整可伸缩区域。
     func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
+        // 窗口/标签拆除过程中 resize 回调仍可能被触发，此时 subviews 可能
+        // 尚未补齐或已被移除，直接下标访问会崩溃；交给默认布局处理。
+        guard splitView.subviews.count >= 2 else {
+            splitView.adjustSubviews()
+            return
+        }
         let newBounds = splitView.bounds
         let dividerThickness = splitView.dividerThickness
 
@@ -670,6 +676,8 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
     /// 用户拖动 divider 时同步更新记录的面板宽度。
     func splitViewDidResizeSubviews(_ notification: Notification) {
         guard let resizedSplitView = notification.object as? NSSplitView else { return }
+        // 拆除过程中的回调可能遇到不完整的 subviews，直接跳过。
+        guard resizedSplitView.subviews.count >= 2 else { return }
 
         if resizedSplitView === functionTerminalSplitView {
             guard functionPanelVisible else { return }

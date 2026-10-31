@@ -53,6 +53,15 @@ pub fn init(gpa: Allocator) !void {
     // Not supported on Windows currently, doesn't build.
     if (comptime builtin.os.tag == .windows) return;
 
+    // 本应用从未配置 Sentry DSN（代码里没有 set_dsn，只能靠 SENTRY_DSN 环境变量）。
+    // 空 DSN 时 sentry 初始化有两大副作用而零收益：
+    // 1. crashpad 占用进程的 Mach 异常端口，macOS 的 ReportCrash 不再生成
+    //    .ips 崩溃报告，本地排查闪退完全没有堆栈可用；
+    // 2. 原生日志打到 stderr，在终端/CLI 场景打印 [sentry] 噪音。
+    // 因此没有 DSN 时直接跳过初始化。init_thread 保持 null，deinit 会自然跳过。
+    const dsn = std.posix.getenv("SENTRY_DSN") orelse "";
+    if (dsn.len == 0) return;
+
     // const start = try std.time.Instant.now();
     // const start_micro = std.time.microTimestamp();
     // defer {
