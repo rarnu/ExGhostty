@@ -258,8 +258,12 @@ final class SettingsModel: ObservableObject {
     @Published var macosShortcuts: SettingsMacShortcuts = .ask
 
     // Terminal
-    @Published var term: String = "xterm-ghostty"
+    @Published var term: String = SettingsModel.defaultTerm
     @Published var asyncBackend: SettingsAsyncBackend = .auto
+
+    /// Term 设置的默认值与预设下拉项；下拉框可编辑，用户可输入任意自定义值。
+    static let defaultTerm = "xterm-256color"
+    static let termPresets = ["xterm-256color", "xterm-16color", "xterm"]
 
     // Keybind
     @Published var keybinds: [String: String] = [:]
@@ -352,7 +356,7 @@ final class SettingsModel: ObservableObject {
             macosAppleScript = parseBool(writer.firstValue(for: "macos-applescript")) ?? true
             macosShortcuts = writer.firstValue(for: "macos-shortcuts").flatMap(SettingsMacShortcuts.init(rawValue:)) ?? SettingsMacShortcuts(rawValue: config.macosShortcuts.rawValue) ?? .ask
 
-            term = writer.firstValue(for: "term") ?? "xterm-ghostty"
+            term = writer.firstValue(for: "term") ?? Self.defaultTerm
             asyncBackend = writer.firstValue(for: "async-backend").flatMap(SettingsAsyncBackend.init(rawValue:)) ?? .auto
 
             var binds: [String: String] = [:]
@@ -1080,9 +1084,8 @@ struct SettingsView: View {
             sectionHeader("Terminal")
 
             settingsRow(label: "Term".localized) {
-                TextField("", text: $model.term)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 200)
+                EditableComboBox(text: $model.term, options: SettingsModel.termPresets)
+                    .frame(width: 200, height: 22)
             }
 
             settingsRow(label: "Async Backend".localized) {
@@ -1632,6 +1635,58 @@ extension SettingsAsyncBackend {
         case .auto: return "Auto".localized
         case .epoll: return "epoll".localized
         case .io_uring: return "I/O Uring".localized
+        }
+    }
+}
+
+/// 可编辑下拉框（NSComboBox 的 SwiftUI 封装）：既可从预设项中选择，也可直接输入自定义值。
+struct EditableComboBox: NSViewRepresentable {
+    @Binding var text: String
+    let options: [String]
+
+    func makeNSView(context: Context) -> NSComboBox {
+        let combo = NSComboBox()
+        combo.usesDataSource = false
+        combo.addItems(withObjectValues: options)
+        combo.stringValue = text
+        combo.delegate = context.coordinator
+        combo.target = context.coordinator
+        combo.action = #selector(Coordinator.comboSelectionChanged(_:))
+        return combo
+    }
+
+    func updateNSView(_ nsView: NSComboBox, context: Context) {
+        if nsView.stringValue != text {
+            nsView.stringValue = text
+        }
+        // 预设项变化时刷新下拉内容（本场景为静态列表，防御性处理）。
+        let current = (0..<nsView.numberOfItems).compactMap { nsView.itemObjectValue(at: $0) as? String }
+        if current != options {
+            nsView.removeAllItems()
+            nsView.addItems(withObjectValues: options)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    final class Coordinator: NSObject, NSComboBoxDelegate {
+        private let parent: EditableComboBox
+
+        init(_ parent: EditableComboBox) {
+            self.parent = parent
+        }
+
+        /// 下拉选择某项时同步。
+        @objc func comboSelectionChanged(_ sender: NSComboBox) {
+            parent.text = sender.stringValue
+        }
+
+        /// 直接编辑文本时同步。
+        func controlTextDidChange(_ obj: Notification) {
+            guard let combo = obj.object as? NSComboBox else { return }
+            parent.text = combo.stringValue
         }
     }
 }
