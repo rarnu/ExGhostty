@@ -61,12 +61,16 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         }
     }
 
-    private var _collapsed: Bool = false
+    /// 左侧栏展开/收起状态持久化键（UserDefaults.ghostty）。
+    private static let collapsedDefaultsKey = "sidebar-collapsed"
+
+    private var _collapsed: Bool = UserDefaults.ghostty.bool(forKey: SidebarSplitViewController.collapsedDefaultsKey)
     var collapsed: Bool {
         get { _collapsed }
         set {
             guard _collapsed != newValue else { return }
             _collapsed = newValue
+            UserDefaults.ghostty.set(newValue, forKey: SidebarSplitViewController.collapsedDefaultsKey)
             updateSidebarWidth()
             rebuildSidebarView()
         }
@@ -116,7 +120,7 @@ class SidebarSplitViewController: NSViewController, NSSplitViewDelegate {
         let sidebarBackgroundColor = theme.sidebarBackgroundNS
 
         let initialSidebar = SidebarView(
-            collapsed: false,
+            collapsed: UserDefaults.ghostty.bool(forKey: Self.collapsedDefaultsKey),
             backgroundColor: sidebarBackgroundColor,
             onToggleCollapse: nil,
             onNewLocalTerminal: nil,
